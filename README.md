@@ -2,8 +2,7 @@
 
 Tooling to simplify the creation and use of data driven simulators using supervised learning in conjunction with Project Bonsai. 
 
-> DISCLAIMER: This application is considered experimental and NOT an official Microsoft Bonsai tool. Use as one likes, feel free to submit PRs with fixes and small enhancements. We DO expect this to be replaced by in-product features of Microsoft Bonsai in the next few months, so we DO NOT encourage major contributions. 
-
+>🚩 Disclaimer: This is not an official Microsoft product. This application is considered an experimental addition to Microsoft Project Bonsai's software toolchain. It's primary goal is to reduce barriers of entry to use Project Bonsai's core Machine Teaching. Pull requests for fixes and small enhancements are welcome, but we do expect this to be replaced by out-of-the-box features of Project Bonsai in the near future.
 
 ## Dependencies
 ```bash
