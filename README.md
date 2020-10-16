@@ -114,9 +114,17 @@ predictor = ModelPredictor(
 
 Calculate next state as a function of current state and current action. IMPORTANT: input state and action are arrays. You need to convert brain action, i.e. dictionary, to an array before feeding into the predictor class. 
 
-```bash
+```python
 next_state = predictor.predict(action=action, state=state)
 ```
+
+The thing to watch out for with datadriven simulators is one can trust the approximations when the feature inputs are not within the range it was trained on, i.e. you may get erroneous results. One can optionally evaluate if this occurs by using the `warn_limitation()` functionality. 
+
+```python
+features = np.concatenate([state, action]
+predictor.warn_limitation(features)
+```
+> Sim should not be necessarily trusted since predicting with the feature Vm outside of range it was trained on, i.e. extrapolating.
 
 `Step 5.` Train with Bonsai
 
