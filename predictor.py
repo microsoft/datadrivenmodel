@@ -56,15 +56,18 @@ class ModelPredictor():
         else:
             self.state = np.random.uniform(low=-1, high=1, size=(self.state_space_dim,))
         return self.state
-    
+
     def reset_state(self, config):
         if self.modeltype=='lstm':
             print("Not supported")
             exit()
         else:
-            self.state = np.array([config["theta"], config["alpha"], config["theta_dot"], config["alpha_dot"]])
-        return self.state
-
+            self.state = []
+            for key, value in self.model_config['IO']['feature_name'].items():
+                if value == 'state':
+                    self.state.append(config[key]) # Ensure scenario has same order and key name
+        return np.array(self.state)
+    
     def reset_lstm_action_history_zero(self):
         self.action_history=deque(np.zeros(shape=(self.markovian_order*self.action_space_dim,)),maxlen=self.markovian_order*self.action_space_dim)
         return self.action_history
@@ -129,7 +132,10 @@ class ModelPredictor():
 
     def warn_limitation(self, features):
         i = 0
+        num_tripped = 0
         for key, value in self.model_config['IO']['feature_name'].items():
             if features[i] > self.model_limits[key]['max'] or features[i] < self.model_limits[key]['min']:
-                print('Model should not be necessarily trusted since predicting with the feature {} outside of range it was trained on, i.e. extrapolating.'.format(key))
+                print('Sim should not be necessarily trusted since predicting with the feature {} outside of range it was trained on, i.e. extrapolating.'.format(key))
+                num_tripped += 1
             i += 1
+        return num_tripped
