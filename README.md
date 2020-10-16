@@ -144,6 +144,8 @@ lesson `Start Inverted` {
 }
 ```
 
+> Ensure the SimConfig in Inkling matches the names of the headers in the `config_model.yml` to allow `train_bonsai_main.py` to work.
+
 ```bash
 python train_bonsai_main.py --workspace <workspace-id> --accesskey <accesskey>
 ```
