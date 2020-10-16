@@ -33,8 +33,8 @@ import pdb
 parser = argparse.ArgumentParser()
 parser.add_argument("--tune-rs", type=bool, default=False, help="uses random search from scikitlearn for hyperparameter tuning")
 
-def csv_to_pickle():
-    logdf = pd.read_csv('example_data.csv')
+def csv_to_pickle(csvfile):
+    logdf = pd.read_csv(csvfile)
     logdf = logdf.dropna()
     
     with open('config/config_model.yml') as cmfile:
@@ -149,7 +149,7 @@ if __name__=="__main__":
         print('Path not working yet...')
         exit()
     else:
-        csv_to_pickle()
+        csv_to_pickle(config['DATA']['path'])
     x_set, y_set=read_env_data()
 
     if config['MODEL']['type'] == 'nn':

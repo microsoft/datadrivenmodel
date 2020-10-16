@@ -108,7 +108,7 @@ class TemplateSimulatorSession():
 
         self.state = self.predictor.predict(
             state=self.state,
-            action=a,
+            action=self.action,
         )
 
     def halted(self) -> bool:
@@ -116,8 +116,8 @@ class TemplateSimulatorSession():
         features = np.concatenate([self.state, self.action])
         num_tripped = self.predictor.warn_limitation(features)
         
-        #if num_tripped > 0:
-        #    return True
+        if num_tripped > 0:
+            return True
 
         return False
 
@@ -183,7 +183,6 @@ def main():
             session_id=registered_session.session_id
         )
         print("Unregistered simulator.")
-    '''
     except Exception as err:
         # Gracefully unregister for any other exceptions
         client.session.delete(
@@ -191,8 +190,6 @@ def main():
             session_id=registered_session.session_id
         )
         print("Unregistered simulator because: {}".format(err))
-    '''
-
 
 if __name__ == "__main__":
     main()

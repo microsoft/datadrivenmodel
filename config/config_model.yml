@@ -1,3 +1,6 @@
+# Define csv file path to train a simulator with
+DATA:
+  path: example_data.csv
 # Define the inputs and outputs of datadriven simulator
 IO:
   feature_name:
@@ -13,7 +16,7 @@ IO:
     - alpha_dot
 # Select the model type gb, poly, nn, or lstm
 MODEL:
-  type: nn
+  type: gb
 # Polynomial Regression hyperparameters
 POLY:
   degree: 1
