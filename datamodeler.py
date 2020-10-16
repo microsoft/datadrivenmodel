@@ -27,10 +27,57 @@ import pickle
 from sklearn import preprocessing
 from sklearn.ensemble import GradientBoostingRegressor
 import yaml
+import pandas as pd
+import pdb
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--tune-rs", type=bool, default=False, help="uses random search from scikitlearn for hyperparameter tuning")
 
+def csv_to_pickle():
+    logdf = pd.read_csv('example_data.csv')
+    logdf = logdf.dropna()
+    
+    with open('config/config_model.yml') as cmfile:
+        config = yaml.full_load(cmfile)
+
+    state_key_list = []
+    action_key_list = []
+    for key, value in config['IO']['feature_name'].items():
+        if value == 'state':
+            state_key_list.append(key)
+        elif value == 'action':
+            action_key_list.append(key)
+        else:
+            print('Please fix config_model.yml to specify either state or action')
+            exit()
+
+    states = logdf[state_key_list]
+    actions = logdf[action_key_list]
+
+    states_t = states.iloc[0:-1]
+    states_tplus1 = states.iloc[1:]
+    len(states_t)
+    len(states_tplus1)
+    actions_t = actions.iloc[0:-1]
+    frames = [states_t, actions_t]
+    x_set_df = pd.concat(frames, axis=1)
+    y_set_df = states_tplus1
+
+    # For creating model limitations
+    x_stats = x_set_df.describe().to_dict()
+
+    with open('config/model_limits.yml', 'w') as mlimfile:
+        stats = yaml.dump(x_stats, mlimfile)
+
+    x_set = x_set_df.to_numpy()
+    print('x_set_shape is', x_set.shape)
+    y_set = y_set_df.to_numpy()
+    print('y_set_shape is:', y_set.shape)
+
+    with open('./env_data/x_set.pickle', 'wb') as f:
+            pickle.dump(x_set, f, pickle.HIGHEST_PROTOCOL)
+    with open('./env_data/y_set.pickle', 'wb') as f:
+            pickle.dump(y_set, f, pickle.HIGHEST_PROTOCOL)
 
 def read_env_data():
     try:
@@ -98,6 +145,11 @@ if __name__=="__main__":
         "n_estimators":[50,100,200]
     }
 
+    if config['MODEL']['type'] == 'lstm':
+        print('Path not working yet...')
+        exit()
+    else:
+        csv_to_pickle()
     x_set, y_set=read_env_data()
 
     if config['MODEL']['type'] == 'nn':
