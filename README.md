@@ -34,8 +34,8 @@ Define the model type as either `gb, poly, nn, or lstm`. Depending on the specif
 
 ```YAML
 # Define csv file path to train a simulator with
-FILE:
-  - example_data.csv
+DATA:
+  path: example_data.csv
 # Define the inputs and outputs of datadriven simulator
 IO:
   feature_name:
