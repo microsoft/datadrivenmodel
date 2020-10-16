@@ -1,0 +1,47 @@
+# Define the inputs and outputs of datadriven simulator
+IO:
+  feature_name:
+    theta: state
+    alpha: state
+    theta_dot: state
+    alpha_dot: state
+    Vm: action
+  output_name:
+    - theta
+    - alpha
+    - theta_dot
+    - alpha_dot
+# Select the model type gb, poly, nn, or lstm
+MODEL:
+  type: nn
+# Polynomial Regression hyperparameters
+POLY:
+  degree: 1
+# Gradient Boost hyperparameters
+GB:
+  n_estimators: 100
+  lr: 0.1
+  max_depth: 3
+# MLP Neural Network hyperparameters
+NN:
+  epochs: 100
+  batch_size: 512
+  activation: linear
+  n_layer: 5
+  n_neuron: 12
+  lr: 0.00001
+  decay: 0.0000003
+  dropout: 0.5
+# LSTM Neural Network hyperparameters
+LSTM:
+  epochs: 100
+  batch_size: 512
+  activation: linear
+  num_hidden_layer: 5
+  n_neuron: 12
+  lr: 0.00001
+  decay: 0.0000003
+  dropout: 0.5
+  markovian_order: 2
+  num_lstm_units: 10
+
