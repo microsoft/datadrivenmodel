@@ -28,10 +28,10 @@ from sklearn import preprocessing
 from sklearn.ensemble import GradientBoostingRegressor
 import yaml
 import pandas as pd
-import pdb
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--tune-rs", type=bool, default=False, help="uses random search from scikitlearn for hyperparameter tuning")
+parser.add_argument("--pickle", type=str, default=None, help="Point to pickle file directly as input instead of csv")
 
 def csv_to_pickle(csvfile):
     logdf = pd.read_csv(csvfile)
@@ -112,45 +112,52 @@ if __name__=="__main__":
     markovian_order=int(config['LSTM']['markovian_order'])
 
     randomsearch_dist_lstm = {
-        "activation": ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear'],
-        "dropout_rate": [0,0.1,0.5],
-        "num_neurons": np.random.randint(2, 11, size=1),
-        "num_hidden_layers": np.random.randint(2,11, size=1),
-        "learning_rate": np.random.choice([10**-1,10**-3], size=1),
-        "num_lstm_units":np.random.randint(2,101,size=1),
-        "decay": np.random.uniform(10**-3,10**-9, size=1),
+        "activation": config['RSLSTM']['activation'],
+        "dropout_rate": config['RSLSTM']['dropout_rate'],
+        "num_neurons": np.random.randint(config['RSLSTM']['num_neurons']['min'], config['RSLSTM']['num_neurons']['max'], size=1),
+        "num_hidden_layers": np.random.randint(config['RSLSTM']['num_hidden_layers']['min'], config['RSLSTM']['num_hidden_layers']['max'], size=1),
+        "learning_rate": np.random.choice([config['RSLSTM']['learning_rate']['min'], config['RSLSTM']['learning_rate']['max']], size=1),
+        "decay": np.random.uniform(config['RSLSTM']['decay']['min'], config['RSLSTM']['decay']['max'], size=1),
+        "num_lstm_units":np.random.randint(config['RSLSTM']['num_lstm_units']['min'], config['RSLSTM']['num_lstm_units']['max'], size=1),
         "markovian_order":[markovian_order],
         "state_space_dim":[state_space_dim],
         "action_space_dim":[action_space_dim]}
 
     random_search_nn = {
-        "activation": ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear'],
-        "dropout_rate": [0,0.1,0.5],
-        "num_neurons": np.random.randint(2, 30, size=1),
-        "num_hidden_layers": np.random.randint(2,20, size=1),
-        "learning_rate": np.random.choice([10**-1,10**-3], size=1),
-        "decay": np.random.uniform(10**-3,10**-9, size=1),
+        "activation": config['RSNN']['activation'],
+        "dropout_rate": config['RSNN']['dropout_rate'],
+        "num_neurons": np.random.randint(config['RSNN']['num_neurons']['min'], config['RSNN']['num_neurons']['max'], size=1),
+        "num_hidden_layers": np.random.randint(config['RSNN']['num_hidden_layers']['min'], config['RSNN']['num_hidden_layers']['max'], size=1),
+        "learning_rate": np.random.choice([config['RSNN']['learning_rate']['min'], config['RSNN']['learning_rate']['max']], size=1),
+        "decay": np.random.uniform(config['RSNN']['decay']['min'], config['RSNN']['decay']['max'], size=1),
         "state_space_dim":[state_space_dim],
         "action_space_dim":[action_space_dim]}
-
+    
     random_search_gb={
-        "loss":["ls", "lad", "huber"],
-        "learning_rate": [0.01, 0.05, 0.1, 0.15, 0.2],
-        "min_samples_split": [2,10] ,#np.linspace(0.1, 0.5, 10),
-        "min_samples_leaf": [1,2,10] ,#np.linspace(0.1 0.5, 10),
-        "max_depth":[3,5],
-        "max_features":["log2","sqrt"],
-        "criterion": ["friedman_mse",  "mae"],
-        "subsample":[0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 1.0,1.0,1.0],
-        "n_estimators":[50,100,200]
+        "loss": config['RSGB']['loss'],
+        "learning_rate": config['RSGB']['learning_rate'],
+        "min_samples_split": config['RSGB']['min_samples_split'],
+        "min_samples_leaf": config['RSGB']['min_samples_leaf'],
+        "max_depth": config['RSGB']['max_depth'],
+        "max_features": config['RSGB']['max_features'],
+        "criterion": config['RSGB']['criterion'],
+        "subsample": config['RSGB']['subsample'],
+        "n_estimators": config['RSGB']['n_estimators'],
     }
 
-    if config['MODEL']['type'] == 'lstm':
-        print('Path not working yet...')
-        exit()
+    if args.pickle is not None:
+        with open(args.pickle+'/x_set.pickle', 'rb') as f:
+            x_set = pickle.load(f)
+        with open(args.pickle+'/y_set.pickle', 'rb') as f:
+            y_set = pickle.load(f)
     else:
-        csv_to_pickle(config['DATA']['path'])
-    x_set, y_set=read_env_data()
+        if config['MODEL']['type'] == 'lstm':
+            print('Path not working yet...')
+            exit()
+        else:
+            csv_to_pickle(config['DATA']['path'])
+        x_set, y_set=read_env_data()
+
 
     if config['MODEL']['type'] == 'nn':
         scaler_x_set=preprocessing.MinMaxScaler(feature_range=(-1,1)).fit(x_set)

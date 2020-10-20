@@ -150,6 +150,27 @@ lesson `Start Inverted` {
 python train_bonsai_main.py --workspace <workspace-id> --accesskey <accesskey>
 ```
 
+## Optional Flags
+
+### Use pickle instead of csv as data input
+
+Name your dataset as `x_set.pickle` and `y_set.pickle`. 
+
+```bash
+python datamodeler.py --pickle <foldername>
+```
+
+For example one might use a `<foldername>` of `env_data`. 
+
+### Hyperparameter tuning
+
+Gradient Boost should not require much tuning at all. Polynomial Regression may benefit from changing the order. Neural Networks, however, may require significant hyperparameter tuning. Use the flag to use the specified ranges in the `model_config.yml` file to randomly search.
+
+```bash
+python datamodeler.py --tune-rs=True
+```
+
+
 ## Data Cleaning
 
 This helps in removing the Outliers and NaNs in the data. Outlier detection algorithm fits y_set as a function of x_set, and if the prediction by the model is far away from the actual value then we define the point as outlier

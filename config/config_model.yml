@@ -47,4 +47,103 @@ LSTM:
   dropout: 0.5
   markovian_order: 2
   num_lstm_units: 10
+  # Random Search Gradient Boost
+RSGB:
+  loss:
+    - ls
+    - lad
+    - huber
+  learning_rate:
+    - 0.01
+    - 0.05
+    - 0.1
+    - 0.15
+    - 0.2
+  min_samples_split:
+    - 2
+    - 10
+  min_samples_leaf: 
+    - 1
+    - 2
+    - 10
+  max_depth:
+    - 3
+    - 5
+  max_features:
+    - log2
+    - sqrt
+  criterion:
+    - friedman_mse
+    - mae
+  subsample:
+    - 0.5
+    - 0.6
+    - 0.8
+    - 0.85
+    - 0.9
+    - 0.95
+    - 1.0
+    - 1.0
+    - 1.0
+  n_estimators:
+    - 50
+    - 100
+    - 200
+  # Random Search Neural Network
+RSNN:
+  activation:
+    - softmax
+    - softplus
+    - softsign
+    - relu
+    - tanh
+    - sigmoid
+    - hard_sigmoid
+    - linear
+  dropout_rate: 
+    - 0
+    - 0.1
+    - 0.5
+  num_neurons:
+    min: 2
+    max: 30
+  num_hidden_layers:
+    min: 2
+    max: 20
+  learning_rate:
+    min: 0.01
+    max: 0.001
+  decay:
+    min: 0.001
+    max: 0.000000001
+  # Random Search LSTM
+RSLSTM:
+  activation:
+    - softmax
+    - softplus
+    - softsign
+    - relu
+    - tanh
+    - sigmoid
+    - hard_sigmoid
+    - linear
+  dropout_rate: 
+    - 0
+    - 0.1
+    - 0.5
+  num_neurons:
+    min: 2
+    max: 30
+  num_hidden_layers:
+    min: 2
+    max: 20
+  learning_rate:
+    min: 0.01
+    max: 0.001
+  decay:
+    min: 0.001
+    max: 0.000000001
+  num_lstm_units:
+    min: 2
+    max: 101
 
