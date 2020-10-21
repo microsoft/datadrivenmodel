@@ -5,11 +5,10 @@ from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn import linear_model
-from conf_params_var import STATE_SPACE_DIM, ACTION_SPACE_DIM
 
 class env_nn_modeler():
 
-    def __init__(self,state_space_dim=STATE_SPACE_DIM,action_space_dim=ACTION_SPACE_DIM):
+    def __init__(self,state_space_dim=None,action_space_dim=None):
         self.input_dim=int(state_space_dim+action_space_dim)
         self.output_dim=int(state_space_dim)
 
@@ -40,7 +39,7 @@ class env_nn_modeler():
 
 class env_lstm_modeler():
 
-    def __init__(self,state_space_dim=STATE_SPACE_DIM,action_space_dim=ACTION_SPACE_DIM):
+    def __init__(self,state_space_dim=None,action_space_dim=None):
         self.input_dim=int(state_space_dim+action_space_dim)
         self.output_dim=int(state_space_dim)
 
@@ -73,7 +72,7 @@ class env_lstm_modeler():
 
 class env_gb_modeler():
 
-    def __init__(self,state_space_dim=STATE_SPACE_DIM,action_space_dim=ACTION_SPACE_DIM):
+    def __init__(self,state_space_dim=None,action_space_dim=None):
         self.input_dim=int(state_space_dim+action_space_dim)
         self.output_dim=int(state_space_dim)
 
@@ -94,7 +93,7 @@ class env_gb_modeler():
 
 class env_poly_modeler():
 
-    def __init__(self,state_space_dim=STATE_SPACE_DIM,action_space_dim=ACTION_SPACE_DIM):
+    def __init__(self,state_space_dim=None,action_space_dim=None):
         self.input_dim=int(state_space_dim+action_space_dim)
         self.output_dim=int(state_space_dim)
 
@@ -122,7 +121,7 @@ class env_poly_modeler():
 
 
 
-def create_nn_model_wrapper(activation='relu',state_space_dim=STATE_SPACE_DIM,action_space_dim=ACTION_SPACE_DIM, dropout_rate=0.1, num_hidden_layers=2, \
+def create_nn_model_wrapper(activation='relu',state_space_dim=None,action_space_dim=None, dropout_rate=0.1, num_hidden_layers=2, \
     num_neurons=8, learning_rate=0.001, decay=10**-5):
 
     # input_dim=int(state_space_dim+action_space_dim)
@@ -146,7 +145,7 @@ def create_nn_model_wrapper(activation='relu',state_space_dim=STATE_SPACE_DIM,ac
 
 
 
-def create_lstm_model_wrapper(activation='relu',state_space_dim=STATE_SPACE_DIM,action_space_dim=ACTION_SPACE_DIM, \
+def create_lstm_model_wrapper(activation='relu',state_space_dim=None,action_space_dim=None, \
     dropout_rate=0.1, num_hidden_layers=2, num_neurons=8, \
         learning_rate=0.001, num_lstm_units=10, markovian_order=2, decay=10**-9):
 
