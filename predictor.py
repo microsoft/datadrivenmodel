@@ -3,7 +3,6 @@ import numpy as np
 from keras.models import load_model
 from collections import deque
 import yaml
-import pdb
 
 class ModelPredictor():
     def __init__(self, modeltype='gb', noise_percentage=0, action_space_dim=None, \
@@ -22,7 +21,7 @@ class ModelPredictor():
                 loaded_model=joblib.load(filename)
                 setattr(self,'model'+str(i),loaded_model)
         elif modeltype=='poly':
-            self.polydegree=joblib.load('./sim/datadrivenmodel/models/polydegree.sav')
+            self.polydegree=joblib.load('./models/polydegree.sav')
             print('poyl degree is :', self.polydegree)
             for i in range(0, self.state_space_dim):
                 filename='./models/polymodel'+str(i)+'.sav'

@@ -215,6 +215,12 @@ history state:  deque([0.6157155, 0.19910571, 0.15492792, 0.09268583, 0.33832170
 history action:  deque([0.83076303, -0.004065768182411825, -0.004065768182411825], maxlen=3)
 ```
 
+## Build Simulator Package
+
+```bash
+az acr build --image <IMAGE_NAME>:<IMAGE_VERSION> --file Dockerfile --registry <ACR_REGISTRY> .
+```
+
 ## Data Cleaning
 
 This helps in removing the Outliers and NaNs in the data. Outlier detection algorithm fits y_set as a function of x_set, and if the prediction by the model is far away from the actual value then we define the point as outlier
