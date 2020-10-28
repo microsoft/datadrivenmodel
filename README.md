@@ -230,8 +230,8 @@ This helps in removing the Outliers and NaNs in the data. Outlier detection algo
 Once the data is generated (in the same way as data generation process for datadriven modeling), we can detect outliers in the following way:
 
 ```bash 
->>> python checkDataQuality.py
->>> python checkDataQuality.py --thrhld 4
+python checkDataQuality.py
+python checkDataQuality.py --thrhld 4
 ```
 
 By default, outlier threshold is 3, it can be adjusted based on the data. 
@@ -245,7 +245,7 @@ This code helps in computing feature importance using gradient boosting trees.
 Once the data is generated (in the same way as data generation process for datadriven modeling), we can compute feature importance in the following way:
 
 ```bash 
->>> python featureImportance.py
+python featureImportance.py
 ```
 
 ## Contribute Code

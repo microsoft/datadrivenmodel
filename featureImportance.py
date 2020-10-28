@@ -7,12 +7,10 @@ from env_data_modeler import env_gb_modeler
 
 import argparse
 import pickle
-from conf_params_var import STATE_SPACE_DIM, ACTION_SPACE_DIM, FEATURE_NAME
-
+import yaml
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--widthbar", type=float, default=.5,help="choose width of the bars around")
-parser.add_argument("--featureNameProvided", type=bool, default=False,help="write xlabel name in conf_params_var.py")
 
 def read_env_data():
     try:
@@ -25,7 +23,7 @@ def read_env_data():
     return x_set, y_set
 
 
-def feature_plots(feature_data, total_width=0.5, featureNameProvided = False):
+def feature_plots(feature_data, total_width=0.5):
     fig, ax = plt.subplots()
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']  
@@ -43,8 +41,7 @@ def feature_plots(feature_data, total_width=0.5, featureNameProvided = False):
     plt.xlabel('Feature Number', fontsize=18)
     plt.ylabel('Feature Importance', fontsize=18)
 
-    if featureNameProvided == True:
-        plt.xticks(ticks=range(len(FEATURE_NAME)), labels=FEATURE_NAME)
+    plt.xticks(ticks=range(state_space_dim+action_space_dim), labels=config['IO']['feature_name'].keys())
     plt.show()
 
 
@@ -52,9 +49,19 @@ def feature_plots(feature_data, total_width=0.5, featureNameProvided = False):
 if __name__=="__main__":
     args=parser.parse_args()
 
-    state_space_dim=int(STATE_SPACE_DIM)
-    action_space_dim=int(ACTION_SPACE_DIM)
+    with open('config/config_model.yml') as cmfile:
+        config = yaml.full_load(cmfile)
 
+    state_space_dim = 0
+    action_space_dim = 0
+    for key, value in config['IO']['feature_name'].items():
+        if value == 'state':
+            state_space_dim += 1
+        elif value == 'action':
+            action_space_dim += 1
+        else:
+            print('Please fix config_model.yml to specify either state or action')
+            exit()
 
     x_set, y_set=read_env_data()
     x_train, x_test, y_train, y_test = train_test_split(x_set, y_set, test_size=0.33, random_state=42)
@@ -63,7 +70,7 @@ if __name__=="__main__":
     print('computing Feature Importance ....')
     feature_importance_data = {}
     for i in range (0, y_set.shape[1]):
-        gb_estimator=env_gb_modeler()
+        gb_estimator=env_gb_modeler(state_space_dim, action_space_dim)
         gb_estimator.create_gb_model()
         gb_model= gb_estimator.train_gb_model(x_train,y_train[:,i])
         feature_importance_data['y' + str(i)] = gb_model.feature_importances_
@@ -72,7 +79,7 @@ if __name__=="__main__":
     modelname='./models/feature_importance.sav'
     joblib.dump(feature_importance_data, modelname)
         
-    feature_plots(feature_importance_data, total_width= args.widthbar, featureNameProvided = args.featureNameProvided)
+    feature_plots(feature_importance_data, total_width=args.widthbar)
 
 
 
