@@ -3,6 +3,7 @@ import numpy as np
 from keras.models import load_model
 from collections import deque
 import yaml
+import pdb
 
 class ModelPredictor():
     def __init__(self, modeltype='gb', noise_percentage=0, action_space_dim=None, \
@@ -61,6 +62,24 @@ class ModelPredictor():
         if self.modeltype=='lstm':
             self.reset_lstm_action_history_zero()
             self.state = deque(np.zeros(shape=(self.markovian_order*self.state_space_dim,)), maxlen=self.markovian_order*self.state_space_dim)
+            
+            warmup_state = []
+            for key, value in self.model_config['IO']['feature_name'].items():
+                if value == 'state':
+                    warmup_state.append(config[key]) # Ensure scenario has same key name
+            
+            # Obtain mean actions, take them for m=markovian_order steps, populate history
+            warmup_action = []
+            for key, value in self.model_config['IO']['feature_name'].items():
+                if value == 'action':
+                    warmup_action.append(self.model_limits[key]['mean'])
+
+            for m in range(self.markovian_order-1):
+                s_ = self.predict(np.array(warmup_state), action=np.array(warmup_action))
+
+                for i in range(self.state_space_dim, 0, -1):
+                    self.state=deque(self.state, maxlen=self.markovian_order*self.state_space_dim)
+                    self.state.appendleft(s_[i-1])
         else:
             self.state = []
             for key, value in self.model_config['IO']['feature_name'].items():
