@@ -33,6 +33,7 @@ class env_nn_modeler():
     def evaluate_nn_model(self,x_test, y_test,batch_size=32):
         self.score=self.model.evaluate(x_test,y_test, batch_size=batch_size)
         return self.score
+
     def predict_nn_model(self, x_sample):
         self.prediction=self.model.predict(x_sample,batch_size=32)
         return self.prediction
@@ -44,7 +45,7 @@ class env_lstm_modeler():
         self.output_dim=int(state_space_dim)
 
     def create_model(self, config):
-        num_hidden_layers=config["n_hidden_layer"]
+        num_hidden_layers=config["num_hidden_layer"]
         learning_rate=config["lr"]
         self.model=Sequential()
         self.model.add(LSTM(units=config["num_lstm_units"],activation=config["activation"], input_shape=(config['markovian_order'], self.input_dim)))
@@ -64,6 +65,7 @@ class env_lstm_modeler():
     def evaluate_nn_model(self,x_test, y_test,batch_size=32):
         self.score=self.model.evaluate(x_test,y_test, batch_size=batch_size)
         return self.score
+
     def predict_nn_model(self, x_sample):
         self.prediction=self.model.predict(x_sample,batch_size=32)
         return self.prediction
@@ -87,6 +89,7 @@ class env_gb_modeler():
     def evaluate_gb_model(self,x_test, y_test):
         self.score=self.model.score(x_test,y_test)
         return self.score
+
     def predict_gb_model(self, x_sample):
         self.prediction=self.model.predict(x_sample)
         return self.prediction
@@ -112,6 +115,7 @@ class env_poly_modeler():
         x_test_transform=self.poly.fit_transform(x_test)
         self.score=self.model.score(x_test_transform,y_test)
         return self.score
+
     def predict_poly_model(self, x_sample):
         x_sample_transform=self.poly.fit_transform(x_sample)
         print(x_sample_transform)

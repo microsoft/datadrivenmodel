@@ -22,8 +22,6 @@ conda activate datadriven
 - smooth noisy data, get rid of outliers
 - remove NaN or SNA values. 
 
-> Note: LSTM will require three dimensional data, [sample, timestep, feature]
-
 Refer to later sections for help with checking data quality before using this tool.
 
 `Step 2.` Change the `config_model.yml` file in the `config/` folder
@@ -118,7 +116,7 @@ Calculate next state as a function of current state and current action. IMPORTAN
 next_state = predictor.predict(action=action, state=state)
 ```
 
-The thing to watch out for with datadriven simulators is one can trust the approximations when the feature inputs are not within the range it was trained on, i.e. you may get erroneous results. One can optionally evaluate if this occurs by using the `warn_limitation()` functionality. 
+The thing to watch out for with datadriven simulators is one cannot trust the approximations when the feature inputs are not within the range it was trained on, i.e. you may get erroneous results. One can optionally evaluate if this occurs by using the `warn_limitation()` functionality. 
 
 ```python
 features = np.concatenate([state, action]
@@ -139,7 +137,7 @@ lesson `Start Inverted` {
         alpha: number<-0.05 .. 0.05>,  # reset inverted
         theta_dot: number <-0.05 .. 0.05>,
         alpha_dot: number<-0.05 .. 0.05>,
-        noise_percentage: 0.05,
+        noise_percentage: 5,
     }
 }
 ```
@@ -170,6 +168,58 @@ Gradient Boost should not require much tuning at all. Polynomial Regression may 
 python datamodeler.py --tune-rs=True
 ```
 
+## LSTM
+
+After creating an LSTM model for your sim, you can use the predictor class in the same way as the other models. The predictor class initializes a sequence and will continue to stack a history of state transitions and pop off the oldest information. In order to maintain a sequence of valid distributions when starting a sim using the LSTM model, the predictor class takes a single timestep of initial conditions and will automatically step through the sim using the mean value of each of the actions captured from the data in `model_limits.yml`. 
+
+```python
+from predictor import ModelPredictor
+import numpy as np
+
+predictor = ModelPredictor(
+    modeltype="lstm",
+    noise_percentage=0,
+    state_space_dim=4,
+    action_space_dim=1,
+    markovian_order=3
+)
+
+config = {
+    'theta': 0.01,
+    'alpha': 0.02,
+    'theta_dot': 0.04,
+    'alpha_dot': 0.05,
+    'noise_percentage': 5,
+}
+
+predictor.reset_state(config)
+
+for i in range(1):
+    next_state = predictor.predict(
+        action=np.array([0.83076303]),
+        state=np.array(
+            [ 0.6157155  , 0.19910571 , 0.15492792 , 0.09268583]
+        )
+    )
+    print('next_state: ', next_state)
+
+print('history state: ', predictor.state)
+print('history action: ', predictor.action_history)
+```
+
+The code snippet using the LSTM results in the following history of states and actions. Take note that `reset_state(config)` will auto populate realistic trajectories for the sequence using the mean action. This means that the `0th` iteration of the simulation does not necessarily start where the user specified in the `config`. Continuing to `predict()` will step through the sim and maintain a history of the state transitions automatically for you, matching the sequence of information required for the LSTM. 
+
+```bash
+next_state:  [ 0.41453919  0.07664483 -0.13645072  0.81335021]
+history state:  deque([0.6157155, 0.19910571, 0.15492792, 0.09268583, 0.338321704451164, 0.018040116405597596, -0.5707406858943783, 0.3023940018967715, 0.01, 0.02, 0.04, 0.05], maxlen=12)
+history action:  deque([0.83076303, -0.004065768182411825, -0.004065768182411825], maxlen=3)
+```
+
+## Build Simulator Package
+
+```bash
+az acr build --image <IMAGE_NAME>:<IMAGE_VERSION> --file Dockerfile --registry <ACR_REGISTRY> .
+```
 
 ## Data Cleaning
 
