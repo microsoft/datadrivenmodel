@@ -22,8 +22,6 @@ conda activate datadriven
 - smooth noisy data, get rid of outliers
 - remove NaN or SNA values. 
 
-> Note: LSTM will require three dimensional data, [sample, timestep, feature]
-
 Refer to later sections for help with checking data quality before using this tool.
 
 `Step 2.` Change the `config_model.yml` file in the `config/` folder
@@ -118,7 +116,7 @@ Calculate next state as a function of current state and current action. IMPORTAN
 next_state = predictor.predict(action=action, state=state)
 ```
 
-The thing to watch out for with datadriven simulators is one can trust the approximations when the feature inputs are not within the range it was trained on, i.e. you may get erroneous results. One can optionally evaluate if this occurs by using the `warn_limitation()` functionality. 
+The thing to watch out for with datadriven simulators is one cannot trust the approximations when the feature inputs are not within the range it was trained on, i.e. you may get erroneous results. One can optionally evaluate if this occurs by using the `warn_limitation()` functionality. 
 
 ```python
 features = np.concatenate([state, action]
@@ -139,7 +137,7 @@ lesson `Start Inverted` {
         alpha: number<-0.05 .. 0.05>,  # reset inverted
         theta_dot: number <-0.05 .. 0.05>,
         alpha_dot: number<-0.05 .. 0.05>,
-        noise_percentage: 0.05,
+        noise_percentage: 5,
     }
 }
 ```
@@ -170,6 +168,9 @@ Gradient Boost should not require much tuning at all. Polynomial Regression may 
 python datamodeler.py --tune-rs=True
 ```
 
+## LSTM
+
+After creating an LSTM model for your sim, you can use the predictor class in the same way as the other models. The predictor class initializes a sequence and will continue to stack a history of state transitions and pop off the oldest information. 
 
 ## Data Cleaning
 

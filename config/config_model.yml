@@ -45,7 +45,7 @@ LSTM:
   lr: 0.00001
   decay: 0.0000003
   dropout: 0.5
-  markovian_order: 2
+  markovian_order: 3
   num_lstm_units: 10
   # Random Search Gradient Boost
 RSGB:

@@ -31,12 +31,12 @@ class ModelPredictor():
             self.model=load_model('./models/nnmodel.h5')
             self.scaler_x_set = joblib.load('./models/scaler_x_set.pkl')
             self.scaler_y_set = joblib.load('./models/scaler_y_set.pkl') 
-            print(self.model)
+            print(self.model.summary())
         elif modeltype=='lstm':
             self.model=load_model('./models/lstmmodel.h5')
-            self.scaler_x_set = joblib.load('./models/scaler_x_set.pkl')
-            self.scaler_y_set = joblib.load('./models/scaler_y_set.pkl') 
-            print(self.model)
+            self.scaler_x_set = joblib.load('./models/scaler_x_set_lstm.pkl')
+            self.scaler_y_set = joblib.load('./models/scaler_y_set_lstm.pkl') 
+            print(self.model.summary())
             #self.action_history_to_brain=self._generate_automated_actions_name()
         else:
             print('ERROR: you need to specify which data driven is being used!!!')
@@ -59,13 +59,13 @@ class ModelPredictor():
 
     def reset_state(self, config):
         if self.modeltype=='lstm':
-            print("Not supported")
-            exit()
+            self.reset_lstm_action_history_zero()
+            self.state = deque(np.zeros(shape=(self.markovian_order*self.state_space_dim,)), maxlen=self.markovian_order*self.state_space_dim)
         else:
             self.state = []
             for key, value in self.model_config['IO']['feature_name'].items():
                 if value == 'state':
-                    self.state.append(config[key]) # Ensure scenario has same order and key name
+                    self.state.append(config[key]) # Ensure scenario has same key name
         return np.array(self.state)
     
     def reset_lstm_action_history_zero(self):
@@ -73,27 +73,38 @@ class ModelPredictor():
         return self.action_history
 
     def predict(self, state, action=None):
-        self.state=state 
         if self.modeltype=='lstm':
+            for i in range(self.state_space_dim,0,-1):
+                self.state=deque(self.state, maxlen=self.markovian_order*self.state_space_dim)
+                self.state.appendleft(state[i-1])
+
             model_input_state=np.reshape(np.array(self.state)+np.random.uniform(low=-self.noise_percentage/100,high=self.noise_percentage/100,\
                      size=self.markovian_order*self.state_space_dim), newshape=(self.markovian_order, self.state_space_dim))
-            # for key in action.keys():
-            self.action_history.appendleft(action)
+                     
+            for i in range(self.action_space_dim,0,-1):
+                self.action_history=deque(self.action_history, maxlen=self.markovian_order*self.action_space_dim)
+                self.action_history.appendleft(action[i-1])
 
             model_input_actions=np.reshape(np.ravel(self.action_history), newshape=(self.markovian_order, self.action_space_dim))
             model_input=np.append(model_input_state, model_input_actions, axis=1)
-          
+
+            # Reshape to transform, then reshape back
+            model_input = model_input.reshape(1, self.markovian_order*(self.state_space_dim+self.action_space_dim))
+            model_input = self.scaler_x_set.transform(model_input)
+            model_input = model_input.reshape(self.markovian_order, self.state_space_dim+self.action_space_dim)
+            
+            # Predict using transformed
             newstates=np.ravel(self.model.predict(np.array([model_input])))
-            print('new state are:', newstates)
-            for i in range(self.state_space_dim,0,-1):
-                print('the ith state appended to the left of state', i, 'with value of: ', newstates[i-1])
-                self.state=deque(self.state, maxlen=self.markovian_order*self.state_space_dim)  # I am not sure why i have to define deque again here. somewhere it becomes numpy array. 
-                self.state.appendleft(newstates[i-1])
+
+            # Inverse transform prediction
+            newstates = np.ravel(self.scaler_y_set.inverse_transform([newstates]))
+            return newstates
         else:
             # k=0
             # for key in action.keys():
             # 	self.brain_actions[k]=(action[key])
             # 	k=k+1
+            self.state=state 
             self.brain_actions=action
             model_input=np.append(self.state*(1+np.random.uniform(low=-self.noise_percentage/100,high=self.noise_percentage, size=self.state_space_dim)), self.brain_actions)
         
@@ -123,8 +134,6 @@ class ModelPredictor():
             self.state=self.model.predict(np.array(model_input))
             self.state=self.scaler_y_set.inverse_transform(self.state)
             #print('self.state is .. :', self.state)
-        elif self.modeltype=='lstm':
-            pass
 
         self.state=np.ravel(self.state)
         

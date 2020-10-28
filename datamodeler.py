@@ -69,15 +69,29 @@ def csv_to_pickle(csvfile):
     with open('config/model_limits.yml', 'w') as mlimfile:
         stats = yaml.dump(x_stats, mlimfile)
 
-    x_set = x_set_df.to_numpy()
-    print('x_set_shape is', x_set.shape)
-    y_set = y_set_df.to_numpy()
-    print('y_set_shape is:', y_set.shape)
+    if config['MODEL']['type'] == 'lstm':
+        x_set = np.empty(shape=(int(x_stats[action_key_list[0]]['count']-markovian_order+1), markovian_order, len(state_key_list)+len(action_key_list)))
+        y_set = np.empty(shape=(int(x_stats[action_key_list[0]]['count']-markovian_order+1), len(state_key_list)))
+        print('x_set_shape is', x_set.shape)
+        print('y_set_shape is:', y_set.shape)
+        for i in range(0, int(x_stats[action_key_list[0]]['count']-markovian_order+1)):
+            a = x_set_df.to_numpy()[i:(i+markovian_order), :]  #time steps, features
+            b = y_set_df.to_numpy()[i+markovian_order-1, :]
+            # print('shape of a is: ', a.shape)
+            # print('shape of b is:', b.shape)
+            x_set[i, :, :] = a
+            y_set[i, :] = b
+    else:
+        x_set = x_set_df.to_numpy()
+        print('x_set_shape is', x_set.shape)
+        y_set = y_set_df.to_numpy()
+        print('y_set_shape is:', y_set.shape)
+
 
     with open('./env_data/x_set.pickle', 'wb') as f:
-            pickle.dump(x_set, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(x_set, f, pickle.HIGHEST_PROTOCOL)
     with open('./env_data/y_set.pickle', 'wb') as f:
-            pickle.dump(y_set, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(y_set, f, pickle.HIGHEST_PROTOCOL)
 
 def read_env_data():
     try:
@@ -151,11 +165,7 @@ if __name__=="__main__":
         with open(args.pickle+'/y_set.pickle', 'rb') as f:
             y_set = pickle.load(f)
     else:
-        if config['MODEL']['type'] == 'lstm':
-            print('Path not working yet...')
-            exit()
-        else:
-            csv_to_pickle(config['DATA']['path'])
+        csv_to_pickle(config['DATA']['path'])
         x_set, y_set=read_env_data()
 
 
@@ -177,8 +187,8 @@ if __name__=="__main__":
         scaler_x_set=preprocessing.MinMaxScaler(feature_range=(-1,1)).fit(x_set)
         scaler_y_set=preprocessing.MinMaxScaler(feature_range=(-1,1)).fit(y_set)
 
-        joblib.dump(scaler_x_set, './models/scaler_x_set.pkl')
-        joblib.dump(scaler_y_set, './models/scaler_y_set.pkl')
+        joblib.dump(scaler_x_set, './models/scaler_x_set_lstm.pkl')
+        joblib.dump(scaler_y_set, './models/scaler_y_set_lstm.pkl')
 
         x_set=scaler_x_set.transform(x_set)
         y_set=scaler_y_set.transform(y_set)
@@ -290,9 +300,7 @@ if __name__=="__main__":
             print('estimator prediction: ', predict_sample)
             print('actual value:', y_set[randomsample,i])
 
-# use the hyperparamter tuned network
-
-##default neural network without hyperparamter tuning
+    ## Default neural network without hyperparamter tuning
     if  args.tune_rs==False and config['MODEL']['type'] == 'lstm':
         the_lstm_estimator=env_lstm_modeler(
             state_space_dim=state_space_dim,
