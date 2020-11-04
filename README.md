@@ -17,16 +17,15 @@ conda activate datadriven
 
 - header names 
 - a single row should be a slice in time
-- the sequential rows should be within the desired cadence of control frequency
 - ensure data ranges cover what we might set reinforcement learning to explore
 - smooth noisy data, get rid of outliers
-- remove NaN or SNA values. 
+- remove NaN or SNA values
 
 Refer to later sections for help with checking data quality before using this tool.
 
 `Step 2.` Change the `config_model.yml` file in the `config/` folder
 
-Enter the csv file name. Enter the lagtime, i.e. the number of rows or iterations that define the state transition in the data. A lagtime of one will use every row of data, where if one makes a change the result is shown in the next sample measurement.
+Enter the csv file name. Enter the timelag, i.e. the number of rows or iterations that define the state transition in the data. A timelag of `1` will use every row of data, where if one makes a change in the system/process the result is shown in the next sample measurement.
 
  Define the names of the features as input to the simulator model you will create. The names should match the headers of the csv file you provide. Set the values as either `state` or `action`. Define the `output_name` matching the headers in your csv. 
 
@@ -36,7 +35,7 @@ Define the model type as either `gb, poly, nn, or lstm`. Depending on the specif
 # Define csv file path to train a simulator with
 DATA:
   path: example_data.csv
-  lagtime: 1
+  timelag: 1
 # Define the inputs and outputs of datadriven simulator
 IO:
   feature_name:

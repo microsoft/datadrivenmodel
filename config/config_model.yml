@@ -1,7 +1,7 @@
 # Define csv file path to train a simulator with
 DATA:
   path: example_data.csv
-  lagtime: 1
+  timelag: 1
 # Define the inputs and outputs of datadriven simulator
 IO:
   feature_name:
