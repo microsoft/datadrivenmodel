@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -26,7 +29,7 @@ def read_env_data():
 
 
 ######################## Functions for Outlier Detection and Ploting  ###################
-def plotOutliers(y_set, y_predict_all, outlier_data):
+def plotOutliers(y_set, y_predict_all, outlier_data, config):
     fig = plt.figure()
     numSubPlots = y_set.shape[1]
 
@@ -70,13 +73,13 @@ def findOutliersAll(x_set,y_set, thrhld=2):
         print('y', str(i), ': ', outlier_data['y' + str(i)])
     return outlier_data, y_predict_all
 
-def findOutlier(y, y_predict, thrhld = 2):
+def findOutlier(y, y_predict, thrhld=2):
     y_std = y.std(axis = 0)
     outL = np.where(np.abs(y-y_predict) > thrhld*y_std) # tuple
     return outL[0]
 
 ###################### Lot Inputs #########################
-def plotInputs(x_set,y_set):
+def plotInputs(x_set, y_set, config):
     fig = plt.figure()
     numSubPlots = x_set.shape[1] - y_set.shape[1]  ## Num of inputs
     
@@ -96,11 +99,13 @@ def plotInputs(x_set,y_set):
         plt.legend(loc='upper right')
 
     # plt.show()
+    return fig
 
 ################ Functions for NaN checks
 def hasNaN(x_set):
     for i in range (0, x_set.shape[1]):
         print('x', str(i), ' has NaN: ', np.isnan(np.sum(x_set[:,i])))
+    return np.isnan(np.sum(x_set[:, i]))
 
 def maxMinMeanStd(x, varName = 'x'):
     return x.min(axis = 0), x.max(axis = 0), x.mean(axis = 0), x.std(axis = 0)
@@ -128,11 +133,11 @@ if __name__=="__main__":
         x_set[i+1,1] = 1.5
 
     ## Find Outlier and Plot them
-    outlier_data, y_predict_all = findOutliersAll(x_set,y_set, thrhld=args.thrhld)
+    outlier_data, y_predict_all = findOutliersAll(x_set, y_set, thrhld=args.thrhld)
     modelname='./models/OutlierData_Y.sav'
     joblib.dump(outlier_data, modelname)
-    plotOutliers(y_set, y_predict_all, outlier_data)
-    plotInputs(x_set,y_set)
+    plotOutliers(y_set, y_predict_all, outlier_data, config)
+    plotInputs(x_set,y_set, config)
     plt.show()
 
     ############################# Detecting NaN ######################

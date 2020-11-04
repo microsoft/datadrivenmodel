@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -23,7 +26,7 @@ def read_env_data():
     return x_set, y_set
 
 
-def feature_plots(feature_data, total_width=0.5):
+def feature_plots(feature_data, state_space_dim, action_space_dim, config, total_width=0.5):
     fig, ax = plt.subplots()
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']  
@@ -79,7 +82,7 @@ if __name__=="__main__":
     modelname='./models/feature_importance.sav'
     joblib.dump(feature_importance_data, modelname)
         
-    feature_plots(feature_importance_data, total_width=args.widthbar)
+    feature_plots(feature_importance_data, state_space_dim, action_space_dim, config, total_width=args.widthbar)
 
 
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 """
 MSFT Bonsai SDK3 Template for Simulator Integration using Python
 Copyright 2020 Microsoft

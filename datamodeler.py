@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import math
 import numpy as np
 import time
@@ -33,7 +36,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--tune-rs", type=bool, default=False, help="uses random search from scikitlearn for hyperparameter tuning")
 parser.add_argument("--pickle", type=str, default=None, help="Point to pickle file directly as input instead of csv")
 
-def csv_to_pickle(csvfile):
+def csv_to_pickle(csvfile, timelag=1):
     logdf = pd.read_csv(csvfile)
     logdf = logdf.dropna()
     
@@ -54,11 +57,11 @@ def csv_to_pickle(csvfile):
     states = logdf[state_key_list]
     actions = logdf[action_key_list]
 
-    states_t = states.iloc[0:-1]
-    states_tplus1 = states.iloc[1:]
+    states_t = states.iloc[0:-timelag]
+    states_tplus1 = states.iloc[timelag:]
     len(states_t)
     len(states_tplus1)
-    actions_t = actions.iloc[0:-1]
+    actions_t = actions.iloc[0:-timelag]
     frames = [states_t, actions_t]
     x_set_df = pd.concat(frames, axis=1)
     y_set_df = states_tplus1
@@ -67,7 +70,7 @@ def csv_to_pickle(csvfile):
     x_stats = x_set_df.describe().to_dict()
 
     with open('config/model_limits.yml', 'w') as mlimfile:
-        stats = yaml.dump(x_stats, mlimfile)
+        stats = yaml.dump(x_stats, mlimfile, sort_keys=False)
 
     if config['MODEL']['type'] == 'lstm':
         x_set = np.empty(shape=(int(x_stats[action_key_list[0]]['count']-markovian_order+1), markovian_order, len(state_key_list)+len(action_key_list)))
@@ -165,7 +168,7 @@ if __name__=="__main__":
         with open(args.pickle+'/y_set.pickle', 'rb') as f:
             y_set = pickle.load(f)
     else:
-        csv_to_pickle(config['DATA']['path'])
+        csv_to_pickle(config['DATA']['path'], timelag=config['DATA']['timelag'])
         x_set, y_set=read_env_data()
 
 

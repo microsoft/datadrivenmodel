@@ -26,7 +26,9 @@ Refer to later sections for help with checking data quality before using this to
 
 `Step 2.` Change the `config_model.yml` file in the `config/` folder
 
-Enter the csv file name. Define the names of the features as input to the simulator model you will create. The names should match the headers of the csv file you provide. Set the values as either `state` or `action`. Define the `output_name` matching the headers in your csv. 
+Enter the csv file name. Enter the lagtime, i.e. the number of rows or iterations that define the state transition in the data. A lagtime of one will use every row of data, where if one makes a change the result is shown in the next sample measurement.
+
+ Define the names of the features as input to the simulator model you will create. The names should match the headers of the csv file you provide. Set the values as either `state` or `action`. Define the `output_name` matching the headers in your csv. 
 
 Define the model type as either `gb, poly, nn, or lstm`. Depending on the specific model one chooses, alter the hyperparameters in this config file as well. 
 
@@ -34,6 +36,7 @@ Define the model type as either `gb, poly, nn, or lstm`. Depending on the specif
 # Define csv file path to train a simulator with
 DATA:
   path: example_data.csv
+  lagtime: 1
 # Define the inputs and outputs of datadriven simulator
 IO:
   feature_name:
@@ -221,32 +224,20 @@ history action:  deque([0.83076303, -0.004065768182411825, -0.004065768182411825
 az acr build --image <IMAGE_NAME>:<IMAGE_VERSION> --file Dockerfile --registry <ACR_REGISTRY> .
 ```
 
-## Data Cleaning
+## Data Evaluation
 
-This helps in removing the Outliers and NaNs in the data. Outlier detection algorithm fits y_set as a function of x_set, and if the prediction by the model is far away from the actual value then we define the point as outlier
+Use the release version of the jupyter notebook to assist you with qualifying your data for creation of a simulator using supervised learning. The notebook is split up into three parts. The notebook uses the `nbgrader` package, where the user should click the `Validate` button to determine if all tests have been passed. You will be responsible for loading the data, running cells to see if you successfully pass tests, and manipulating the data in Python if the notebook finds things like NaNs and outliers. It will ask for desired operating limits of the model you wish to create and compare that against what is available in your provided datasets. Asssuming you pass the tests for data relevance, your data will be exported to a single csv named `approved_data.csv` which is ready to be ingested by the `datadrivenmodel` tool.
 
-### Main steps to follow to detect outliers
+- Data Relevance
+- Sparsity
+- Data Distribution Confidence
 
-Once the data is generated (in the same way as data generation process for datadriven modeling), we can detect outliers in the following way:
-
-```bash 
-python checkDataQuality.py
-python checkDataQuality.py --thrhld 4
+```bash
+jupyter notebook release/presales_evaluation/presales_evaluation.ipynb
 ```
+![](img/presales_notebook.PNG)
 
-By default, outlier threshold is 3, it can be adjusted based on the data. 
-
-## Feature Importance
-
-This code helps in computing feature importance using gradient boosting trees.
-
-### Main steps to follow to detect outliers
-
-Once the data is generated (in the same way as data generation process for datadriven modeling), we can compute feature importance in the following way:
-
-```bash 
-python featureImportance.py
-```
+> Once you have successfuly qualified your data using the `Validate` button, it is recommended to export it as a PDF to share the results without requiring access to the data.
 
 ## Contribute Code
 This project welcomes contributions and suggestions. Most contributions require you to
