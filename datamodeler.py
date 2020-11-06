@@ -53,12 +53,14 @@ def csv_to_pickle(csvfile, timelag=1):
         else:
             print('Please fix config_model.yml to specify either state or action')
             exit()
+    output_key_list = config['IO']['output_name']
 
+    outputs = logdf[output_key_list]
     states = logdf[state_key_list]
     actions = logdf[action_key_list]
 
     states_t = states.iloc[0:-timelag]
-    states_tplus1 = states.iloc[timelag:]
+    states_tplus1 = outputs.iloc[timelag:]
     len(states_t)
     len(states_tplus1)
     actions_t = actions.iloc[0:-timelag]
@@ -90,12 +92,11 @@ def csv_to_pickle(csvfile, timelag=1):
         y_set = y_set_df.to_numpy()
         print('y_set_shape is:', y_set.shape)
 
-
     with open('./env_data/x_set.pickle', 'wb') as f:
         pickle.dump(x_set, f, pickle.HIGHEST_PROTOCOL)
     with open('./env_data/y_set.pickle', 'wb') as f:
         pickle.dump(y_set, f, pickle.HIGHEST_PROTOCOL)
-
+    
 def read_env_data():
     try:
         with open('./env_data/x_set.pickle', 'rb') as f:
