@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from typing import Tuple, List
+from sklearn.preprocessing import StandardScaler
 
 
 # Add stdout handler, with level INFO
@@ -47,20 +48,41 @@ class BaseModel(abc.ABC):
 
         return X, y
 
+    def scale_data(self, X, y):
+
+        self.xscalar = StandardScaler()
+        self.yscalar = StandardScaler()
+
+        X_scaled = self.xscalar.fit_transform(X)
+        y_scaled = self.yscalar.fit_transform(y)
+
+        return X_scaled, y_scaled
 
     def build_model(self):
 
         raise NotImplementedError
 
-    def fit(self, X, y):
+    def fit(self, X, y, scale_data: bool = False):
 
         if not self.model:
             raise ValueError("Please build the model first")
+
+        if scale_data:
+            X, y = self.scale_data(X, y)
         self.model.fit(X, y)
 
-    def predict(self):
+    def predict(self, inverse_transform: bool = False):
 
-        raise NotImplementedError
+
+        if not self.model:
+            raise ValueError("Please build the model first")
+        
+        else:
+            preds = self.model.predict(X, y)
+            if inverse_transform:
+                preds = self.yscalar(preds)
+
+            return preds
 
     def evaluate(self, test_data: np.array):
 

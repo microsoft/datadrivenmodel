@@ -72,10 +72,15 @@ class PyTorchModel(BaseModel):
         )
         self.model.fit(X, y)
 
-    def predict(self, X):
+    def predict(self, X, inverse_transform: bool = False):
 
         X = torch.tensor(X)
-        return self.model.predict(X)
+        preds = self.model.predict(X)
+
+        if inverse_transform:
+            preds = self.yscalar.inverse_transform(preds)
+
+        return preds
 
     def sweep(
         self,
@@ -106,6 +111,7 @@ if __name__ == "__main__":
 
     pytorch_model = PyTorchModel()
     X, y = pytorch_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
+    X, y = pytorch_model.scale_data(X, y)
 
     pytorch_model.build_model()
     # pytorch_model.fit(X, y)
@@ -117,4 +123,6 @@ if __name__ == "__main__":
     # gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
 
     params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
-    pytorch_model.sweep(params=params, X=X, y=y)
+    pytorch_model.sweep(params=params, X=X, y=y, search_algorithm="hyperopt")
+
+    print(pytorch_model.predict(X))
