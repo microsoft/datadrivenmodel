@@ -1,20 +1,12 @@
 import numpy as np
-import os
 from typing import Tuple, Dict
 import torch
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetRegressor
 
-from BaseTrainer import BaseModel
+from base import BaseModel
 from tune_sklearn import TuneGridSearchCV, TuneSearchCV
-
-
-def load_data(dataset_path: str) -> Tuple[np.array, np.array]:
-
-    X = np.load(os.path.join(dataset_path, "x_set.npy"))
-    y = np.load(os.path.join(dataset_path, "y_set.npy"))
-    return X, y
 
 
 class MVRegressor(nn.Module):
@@ -48,14 +40,21 @@ class MVRegressor(nn.Module):
 
 
 class PyTorchModel(BaseModel):
-    def build_model(self):
+    def build_model(self, network=MVRegressor, device: str = "cpu"):
 
         if not all([hasattr(self, "input_dim"), hasattr(self, "output_dim")]):
 
             raise ValueError("Please load dataset first to obtain proper sizes")
 
+        if device == "cpu":
+            self.device = device
+        else:
+            use_cuda = torch.cuda.is_available()
+            self.device = torch.device("cuda" if use_cuda else "cpu")
+
         self.model = NeuralNetRegressor(
-            MVRegressor,
+            network,
+            device=self.device,
             module__input_dim=self.input_dim,
             module__output_dim=self.output_dim,
             max_epochs=10,
@@ -67,7 +66,10 @@ class PyTorchModel(BaseModel):
 
     def fit(self, X, y):
 
-        X, y = torch.tensor(X).float(), torch.tensor(y).float()
+        X, y = (
+            torch.tensor(X).float().to(device=self.device),
+            torch.tensor(y).float().to(device=self.device),
+        )
         self.model.fit(X, y)
 
     def predict(self, X):
@@ -84,7 +86,10 @@ class PyTorchModel(BaseModel):
         num_trials: int = 3,
     ):
 
-        X, y = torch.tensor(X).float(), torch.tensor(y).float()
+        X, y = (
+            torch.tensor(X).float().to(device=self.device),
+            torch.tensor(y).float().to(device=self.device),
+        )
         tune_search = TuneSearchCV(
             self.model,
             params,

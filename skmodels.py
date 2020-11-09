@@ -1,6 +1,7 @@
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn import linear_model
 
 
