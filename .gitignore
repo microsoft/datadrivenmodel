@@ -1,0 +1,21 @@
+# IDE
+.idea
+.vscode/
+*.code-workspace
+
+# python
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# config
+*.env
+
+# saved models
+models/
+
+# user directories
+etc/
