@@ -1,12 +1,13 @@
 import numpy as np
 import os
-from typing import Tuple
+from typing import Tuple, Dict
 import torch
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetRegressor
 
 from BaseTrainer import BaseModel
+from tune_sklearn import TuneGridSearchCV, TuneSearchCV
 
 
 def load_data(dataset_path: str) -> Tuple[np.array, np.array]:
@@ -22,6 +23,7 @@ class MVRegressor(nn.Module):
         num_units=50,
         input_dim: int = 28,
         output_dim: int = 18,
+        p_dropout: float = 0.5,
         n_layers: int = 10,
     ):
         super(MVRegressor, self).__init__()
@@ -29,14 +31,15 @@ class MVRegressor(nn.Module):
         self.output_dim = output_dim
         self.n_layers = n_layers
 
-        self.dense1 = nn.Linear(input_dim, num_units)
-        self.dropout = nn.Dropout(0.5)
+        self.dense0 = nn.Linear(input_dim, num_units)
+        self.dropout = nn.Dropout(p_dropout)
+        self.dense1 = nn.Linear(num_units, num_units)
         self.output = nn.Linear(num_units, self.output_dim)
 
     def forward(self, X, **kwargs):
 
+        X = self.dense0(X)
         for _ in range(self.n_layers):
-            X = self.dense1(X)
             X = F.relu(X)
             X = self.dropout(X)
         X = F.relu(X)
@@ -72,6 +75,27 @@ class PyTorchModel(BaseModel):
         X = torch.tensor(X)
         return self.model.predict(X)
 
+    def sweep(
+        self,
+        params: Dict,
+        X,
+        y,
+        search_algorithm: str = "bayesian",
+        num_trials: int = 3,
+    ):
+
+        X, y = torch.tensor(X).float(), torch.tensor(y).float()
+        tune_search = TuneSearchCV(
+            self.model,
+            params,
+            search_optimization=search_algorithm,
+            n_trials=num_trials,
+            early_stopping=True,
+        )
+        tune_search.fit(X, y)
+
+        return tune_search
+
 
 if __name__ == "__main__":
 
@@ -79,11 +103,13 @@ if __name__ == "__main__":
     X, y = pytorch_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
 
     pytorch_model.build_model()
-    pytorch_model.fit(X, y)
-    predict_one = pytorch_model.predict(X[0])
-
-    from tune_sklearn import TuneGridSearchCV
+    # pytorch_model.fit(X, y)
+    # predict_one = pytorch_model.predict(X[0])
 
     # tune tests
+    # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
+    # gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
+    # gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
+
     params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
-    gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
+    pytorch_model.sweep(params=params, X=X, y=y)
