@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import joblib
 import numpy as np
 from keras.models import load_model
@@ -22,7 +25,7 @@ class ModelPredictor():
                 setattr(self,'model'+str(i),loaded_model)
         elif modeltype=='poly':
             self.polydegree=joblib.load('./models/polydegree.sav')
-            print('poyl degree is :', self.polydegree)
+            print('poly degree is :', self.polydegree)
             for i in range(0, self.state_space_dim):
                 filename='./models/polymodel'+str(i)+'.sav'
                 loaded_model=joblib.load(filename)
