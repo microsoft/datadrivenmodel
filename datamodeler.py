@@ -1,6 +1,10 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import logging
 import os
 import sys
+import math
 import numpy as np
 import time
 from keras.wrappers.scikit_learn import KerasClassifier
@@ -55,7 +59,7 @@ parser.add_argument(
 )
 
 
-def csv_to_pickle(csvfile):
+def csv_to_pickle(csvfile, timelag=1):
     logdf = pd.read_csv(csvfile)
     logdf = logdf.dropna()
 
@@ -72,15 +76,17 @@ def csv_to_pickle(csvfile):
         else:
             print("Please fix config_model.yml to specify either state or action")
             exit()
+    output_key_list = config["IO"]["output_name"]
 
+    outputs = logdf[output_key_list]
     states = logdf[state_key_list]
     actions = logdf[action_key_list]
 
-    states_t = states.iloc[0:-1]
-    states_tplus1 = states.iloc[1:]
+    states_t = states.iloc[0:-timelag]
+    states_tplus1 = outputs.iloc[timelag:]
     len(states_t)
     len(states_tplus1)
-    actions_t = actions.iloc[0:-1]
+    actions_t = actions.iloc[0:-timelag]
     frames = [states_t, actions_t]
     x_set_df = pd.concat(frames, axis=1)
     y_set_df = states_tplus1
@@ -89,7 +95,7 @@ def csv_to_pickle(csvfile):
     x_stats = x_set_df.describe().to_dict()
 
     with open("config/model_limits.yml", "w") as mlimfile:
-        stats = yaml.dump(x_stats, mlimfile)
+        stats = yaml.dump(x_stats, mlimfile, sort_keys=False)
 
     if config["MODEL"]["type"] == "lstm":
         x_set = np.empty(
@@ -251,8 +257,16 @@ if __name__ == "__main__":
         else:
             raise Exception(f"Labels path not found at {y_path}")
     else:
-        csv_to_pickle(config["DATA"]["path"])
+        csv_to_pickle(config["DATA"]["path"], timelag=config["DATA"]["timelag"])
         x_set, y_set = read_env_data()
+
+    if config["MODEL"]["type"] == "nn":
+        scaler_x_set = preprocessing.MinMaxScaler(feature_range=(-1, 1)).fit(x_set)
+        scaler_y_set = preprocessing.MinMaxScaler(feature_range=(-1, 1)).fit(y_set)
+        joblib.dump(scaler_x_set, "./models/scaler_x_set.pkl")
+        joblib.dump(scaler_y_set, "./models/scaler_y_set.pkl")
+        x_set = scaler_x_set.transform(x_set)
+        y_set = scaler_y_set.transform(y_set)
 
     if args.model_type:
         logging.info(

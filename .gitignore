@@ -17,5 +17,53 @@ __pycache__/
 # saved models
 models/
 
-# user directories
+# data directories
+data/
 etc/
+
+# User R files
+*.Rproj
+.Rproj.user/
+*.Rhistory
+
+# User python files and cache
+__pycache__
+*.egg-info/
+.ipynb_checkpoints/
+
+# Session log files
+ilogs/*
+logs/*
+
+# User vscode config
+.vscode/
+.vs
+*.code-workspace
+
+# Vim files
+*.sw[l-p]
+
+# Python intermediate files
+*.pyc
+
+# log files
+nohup.out
+
+# MATLAB folders created
+slprj/
+
+# Simulink intermediate files
+*.slxc
+
+# AAD cache
+*.aadcache
+
+# system files
+.DS_Store
+
+# test files
+html/
+test-output.xml
+
+# jupyter
+.ipynb_checkpoints

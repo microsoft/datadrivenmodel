@@ -14,4 +14,5 @@ dependencies:
   - tensorflow==2.3.1
   - tensorflow-estimator==2.3.0
   - microsoft-bonsai-api==0.1.2
-  - bonsai-cli==1.0.3
+  - bonsai-cli==1.0.4
+  - nbgrader==0.6.1

@@ -1,15 +1,10 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import joblib
 import numpy as np
 from collections import deque
 import yaml
-
-# Change arguments to ModelPredictor:
-# - input_shape
-# - output_shape
-# BasePredictor class
-# GBMPredictor(BasePredictor)
-# - modify it's load_data method
-# - modify it's predict method
 
 
 class ModelPredictor:
@@ -17,8 +12,6 @@ class ModelPredictor:
         self,
         modeltype="gb",
         noise_percentage=0,
-        input_shape: int = 0,
-        output_shape: int = 0,
         action_space_dim=None,
         state_space_dim=None,
         markovian_order=None,
@@ -28,19 +21,17 @@ class ModelPredictor:
         self.markovian_order = markovian_order
         self.noise_percentage = noise_percentage
         self.modeltype = modeltype
-        self.input_shape = input_shape
-        self.output_shape = output_shape
         self.brain_actions = np.empty((self.action_space_dim))
 
         print(modeltype, " is used as the data driven model to train brain.")
         if modeltype == "gb":
-            for i in range(output_shape):
+            for i in range(0, self.state_space_dim):
                 filename = "./models/gbmodel" + str(i) + ".sav"
                 loaded_model = joblib.load(filename)
                 setattr(self, "model" + str(i), loaded_model)
         elif modeltype == "poly":
             self.polydegree = joblib.load("./models/polydegree.sav")
-            print("poyl degree is :", self.polydegree)
+            print("poly degree is :", self.polydegree)
             for i in range(0, self.state_space_dim):
                 filename = "./models/polymodel" + str(i) + ".sav"
                 loaded_model = joblib.load(filename)

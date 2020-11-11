@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout, LSTM
 from keras import optimizers
