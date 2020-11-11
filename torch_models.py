@@ -124,5 +124,3 @@ if __name__ == "__main__":
 
     params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
     pytorch_model.sweep(params=params, X=X, y=y, search_algorithm="hyperopt")
-
-    print(pytorch_model.predict(X))
