@@ -1,4 +1,6 @@
+import pickle
 import numpy as np
+import pandas as pd
 from typing import Tuple, Dict
 
 from base import BaseModel
@@ -10,16 +12,55 @@ from lightgbm import LGBMRegressor
 
 
 class GBoostModel(BaseModel):
-    def build_model(self, model_type: str = "xgboost"):
+    def build_model(self, model_type: str = "xgboost", scale_data: bool = False):
 
+        self.scale_data = scale_data
         if model_type == "xgboost":
-            single_model = XGBRegressor(objective="reg:squarederror")
+            self.single_model = XGBRegressor(objective="reg:squarederror")
         elif model_type == "lightgbm":
-            single_model = LGBMRegressor()
+            self.single_model = LGBMRegressor()
         else:
             raise NotImplementedError("Unknown model selected")
 
-        self.model = MultiOutputRegressor(single_model)
+        self.model = MultiOutputRegressor(self.single_model)
+
+    def fit(self, X, y):
+
+        if self.scale_data:
+            X, y = self.scalar(X, y)
+
+        self.models = []
+        for i in range(y.shape[1]):
+            print(f"Fitting model {i} of {y.shape[1]}")
+            self.models.append(
+                XGBRegressor(objective="reg:squarederror").fit(X, y[:, i])
+            )
+
+    def predict(self, X, label_col_names: str = None):
+
+        pred = []
+        if self.scale_data:
+            X = self.xscalar.transform(X)
+        for i in range(len(self.models)):
+            print(f"Predicting model {i} of {len(self.models)}")
+            pred.append(self.models[i].predict(X))
+
+        preds = np.array(pred).transpose()
+        if self.scale_data:
+            preds = self.yscalar.inverse_transform(preds)
+
+        preds_df = pd.DataFrame(preds)
+        preds_df.columns = label_col_names
+
+        return preds
+
+    def save_model(self, filename):
+
+        pickle.dump(self.models, open(filename, "wb"))
+
+    def load_model(self, filename: str):
+
+        self.models = pickle.load(open(filename, "rb"))
 
     def sweep(self, params: Dict, X, y):
 
@@ -39,7 +80,7 @@ class GBoostModel(BaseModel):
 
 if __name__ == "__main__":
 
-    xgm = BoostModel()
+    xgm = GBoostModel()
     X, y = xgm.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
 
     xgm.build_model(model_type="lightgbm")

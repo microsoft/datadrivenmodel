@@ -40,7 +40,11 @@ class MVRegressor(nn.Module):
 
 
 class PyTorchModel(BaseModel):
-    def build_model(self, network=MVRegressor, device: str = "cpu"):
+    def build_model(
+        self, network=MVRegressor, device: str = "cpu", scale_data: bool = False
+    ):
+
+        self.scale_data = scale_data
 
         if not all([hasattr(self, "input_dim"), hasattr(self, "output_dim")]):
 
@@ -66,18 +70,23 @@ class PyTorchModel(BaseModel):
 
     def fit(self, X, y):
 
+        if self.scale_data:
+            X, y = self.scalar(X, y)
+
         X, y = (
             torch.tensor(X).float().to(device=self.device),
             torch.tensor(y).float().to(device=self.device),
         )
         self.model.fit(X, y)
 
-    def predict(self, X, inverse_transform: bool = False):
+    def predict(self, X):
 
-        X = torch.tensor(X)
+        if self.scale_data:
+            X = self.xscalar.transform(X)
+        X = torch.tensor(X).float().to(device=self.device)
         preds = self.model.predict(X)
 
-        if inverse_transform:
+        if self.scale_data:
             preds = self.yscalar.inverse_transform(preds)
 
         return preds
@@ -89,6 +98,7 @@ class PyTorchModel(BaseModel):
         y,
         search_algorithm: str = "bayesian",
         num_trials: int = 3,
+        scoring_func: str = "r2",
     ):
 
         X, y = (
@@ -101,6 +111,7 @@ class PyTorchModel(BaseModel):
             search_optimization=search_algorithm,
             n_trials=num_trials,
             early_stopping=True,
+            scoring=scoring_func,
         )
         tune_search.fit(X, y)
 

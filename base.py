@@ -1,6 +1,7 @@
 import abc
 import logging
 import os
+import pickle
 import sys
 import numpy as np
 import pandas as pd
@@ -48,7 +49,7 @@ class BaseModel(abc.ABC):
 
         return X, y
 
-    def scale_data(self, X, y):
+    def scalar(self, X, y):
 
         self.xscalar = StandardScaler()
         self.yscalar = StandardScaler()
@@ -58,31 +59,43 @@ class BaseModel(abc.ABC):
 
         return X_scaled, y_scaled
 
-    def build_model(self):
+    def build_model(self, scale_data: bool = False):
 
+        self.scale_data = scale_data
         raise NotImplementedError
 
-    def fit(self, X, y, scale_data: bool = False):
+    def fit(self, X, y):
 
         if not self.model:
-            raise ValueError("Please build the model first")
+            raise ValueError("Please build or load the model first")
 
-        if scale_data:
-            X, y = self.scale_data(X, y)
+        if self.scale_data:
+            X, y = self.scalar(X, y)
         self.model.fit(X, y)
 
-    def predict(self, inverse_transform: bool = False):
-
+    def predict(self, X, label_col_names: str = None):
 
         if not self.model:
-            raise ValueError("Please build the model first")
-        
+            raise ValueError("Please build or load the model first")
         else:
-            preds = self.model.predict(X, y)
-            if inverse_transform:
-                preds = self.yscalar(preds)
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+            preds = self.model.predict(X)
+            if self.scale_data:
+                preds = self.yscalar.inverse_transform(preds)
 
-            return preds
+            preds_df = pd.DataFrame(preds)
+            preds_df.columns = label_col_names
+
+            return preds_df
+
+    def save_model(self, filename):
+
+        pickle.dump(self.model, open(filename, "wb"))
+
+    def load_model(self, filename: str):
+
+        self.model = pickle.load(open(filename, "rb"))
 
     def evaluate(self, test_data: np.array):
 
