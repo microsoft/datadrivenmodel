@@ -20,5 +20,7 @@ dependencies:
   - tensorflow==1.14.0
   - tensorflow-estimator==1.14.0
   - microsoft-bonsai-api==0.1.2
-  - bonsai-cli==1.0.1
+  - bonsai-cli==1.0.4
+  - pyyaml==5.3.1
+  - h5py==2.10.0
   - nbgrader==0.6.1
