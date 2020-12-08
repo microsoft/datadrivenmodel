@@ -132,6 +132,8 @@ Create a brain and write Inkling with type definitions that match what the simul
 
 Be sure to specify `noise_percentage` in your Inkling's scenario. Training a brain can benefit from adding noise to the states of an approximated simulator to promote robustness.
 
+> The episode_start in `train_bonsai_main.py` is expecting initial conditions of your states defined in `config_model.yml` to match scenario dictionary passed in. If you want to pass in other variables that are not modeled by the datadrivenmodel tool (except for noise_percentage), you'll likely have to modify `train_bonsai_main.py`.
+
 ```javascript
 lesson `Start Inverted` {
     scenario {
