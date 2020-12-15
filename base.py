@@ -1,6 +1,7 @@
 import abc
 import logging
 import os
+import pathlib
 import pickle
 import sys
 import numpy as np
@@ -26,7 +27,7 @@ class BaseModel(abc.ABC):
 
     def load_csv(
         self, dataset_path: str, feature_columns: List[str], label_columns: List[str]
-    ) -> Tuple[np.array, np.array]:
+    ) -> Tuple:
 
         if not os.path.exists(dataset_path):
             raise ValueError(f"No data found at {dataset_path}")
@@ -40,7 +41,7 @@ class BaseModel(abc.ABC):
 
         return X, y
 
-    def load_numpy(self, dataset_path: str) -> Tuple[np.array, np.array]:
+    def load_numpy(self, dataset_path: str) -> Tuple:
 
         X = np.load(os.path.join(dataset_path, "x_set.npy"))
         y = np.load(os.path.join(dataset_path, "y_set.npy"))
@@ -73,7 +74,7 @@ class BaseModel(abc.ABC):
             X, y = self.scalar(X, y)
         self.model.fit(X, y)
 
-    def predict(self, X, label_col_names: str = None):
+    def predict(self, X, label_col_names: List[str] = None):
 
         if not self.model:
             raise ValueError("Please build or load the model first")
@@ -91,10 +92,13 @@ class BaseModel(abc.ABC):
 
     def save_model(self, filename):
 
+        if not pathlib.Path(filename).parent.exists():
+            pathlib.Path(filename).parent.mkdir(parents=True)
         pickle.dump(self.model, open(filename, "wb"))
 
-    def load_model(self, filename: str):
+    def load_model(self, filename: str, scale_data: bool = False):
 
+        self.scale_data = scale_data
         self.model = pickle.load(open(filename, "rb"))
 
     def evaluate(self, test_data: np.array):

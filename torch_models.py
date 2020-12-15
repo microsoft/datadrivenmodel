@@ -4,6 +4,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetRegressor
+from skorch.callbacks import LRScheduler
+from torch.optim.lr_scheduler import CyclicLR
 
 from base import BaseModel
 from tune_sklearn import TuneGridSearchCV, TuneSearchCV
@@ -41,10 +43,23 @@ class MVRegressor(nn.Module):
 
 class PyTorchModel(BaseModel):
     def build_model(
-        self, network=MVRegressor, device: str = "cpu", scale_data: bool = False
+        self,
+        network=MVRegressor,
+        device: str = "cpu",
+        scale_data: bool = False,
+        num_layers: int = 10,
+        num_units: int = 50,
+        dropout: float = 0.5,
+        num_epochs: int = 10,
+        batch_size: int = 128,
     ):
 
         self.scale_data = scale_data
+        self.num_layers = num_layers
+        self.num_units = num_units
+        self.dropout = dropout
+        self.num_epochs = num_epochs
+        self.batch_size = batch_size
 
         if not all([hasattr(self, "input_dim"), hasattr(self, "output_dim")]):
 
@@ -61,11 +76,22 @@ class PyTorchModel(BaseModel):
             device=self.device,
             module__input_dim=self.input_dim,
             module__output_dim=self.output_dim,
-            max_epochs=10,
-            lr=0.1,
+            module__n_layers=self.num_layers,
+            module__num_units=self.num_units,
+            module__p_dropout=self.dropout,
+            max_epochs=self.num_epochs,
             criterion=nn.MSELoss,
+            batch_size=self.batch_size,
             # Shuffle training data on each epoch
             iterator_train__shuffle=True,
+            callbacks=[
+                (
+                    "lr_scheduler",
+                    LRScheduler(
+                        policy=CyclicLR, base_lr=0.001, max_lr=0.01, step_every="batch"
+                    ),
+                ),
+            ],
         )
 
     def fit(self, X, y):
@@ -122,7 +148,6 @@ if __name__ == "__main__":
 
     pytorch_model = PyTorchModel()
     X, y = pytorch_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
-    X, y = pytorch_model.scale_data(X, y)
 
     pytorch_model.build_model()
     # pytorch_model.fit(X, y)

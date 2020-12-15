@@ -1,14 +1,20 @@
+import pathlib
 import pickle
+from typing import Dict, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Tuple, Dict
+from lightgbm import LGBMRegressor
+from sklearn.multioutput import MultiOutputRegressor
+from tune_sklearn import TuneGridSearchCV, TuneSearchCV
+from xgboost import XGBRegressor
 
 from base import BaseModel
-from tune_sklearn import TuneGridSearchCV, TuneSearchCV
-from sklearn.multioutput import MultiOutputRegressor
 
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class GBoostModel(BaseModel):
@@ -42,21 +48,24 @@ class GBoostModel(BaseModel):
         if self.scale_data:
             X = self.xscalar.transform(X)
         for i in range(len(self.models)):
-            print(f"Predicting model {i} of {len(self.models)}")
+            logger.debug(f"Predicting model {i} of {len(self.models)}")
             pred.append(self.models[i].predict(X))
 
         preds = np.array(pred).transpose()
         if self.scale_data:
             preds = self.yscalar.inverse_transform(preds)
 
-        preds_df = pd.DataFrame(preds)
-        preds_df.columns = label_col_names
+        # preds_df = pd.DataFrame(preds)
+        # preds_df.columns = label_col_names
 
         return preds
 
     def save_model(self, filename):
 
-        pickle.dump(self.models, open(filename, "wb"))
+        if not pathlib.Path(filename).parent.exists():
+            pathlib.Path(filename).parent.mkdir(parents=True)
+        # pickle.dump(self.models, open(filename, "wb"))
+        pickle.dump(self, open(filename, "wb"))
 
     def load_model(self, filename: str):
 
@@ -69,8 +78,7 @@ class GBoostModel(BaseModel):
             param_distributions=params,
             n_trials=3,
             # early_stopping=True,
-            # use_gpu=True  # Commented out for testing on travis,
-            # but this is how you would use gpu
+            # use_gpu=True
         )
 
         tune_search.fit(X, y)
