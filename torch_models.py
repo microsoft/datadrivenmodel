@@ -8,7 +8,6 @@ from skorch.callbacks import LRScheduler
 from torch.optim.lr_scheduler import CyclicLR
 
 from base import BaseModel
-from tune_sklearn import TuneGridSearchCV, TuneSearchCV
 
 
 class MVRegressor(nn.Module):
@@ -127,6 +126,8 @@ class PyTorchModel(BaseModel):
         scoring_func: str = "r2",
     ):
 
+        from tune_sklearn import TuneGridSearchCV, TuneSearchCV
+
         X, y = (
             torch.tensor(X).float().to(device=self.device),
             torch.tensor(y).float().to(device=self.device),
@@ -147,10 +148,15 @@ class PyTorchModel(BaseModel):
 if __name__ == "__main__":
 
     pytorch_model = PyTorchModel()
-    X, y = pytorch_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
+    X, y = pytorch_model.load_csv(
+        dataset_path="csv_data/cartpole-log.csv",
+        max_rows=1000,
+        augm_cols=["action_command", "config_length", "config_masspole"],
+    )
+    # X, y = pytorch_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
 
     pytorch_model.build_model()
-    # pytorch_model.fit(X, y)
+    pytorch_model.fit(X, y)
     # predict_one = pytorch_model.predict(X[0])
 
     # tune tests
@@ -158,5 +164,5 @@ if __name__ == "__main__":
     # gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
     # gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
 
-    params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
-    pytorch_model.sweep(params=params, X=X, y=y, search_algorithm="hyperopt")
+    # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
+    # pytorch_model.sweep(params=params, X=X, y=y, search_algorithm="hyperopt")

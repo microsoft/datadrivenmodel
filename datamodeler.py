@@ -152,7 +152,6 @@ def read_env_data():
 if __name__ == "__main__":
 
     args = parser.parse_args()
-    args.pickle = "/home/alizaidi/bonsai/repsol/data/scenario1/"
 
     with open(args.config_path) as cmfile:
         config = yaml.full_load(cmfile)
