@@ -28,7 +28,9 @@ from microsoft_bonsai_api.simulator.generated.models import (
     SimulatorInterface,
     SimulatorState,
 )
-
+from azure.core.exceptions import HttpResponseError
+import numpy as np
+import yaml
 from predictor import ModelPredictor
 
 
