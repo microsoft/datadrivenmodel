@@ -29,3 +29,20 @@ def test_fit():
     torch_model.build_model()
     torch_model.fit(X, y)
 
+
+def test_sweep():
+
+    torch_model.build_model()
+    params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
+    torch_model.sweep(params=params, X=X, y=y, search_algorithm="hyperopt")
+
+    torch_model.sweep(params=params, X=X, y=y, search_algorithm="bayesian")
+
+
+def test_predictor():
+
+    torch_model.build_model()
+    torch_model.fit(X, y)
+    y_hat = torch_model.predict(X)
+
+    assert y_hat.shape[0] == y.shape[0]

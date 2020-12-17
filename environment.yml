@@ -27,3 +27,4 @@ dependencies:
       - h5py==2.10.0
       - nbgrader==0.6.1
       - tune-sklearn==0.1.0
+      - hyperopt==0.2.5
