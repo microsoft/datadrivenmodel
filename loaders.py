@@ -7,6 +7,7 @@ FORMAT = "%(message)s"
 logging.basicConfig(level="INFO", format=FORMAT, datefmt="[%X]")
 logger = logging.getLogger("data_loader")
 data_dir = "csv_data"
+logger.info(f"Using data saved in directory {data_dir}")
 
 
 class CsvReader(object):
@@ -20,6 +21,7 @@ class CsvReader(object):
         max_rows: Union[int, None] = None,
     ):
 
+        logger.info(f"Reading data from {filename}")
         df = pd.read_csv(filename, nrows=max_rows)
 
         # CASE 1: rows are of the form {st+1, at}
@@ -27,6 +29,9 @@ class CsvReader(object):
         # if timelag < 0 then drop the iteration - timelag iteration from each episode
         # and append previous state columns into each row: {st+1, at} -> {st, at, st+1}
         if all([episode_col, iteration_col, timelag < 0]):
+            logger.info(
+                f"Timelag set {timelag} so using features from {timelag} previous row"
+            )
             df = df.sort_values(by=[episode_col, iteration_col])
             lagged_df = df.groupby(by=episode_col, as_index=False).shift(timelag * -1)
             lagged_df = lagged_df.drop([iteration_col], axis=1)
@@ -38,6 +43,9 @@ class CsvReader(object):
                 ]
                 lagged_df = lagged_df[self.feature_cols]
                 lagged_df = lagged_df.rename(columns=lambda x: "prev_" + x)
+                logger.info(
+                    f"Previous states are being added to same row with prefix prev_"
+                )
                 self.feature_cols = list(lagged_df.columns.values)
             joined_df = df.join(lagged_df)
             # skip the first row of each episode since we do not have its st
@@ -50,6 +58,9 @@ class CsvReader(object):
         # CASE 2: rows of the form {st, at}
         # Append st+1 from next row into current row {st, at, st+1}
         elif all([episode_col, iteration_col, timelag > 0]):
+            logger.info(
+                f"Timelag set {timelag} so using ouputs from {timelag} next row"
+            )
             df = df.sort_values(by=[episode_col, iteration_col])
             lagged_df = df.groupby(by=episode_col, as_index=False).shift(timelag * -1)
             lagged_df = lagged_df.drop([iteration_col], axis=1)
@@ -62,6 +73,9 @@ class CsvReader(object):
                 lagged_df = lagged_df[self.feature_cols]
                 lagged_df = lagged_df.rename(columns=lambda x: "next_" + x)
                 self.feature_cols = list(lagged_df.columns.values)
+                logger.info(
+                    f"Next states are being added to same row with prefix next_"
+                )
             joined_df = df.join(lagged_df)
             # truncate before the end of timelag for complete observations only
             joined_df = (
@@ -79,4 +93,7 @@ if __name__ == "__main__":
     csv_reader = CsvReader()
     df = csv_reader.read(
         os.path.join(data_dir, "cartpole-log.csv"), timelag=-1, max_rows=1000
+    )
+    df2 = csv_reader.read(
+        os.path.join(data_dir, "cartpole_at_st.csv"), timelag=1, max_rows=1000
     )

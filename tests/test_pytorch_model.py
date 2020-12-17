@@ -1,5 +1,3 @@
-import os
-import pytest
 from torch_models import PyTorchModel
 
 torch_model = PyTorchModel()
