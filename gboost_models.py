@@ -122,4 +122,4 @@ if __name__ == "__main__":
     xgm.build_model(model_type="lightgbm")
     xgm.fit(X, y)
 
-    xgm.save_model(dir_path="models/gbm_pole")
+    # xgm.save_model(dir_path="models/gbm_pole")

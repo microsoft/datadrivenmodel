@@ -1,12 +1,12 @@
 import logging
 import os
+import random
 import sys
 import time
 from distutils.util import strtobool
-from typing import Dict, List, Tuple
+from typing import Dict, List, Any
 
 import numpy as np
-import pandas as pd
 from azure.core.exceptions import HttpResponseError
 from dotenv import load_dotenv, set_key
 from microsoft_bonsai_api.simulator.client import BonsaiClient, BonsaiClientConfig
@@ -15,6 +15,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
     SimulatorSessionResponse,
     SimulatorState,
 )
+
 from base import BaseModel
 from gboost_models import GBoostModel
 
@@ -27,27 +28,62 @@ logging.getLogger(__name__).addHandler(console)
 
 save_path = os.path.join("models", "gbm_pole")
 ddm_model = GBoostModel()
-ddm_model.load_model(dir_path=save_path)
+ddm_model.load_model(dir_path=save_path, model_type="lightgbm")
+
+feature_cols = [
+    "x_position",
+    "x_velocity",
+    "angle_position",
+    "angle_velocity",
+    "action_command",
+    "config_length",
+    "config_masspole",
+]
+label_cols = [
+    "state_x_position",
+    "state_x_velocity",
+    "state_angle_position",
+    "state_angle_velocity",
+]
+
+
+def random_action():
+
+    return {"action_command": random.randint(0, 1)}
+
+
+initial_state = {
+    "state_x_position": 0,
+    "state_x_velocity": 0,
+    "state_angle_position": 0,
+    "state_angle_velocity": 0,
+    "action_command": 0,
+    "config_length": 0.5,
+    "config_masspole": 0.1,
+}
 
 
 class Simulator(BaseModel):
     def __init__(self, feature_cols=List[str], label_cols=List[str]):
 
-        self.model = ddm_model
+        self.ddm = ddm_model
         self.feature_cols = feature_cols
         self.label_cols = label_cols
+        self.last_position = initial_state
 
-    def episode_step(self, action: Dict[str, float]):
+    def episode_start(self, config: Dict[str, Any] = initial_state):
 
-        X = np.array(list(action.values())).reshape(1, -1)
-        preds = self.predict(X, self.label_cols)
-        self.state = preds.to_dict(orient="records")[0]
-        return preds
-
-    def episode_start(self, config: Dict[str, float] = None):
-
+        self.last_position.update(config)
         action = random_action()
         self.episode_step(action)
+
+    def episode_step(self, action: Dict[str, int]):
+
+        self.last_position.update(action)
+        X = np.array(list(self.last_position.values())).reshape(1, -1)
+        preds = self.ddm.predict(X)
+        self.state = dict(zip(self.label_cols, preds))
+        return self.state
 
     def get_state(self):
 
@@ -100,8 +136,7 @@ def test_random_policy(
         number of iterations to run, by default 10
     """
 
-    sim = Simulator(feature_cols=features, label_cols=labels)
-    sim.load_model(filename=sc1_path)
+    sim = Simulator(feature_cols=feature_cols, label_cols=label_cols)
     # test_config = {"length": 1.5}
     for episode in range(num_episodes):
         iteration = 0
@@ -137,8 +172,7 @@ def main(config_setup: bool = False, env_name: str = "DDM-Repsol"):
 
     # Grab standardized way to interact with sim API
     # sc1_path = os.path.join(os.getcwd(), "models/sc1-small.pkl")
-    sim = Simulator(feature_cols=features, label_cols=labels)
-    sim.load_model(filename=sc1_path)
+    sim = Simulator(feature_cols=feature_cols, label_cols=label_cols)
 
     # do a random action to get initial state
     sim.episode_start()
@@ -283,7 +317,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test-local",
         type=lambda x: bool(strtobool(x)),
-        default=False,
+        default=True,
         help="Run simulator locally without connecting to platform",
     )
 

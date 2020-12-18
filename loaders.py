@@ -62,6 +62,7 @@ class CsvReader(object):
             lagged_df = df.groupby(by=episode_col, as_index=False).shift(timelag * -1)
             lagged_df = lagged_df.drop([iteration_col], axis=1)
             if type(feature_cols) == list:
+                self.feature_cols = feature_cols
                 lagged_df = lagged_df[feature_cols]
             else:
                 self.feature_cols = [
@@ -73,6 +74,7 @@ class CsvReader(object):
                     f"Previous states are being added to same row with prefix prev_"
                 )
                 self.feature_cols = list(lagged_df.columns.values)
+            logger.info(f"Feature columns are: {self.feature_cols}")
             joined_df = df.join(lagged_df)
             # skip the first row of each episode since we do not have its st
             joined_df = (
