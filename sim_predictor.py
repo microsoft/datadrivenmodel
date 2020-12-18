@@ -4,7 +4,7 @@ import random
 import sys
 import time
 from distutils.util import strtobool
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 import numpy as np
 from azure.core.exceptions import HttpResponseError

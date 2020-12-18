@@ -13,7 +13,7 @@ def csv_reader():
 def test_cartpole_at_st1(csv_reader):
 
     cp_df = csv_reader.read(
-        os.path.join(data_dir, "cartpole-log.csv"), max_rows=1000, timelag=-1
+        os.path.join(data_dir, "cartpole-log.csv"), max_rows=1000, iteration_order=-1
     )
     assert cp_df.shape[0] == 980
     assert cp_df.shape[1] == 13
@@ -25,7 +25,7 @@ def test_cartpole_at_st1(csv_reader):
 def test_cartpole_at_st(csv_reader):
 
     cp2_df = csv_reader.read(
-        os.path.join(data_dir, "cartpole_at_st.csv"), timelag=1, max_rows=1000
+        os.path.join(data_dir, "cartpole_at_st.csv"), iteration_order=1, max_rows=1000
     )
 
     assert cp2_df.shape[0] == 980

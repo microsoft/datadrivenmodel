@@ -75,8 +75,7 @@ if __name__ == "__main__":
         "optimizer": "adam",
     }
     keras_model = KerasNeuralNetModel()
-    X, y = keras_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
-    keras_model.build_model(config=config)
-    keras_model.fit(X, y)
+    # keras_model.build_model(config=config)
+    # keras_model.fit(X, y)
 
-    keras_model.sweep(X, y)
+    # keras_model.sweep(X, y)

@@ -18,7 +18,7 @@ class CsvReader(object):
     def read(
         self,
         filename: str,
-        timelag: int = -1,
+        iteration_order: int = -1,
         episode_col: str = "episode",
         iteration_col: str = "iteration",
         feature_cols: Union[List, str] = "state_",
@@ -30,7 +30,7 @@ class CsvReader(object):
         ----------
         filename : str
             [description]
-        timelag : int, optional
+        iteration_order : int, optional
             [description], by default -1
         episode_col : str, optional
             [description], by default "episode"
@@ -52,14 +52,16 @@ class CsvReader(object):
 
         # CASE 1: rows are of the form {st+1, at}
         # Append st into next row
-        # if timelag < 0 then drop the iteration - timelag iteration from each episode
+        # if iteration_order < 0 then drop the iteration - iteration_order iteration from each episode
         # and append previous state columns into each row: {st+1, at} -> {st, at, st+1}
-        if all([episode_col, iteration_col, timelag < 0]):
+        if all([episode_col, iteration_col, iteration_order < 0]):
             logger.info(
-                f"Timelag set {timelag} so using features from {timelag} previous row"
+                f"Iteration order set to {iteration_order} so using inputs from previous {iteration_order} row"
             )
             df = df.sort_values(by=[episode_col, iteration_col])
-            lagged_df = df.groupby(by=episode_col, as_index=False).shift(timelag * -1)
+            lagged_df = df.groupby(by=episode_col, as_index=False).shift(
+                iteration_order * -1
+            )
             lagged_df = lagged_df.drop([iteration_col], axis=1)
             if type(feature_cols) == list:
                 self.feature_cols = feature_cols
@@ -79,18 +81,20 @@ class CsvReader(object):
             # skip the first row of each episode since we do not have its st
             joined_df = (
                 joined_df.groupby(by=episode_col, as_index=False)
-                .apply(lambda x: x.iloc[timelag * -1 :])
+                .apply(lambda x: x.iloc[iteration_order * -1 :])
                 .reset_index()
             )
             return joined_df.drop(["level_0", "level_1"], axis=1)
         # CASE 2: rows of the form {st, at}
         # Append st+1 from next row into current row {st, at, st+1}
-        elif all([episode_col, iteration_col, timelag > 0]):
+        elif all([episode_col, iteration_col, iteration_order > 0]):
             logger.info(
-                f"Timelag set {timelag} so using ouputs from {timelag} next row"
+                f"Iteration order set to {iteration_order} so using outputs from next {iteration_order} row"
             )
             df = df.sort_values(by=[episode_col, iteration_col])
-            lagged_df = df.groupby(by=episode_col, as_index=False).shift(timelag * -1)
+            lagged_df = df.groupby(by=episode_col, as_index=False).shift(
+                iteration_order * -1
+            )
             lagged_df = lagged_df.drop([iteration_col], axis=1)
             if type(feature_cols) == list:
                 lagged_df = lagged_df[feature_cols]
@@ -105,10 +109,10 @@ class CsvReader(object):
                     f"Next states are being added to same row with prefix next_"
                 )
             joined_df = df.join(lagged_df)
-            # truncate before the end of timelag for complete observations only
+            # truncate before the end of iteration_order for complete observations only
             joined_df = (
                 joined_df.groupby(by=episode_col, as_index=False)
-                .apply(lambda x: x.iloc[: timelag * -1])
+                .apply(lambda x: x.iloc[: iteration_order * -1])
                 .reset_index()
             )
             return joined_df.drop(["level_0", "level_1"], axis=1)
@@ -120,8 +124,8 @@ if __name__ == "__main__":
 
     csv_reader = CsvReader()
     df = csv_reader.read(
-        os.path.join(data_dir, "cartpole-log.csv"), timelag=-1, max_rows=1000
+        os.path.join(data_dir, "cartpole-log.csv"), iteration_order=-1, max_rows=1000
     )
     df2 = csv_reader.read(
-        os.path.join(data_dir, "cartpole_at_st.csv"), timelag=1, max_rows=1000
+        os.path.join(data_dir, "cartpole_at_st.csv"), iteration_order=1, max_rows=1000
     )

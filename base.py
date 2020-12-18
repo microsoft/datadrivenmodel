@@ -36,7 +36,7 @@ class BaseModel(abc.ABC):
         input_cols_read: Union[str, List[str]] = "state",
         augm_cols: Union[str, List[str]] = ["action_command"],
         output_col: Union[str, List[str]] = "state",
-        timelag: int = -1,
+        iteration_order: int = -1,
         max_rows: Union[int, None] = None,
     ) -> Tuple[np.array, np.array]:
         """Read CSV data into two datasets for modeling
@@ -51,7 +51,7 @@ class BaseModel(abc.ABC):
             Exact match of additional columns to use for modeling, such as the actions of the current iteration and any scenario/config parameters, by default ["action_command"]
         output_col : Union[str, List[str]], optional
             output columns of the dynamical system. Can either be a string which is then matched for any columns or a list of exact matches, by default "state"
-        timelag : int, optional
+        iteration_order : int, optional
             in the order of the raw dataset, what is the lag between iteration t and iteration t+1, by default -1
         max_rows : Union[int, None], optional
             max rows to read for a large dataset, by default None
@@ -74,7 +74,7 @@ class BaseModel(abc.ABC):
         else:
             df = csv_reader.read(
                 dataset_path,
-                timelag=timelag,
+                iteration_order=iteration_order,
                 feature_cols=input_cols_read,
                 max_rows=max_rows,
             )
