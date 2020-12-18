@@ -1,5 +1,4 @@
-import numpy as np
-from typing import Tuple, Dict
+from typing import Dict
 import pickle
 import torch
 from torch import nn
@@ -164,12 +163,8 @@ if __name__ == "__main__":
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
     )
-    # X, y = pytorch_model.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
-
     pytorch_model.build_model()
     pytorch_model.fit(X, y)
-    # predict_one = pytorch_model.predict(X[0])
-
     # tune tests
     # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
     # gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
