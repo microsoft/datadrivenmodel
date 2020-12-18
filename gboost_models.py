@@ -17,8 +17,6 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# TODO: why doesn't multioutputregressor work properly?
-
 
 class GBoostModel(BaseModel):
     def build_model(self, model_type: str = "xgboost", scale_data: bool = False):
@@ -139,4 +137,4 @@ if __name__ == "__main__":
     xgm.fit(X, y, fit_separate=False)
     yhat = xgm.predict(X)
 
-    # xgm.save_model(dir_path="models/gbm_pole")
+    # xgm.save_model(dir_path="models/xgbm_pole_multi.pkl")

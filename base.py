@@ -38,7 +38,7 @@ class BaseModel(abc.ABC):
         output_col: Union[str, List[str]] = "state",
         iteration_order: int = -1,
         max_rows: Union[int, None] = None,
-    ) -> Tuple[np.array, np.array]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
         Parameters
@@ -99,10 +99,10 @@ class BaseModel(abc.ABC):
 
     def load_pickle_data(self, x_path: str, y_path: str):
 
-        X = pickle.load(x_path)
-        y = pickle.load(y_path)
+        X = pickle.load(open(x_path, "rb"))
+        y = pickle.load(open(y_path, "rb"))
 
-        pass
+        return X, y
 
     def scalar(self, X, y):
 
@@ -157,7 +157,7 @@ class BaseModel(abc.ABC):
         self.scale_data = scale_data
         self.model = pickle.load(open(filename, "rb"))
 
-    def evaluate(self, test_data: np.array):
+    def evaluate(self, test_data: np.ndarray):
 
         if not self.model:
             raise Exception("No model found, please run fit first")
