@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple, Dict
+import pickle
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -93,7 +94,7 @@ class PyTorchModel(BaseModel):
             ],
         )
 
-    def fit(self, X, y):
+    def fit(self, X, y, **fit_params):
 
         if self.scale_data:
             X, y = self.scalar(X, y)
@@ -102,7 +103,17 @@ class PyTorchModel(BaseModel):
             torch.tensor(X).float().to(device=self.device),
             torch.tensor(y).float().to(device=self.device),
         )
-        self.model.fit(X, y)
+        self.model.fit(X, y, **fit_params)
+
+    def load_model(
+        self, input_dim: str, output_dim: str, filename: str, scale_data: bool = False,
+    ):
+
+        self.scale_data = scale_data
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.build_model()
+        self.model = pickle.load(open(filename, "rb"))
 
     def predict(self, X):
 

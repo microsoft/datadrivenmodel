@@ -1,3 +1,4 @@
+import os
 import pathlib
 import pickle
 from typing import Dict, Tuple
@@ -16,6 +17,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# TODO: why doesn't multioutputregressor work properly?
+
 
 class GBoostModel(BaseModel):
     def build_model(self, model_type: str = "xgboost", scale_data: bool = False):
@@ -29,6 +32,7 @@ class GBoostModel(BaseModel):
             raise NotImplementedError("Unknown model selected")
 
         self.model = MultiOutputRegressor(self.single_model)
+        self.model_type = model_type
 
     def fit(self, X, y):
 
@@ -37,10 +41,16 @@ class GBoostModel(BaseModel):
 
         self.models = []
         for i in range(y.shape[1]):
-            print(f"Fitting model {i} of {y.shape[1]}")
-            self.models.append(
-                XGBRegressor(objective="reg:squarederror").fit(X, y[:, i])
-            )
+
+            if self.model_type == "xgboost":
+                boost_model = XGBRegressor(objective="reg:squarederror")
+            elif self.model_type == "lightgbm":
+                boost_model = LGBMRegressor()
+            else:
+                raise ValueError("Unknown model type")
+
+            logger.info(f"Fitting model {i+1} of {y.shape[1]}")
+            self.models.append(boost_model.fit(X, y[:, i]))
 
     def predict(self, X, label_col_names: str = None):
 
@@ -60,16 +70,30 @@ class GBoostModel(BaseModel):
 
         return preds
 
-    def save_model(self, filename):
+    def save_model(self, dir_path):
 
-        if not pathlib.Path(filename).parent.exists():
-            pathlib.Path(filename).parent.mkdir(parents=True)
+        if not pathlib.Path(dir_path).exists():
+            pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
         # pickle.dump(self.models, open(filename, "wb"))
-        pickle.dump(self, open(filename, "wb"))
+        for i in range(len(self.models)):
+            pickle.dump(
+                self.models[i], open(os.path.join(dir_path, f"model{i}.pkl"), "wb")
+            )
 
-    def load_model(self, filename: str):
+    def load_model(
+        self, dir_path: str, model_type: str = "xgboost", scale_data: bool = False
+    ):
 
-        self.models = pickle.load(open(filename, "rb"))
+        all_models = os.listdir(dir_path)
+        all_models.sort()
+        num_models = len(all_models)
+        models = []
+        for i in range(num_models):
+            models.append(
+                pickle.load(open(os.path.join(dir_path, all_models[i]), "rb"))
+            )
+        self.models = models
+        self.scale_data = scale_data
 
     def sweep(self, params: Dict, X, y):
 
@@ -89,22 +113,13 @@ class GBoostModel(BaseModel):
 if __name__ == "__main__":
 
     xgm = GBoostModel()
-    X, y = xgm.load_numpy("/home/alizaidi/bonsai/repsol/data/scenario1")
+    X, y = xgm.load_csv(
+        dataset_path="csv_data/cartpole-log.csv",
+        max_rows=1000,
+        augm_cols=["action_command", "config_length", "config_masspole"],
+    )
 
     xgm.build_model(model_type="lightgbm")
-
     xgm.fit(X, y)
 
-    param_dists = {
-        "n_estimators": [400, 700, 1000],
-        "colsample_bytree": [0.7, 0.8],
-        "max_depth": [15, 20, 25],
-        "num_leaves": [50, 100, 200],
-        "reg_alpha": [1.1, 1.2, 1.3],
-        "reg_lambda": [1.1, 1.2, 1.3],
-        "min_split_gain": [0.3, 0.4],
-        "subsample": [0.7, 0.8, 0.9],
-        "subsample_freq": [20],
-    }
-
-    xgm.sweep(param_dists, X, y)
+    xgm.save_model(dir_path="models/gbm_pole")

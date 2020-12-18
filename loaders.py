@@ -11,15 +11,41 @@ logger.info(f"Using data saved in directory {data_dir}")
 
 
 class CsvReader(object):
+    def order_by_time(self, time_col: str = "timestamp"):
+
+        pass
+
     def read(
         self,
         filename: str,
         timelag: int = -1,
-        episode_col: Union[str, None] = "episode",
-        iteration_col: Union[str, None] = "iteration",
+        episode_col: str = "episode",
+        iteration_col: str = "iteration",
         feature_cols: Union[List, str] = "state_",
         max_rows: Union[int, None] = None,
     ):
+        """Read episodic data where each row contains either inputs and its preceding output output or the causal inputs/outputs relationship
+
+        Parameters
+        ----------
+        filename : str
+            [description]
+        timelag : int, optional
+            [description], by default -1
+        episode_col : str, optional
+            [description], by default "episode"
+        iteration_col : str, optional
+            [description], by default "iteration"
+        feature_cols : Union[List, str], optional
+            [description], by default "state_"
+        max_rows : Union[int, None], optional
+            [description], by default None
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
 
         logger.info(f"Reading data from {filename}")
         df = pd.read_csv(filename, nrows=max_rows)

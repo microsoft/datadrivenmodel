@@ -1,4 +1,6 @@
 from torch_models import PyTorchModel
+import numpy as np
+import os
 
 torch_model = PyTorchModel()
 X, y = torch_model.load_csv(
@@ -44,3 +46,23 @@ def test_predictor():
     y_hat = torch_model.predict(X)
 
     assert y_hat.shape[0] == y.shape[0]
+
+
+def test_save_model():
+
+    torch_model.build_model()
+    torch_model.fit(X, y)
+    yhat = torch_model.predict(X)
+
+    torch_model.save_model(filename="tmp.pkl")
+
+    loaded_model = PyTorchModel()
+    loaded_model.load_model(
+        filename="tmp.pkl", input_dim=X.shape[1], output_dim=y.shape[1]
+    )
+
+    yhat_loaded = loaded_model.predict(X)
+    np.all
+
+    assert np.array_equal(yhat, yhat_loaded)
+    os.remove("tmp.pkl")

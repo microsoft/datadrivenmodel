@@ -19,6 +19,10 @@ formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
 console.setFormatter(formater)
 logging.getLogger(__name__).addHandler(console)
 
+# TODO: add weighting to the model
+# TODO: this should go into a metrics function?
+# TODO: implement saving of scalar transformers
+
 
 class BaseModel(abc.ABC):
     def __init__(self, log_dirs: str = "logs"):
@@ -93,6 +97,13 @@ class BaseModel(abc.ABC):
 
         return X, y
 
+    def load_pickle_data(self, x_path: str, y_path: str):
+
+        X = pickle.load(x_path)
+        y = pickle.load(y_path)
+
+        pass
+
     def scalar(self, X, y):
 
         self.xscalar = StandardScaler()
@@ -137,6 +148,8 @@ class BaseModel(abc.ABC):
 
         if not pathlib.Path(filename).parent.exists():
             pathlib.Path(filename).parent.mkdir(parents=True)
+        if self.scale_data:
+            logging.warn("Saving scalars not yet implemented.")
         pickle.dump(self.model, open(filename, "wb"))
 
     def load_model(self, filename: str, scale_data: bool = False):

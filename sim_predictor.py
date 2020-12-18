@@ -15,11 +15,8 @@ from microsoft_bonsai_api.simulator.generated.models import (
     SimulatorSessionResponse,
     SimulatorState,
 )
-from sklearn.preprocessing import StandardScaler
-
 from base import BaseModel
-from benchmarks import *
-from params import *
+from gboost_models import GBoostModel
 
 # Add stdout handler, with level INFO
 console = logging.StreamHandler(sys.stdout)
@@ -28,15 +25,15 @@ formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
 console.setFormatter(formater)
 logging.getLogger(__name__).addHandler(console)
 
-# sc1_path = os.path.join(os.getcwd(), "bigmodels/sc1-small.pkl")
-sc1_path = os.path.join(os.getcwd(), "models/scenario1-gboost/small-xgboost.pkl")
-logging.info(f"Using data-driven model from {sc1_path}")
+save_path = os.path.join("models", "gbm_pole")
+ddm_model = GBoostModel()
+ddm_model.load_model(dir_path=save_path)
 
 
 class Simulator(BaseModel):
     def __init__(self, feature_cols=List[str], label_cols=List[str]):
 
-        self.model = None
+        self.model = ddm_model
         self.feature_cols = feature_cols
         self.label_cols = label_cols
 
@@ -45,18 +42,12 @@ class Simulator(BaseModel):
         X = np.array(list(action.values())).reshape(1, -1)
         preds = self.predict(X, self.label_cols)
         self.state = preds.to_dict(orient="records")[0]
-        self.state["shaped_reward"] = float(self.shaped_reward(self.state).values[0])
         return preds
 
     def episode_start(self, config: Dict[str, float] = None):
 
         action = random_action()
         self.episode_step(action)
-
-    def shaped_reward(self, state):
-
-        shaped_reward = calculate_ranges(pd.DataFrame(state, index=[0]))
-        return sum(shaped_reward.values())
 
     def get_state(self):
 
