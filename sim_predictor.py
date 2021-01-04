@@ -33,35 +33,32 @@ ddm_model = GBoostModel()
 ddm_model.load_model(dir_path=save_path)
 
 feature_cols = [
-    "x_position",
-    "x_velocity",
-    "angle_position",
-    "angle_velocity",
-    "action_command",
-    "config_length",
-    "config_masspole",
+    "state_theta",
+    "state_alpha",
+    "state_theta_dot",
+    "state_alpha_dot",
+    "action_Vm",
 ]
+
 label_cols = [
-    "state_x_position",
-    "state_x_velocity",
-    "state_angle_position",
-    "state_angle_velocity",
+    "state_theta",
+    "state_alpha",
+    "state_theta_dot",
+    "state_alpha_dot",
 ]
 
 
 def random_action():
 
-    return {"action_command": random.randint(0, 1)}
+    return {"action_Vm": random.uniform(-3, 3)}
 
 
 initial_state = {
-    "state_x_position": 0,
-    "state_x_velocity": 0,
-    "state_angle_position": 0,
-    "state_angle_velocity": 0,
-    "action_command": 0,
-    "config_length": 0.5,
-    "config_masspole": 0.1,
+    "state_theta": 0.05,
+    "state_alpha": 0.05,
+    "state_theta_dot": 0.05,
+    "state_alpha_dot": 0.05,
+    "action_Vm": 0,
 }
 
 

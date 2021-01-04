@@ -33,6 +33,8 @@ from sklearn import preprocessing
 from sklearn.ensemble import GradientBoostingRegressor
 import yaml
 import pandas as pd
+from gboost_models import GBoostModel
+import pdb
 
 # Add stdout handler, with level INFO
 console = logging.StreamHandler(sys.stdout)
@@ -242,6 +244,7 @@ if __name__ == "__main__":
         "n_estimators": config["RSGB"]["n_estimators"],
     }
 
+    '''
     if args.pickle is not None:
         x_path = os.path.join(args.pickle, "x_set.pickle")
         y_path = os.path.join(args.pickle, "y_set.pickle")
@@ -303,6 +306,8 @@ if __name__ == "__main__":
     x_train, x_test, y_train, y_test = train_test_split(
         x_set, y_set, test_size=0.33, random_state=42
     )
+    '''
+    args = parser.parse_args()
 
     if args.tune_rs == True:
         if config["MODEL"]["type"] == "lstm":
@@ -413,6 +418,7 @@ if __name__ == "__main__":
 
     elif config["MODEL"]["type"] == "gb" and args.tune_rs == False:
         print("using gradient boost regressor ....")
+        '''
         for i in range(0, y_set.shape[1]):
             gb_estimator = env_gb_modeler(
                 state_space_dim=state_space_dim, action_space_dim=action_space_dim
@@ -427,6 +433,22 @@ if __name__ == "__main__":
             print("evaluation score is:", score)
             modelname = "./models/gbmodel" + str(int(i)) + ".sav"
             joblib.dump(gb_estimator.model, modelname)
+        '''
+        xgboost_model = GBoostModel()
+
+        augm_cols = []
+        for key, value in config["IO"]["feature_name"].items():
+            if value == "action":
+                augm_cols.append('action_'+key)
+        x_set, y_set = xgboost_model.load_csv(
+            dataset_path=config['DATA']['path'],
+            max_rows=1000,
+            augm_cols=augm_cols,
+        )
+
+        xgboost_model.build_model(model_type="xgboost")
+        xgboost_model.fit(x_set, y_set)
+        xgboost_model.save_model(dir_path="models/xgbm_pole_multi.pkl")
 
     if config["MODEL"]["type"] == "poly":
         print("using polynomial fitting ....")
