@@ -137,4 +137,4 @@ if __name__ == "__main__":
     xgm.fit(X, y, fit_separate=False)
     yhat = xgm.predict(X)
 
-    # xgm.save_model(dir_path="models/xgbm_pole_multi.pkl")
+    xgm.save_model(dir_path="models/xgbm_pole_multi.pkl")
