@@ -176,7 +176,7 @@ def main():
 
     # Create simulator session and init sequence id
     registration_info = SimulatorInterface(
-        name="PetroSimDDM",
+        name="YourSimDDM",
         timeout=60,
         simulator_context=config_client.simulator_context,
     )
@@ -264,7 +264,7 @@ def main():
             elif event.type == "EpisodeFinish":
                 print("Episode Finishing...")
             elif event.type == "Unregister":
-                print("Simulator Session unregistered by platform, Registering again!")
+                print("Simulator Session unregistered by platform because '{}', Registering again!".format(event.unregister.details))
                 registered_session, sequence_id = CreateSession(
                     registration_info, config_client
                 )

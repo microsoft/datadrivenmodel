@@ -26,40 +26,39 @@ formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
 console.setFormatter(formater)
 logging.getLogger(__name__).addHandler(console)
 
-save_path = os.path.join("models", "gbm_pole")
+#save_path = os.path.join("models", "gbm_pole")
+save_path = './models/xgbm_pole_multi.pkl'
 ddm_model = GBoostModel()
-ddm_model.load_model(dir_path=save_path, model_type="lightgbm")
+#ddm_model.load_model(dir_path=save_path, model_type="lightgbm")
+ddm_model.load_model(dir_path=save_path)
 
 feature_cols = [
-    "x_position",
-    "x_velocity",
-    "angle_position",
-    "angle_velocity",
-    "action_command",
-    "config_length",
-    "config_masspole",
+    "state_theta",
+    "state_alpha",
+    "state_theta_dot",
+    "state_alpha_dot",
+    "action_Vm",
 ]
+
 label_cols = [
-    "state_x_position",
-    "state_x_velocity",
-    "state_angle_position",
-    "state_angle_velocity",
+    "state_theta",
+    "state_alpha",
+    "state_theta_dot",
+    "state_alpha_dot",
 ]
 
 
 def random_action():
 
-    return {"action_command": random.randint(0, 1)}
+    return {"action_Vm": random.uniform(-3, 3)}
 
 
 initial_state = {
-    "state_x_position": 0,
-    "state_x_velocity": 0,
-    "state_angle_position": 0,
-    "state_angle_velocity": 0,
-    "action_command": 0,
-    "config_length": 0.5,
-    "config_masspole": 0.1,
+    "state_theta": 0.05,
+    "state_alpha": 0.05,
+    "state_theta_dot": 0.05,
+    "state_alpha_dot": 0.05,
+    "action_Vm": 0,
 }
 
 
@@ -82,7 +81,7 @@ class Simulator(BaseModel):
         self.last_position.update(action)
         X = np.array(list(self.last_position.values())).reshape(1, -1)
         preds = self.ddm.predict(X)
-        self.state = dict(zip(self.label_cols, preds))
+        self.state = dict(zip(self.label_cols, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 
     def get_state(self):
@@ -154,7 +153,7 @@ def test_random_policy(
     return sim
 
 
-def main(config_setup: bool = False, env_name: str = "DDM-Repsol"):
+def main(config_setup: bool = False, env_name: str = "ddm-sim-generic"):
     """Main entrypoint for running simulator connections
 
     Parameters
@@ -274,7 +273,7 @@ def main(config_setup: bool = False, env_name: str = "DDM-Repsol"):
                 print("Episode Finishing...")
                 iteration = 0
             elif event.type == "Unregister":
-                print("Simulator Session unregistered by platform, Registering again!")
+                print("Simulator Session unregistered by platform because '{}', Registering again!".format(event.unregister.details))
                 registered_session, sequence_id = CreateSession(
                     registration_info, config_client
                 )
