@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.exceptions import NotFittedError
 from tune_sklearn import TuneGridSearchCV, TuneSearchCV
 from xgboost import XGBRegressor
 
@@ -54,6 +55,13 @@ class GBoostModel(BaseModel):
                 self.models.append(boost_model.fit(X, y[:, i]))
         else:
             self.model.fit(X, y)
+
+    def partial_fit(self, X, y):
+
+        if not self.model:
+            raise NotFittedError("No model found")
+        else:
+            self.model.partial_fit(X, y)
 
     def predict(self, X):
 
