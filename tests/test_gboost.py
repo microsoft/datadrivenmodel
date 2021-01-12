@@ -26,7 +26,7 @@ def test_lgm_train():
 
     lgbm.build_model(model_type="lightgbm")
     lgbm.fit(X, y)
-    lgbm.save_model(dir_path="tmp/gbm_pole.pkl")
+    lgbm.save_model(filename="tmp/gbm_pole.pkl")
 
     lgbm2 = GBoostModel()
     lgbm2.load_model(dir_path="tmp/gbm_pole.pkl")
@@ -40,7 +40,7 @@ def test_xgb_train():
 
     xgboost_model.build_model(model_type="xgboost")
     xgboost_model.fit(X, y)
-    xgboost_model.save_model(dir_path="tmp/gbm_pole.pkl")
+    xgboost_model.save_model(filename="tmp/gbm_pole.pkl")
 
     xgm2 = GBoostModel()
     xgm2.load_model(dir_path="tmp/gbm_pole.pkl")

@@ -1,7 +1,9 @@
 import os
 import pytest
-from loaders import CsvReader, data_dir
+from loaders import CsvReader
 from base import BaseModel
+
+data_dir = "csv_data"
 
 
 @pytest.fixture
@@ -39,7 +41,7 @@ def test_cartpole_at_st(csv_reader):
 def test_base_reader():
 
     base_model = BaseModel()
-    X,y = base_model.load_csv(
+    X, y = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "cartpole-log.csv"),
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
@@ -49,3 +51,12 @@ def test_base_reader():
     assert X.shape[1] == 7
     assert y.shape[1] == 4
 
+
+def test_diff_names():
+
+    base_model = BaseModel()
+    X, y = base_model.load_csv(
+        dataset_path=os.path.join(data_dir, "off_names.csv"), max_rows=1000
+    )
+
+    assert X.shape[0] == 980 == y.shape[0]

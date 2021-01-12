@@ -84,18 +84,18 @@ class GBoostModel(BaseModel):
 
         return preds
 
-    def save_model(self, dir_path):
+    def save_model(self, filename):
 
         if self.separate_models:
-            if not pathlib.Path(dir_path).exists():
-                pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
+            if not pathlib.Path(filename).exists():
+                pathlib.Path(filename).mkdir(parents=True, exist_ok=True)
             # pickle.dump(self.models, open(filename, "wb"))
             for i in range(len(self.models)):
                 pickle.dump(
-                    self.models[i], open(os.path.join(dir_path, f"model{i}.pkl"), "wb")
+                    self.models[i], open(os.path.join(filename, f"model{i}.pkl"), "wb")
                 )
         else:
-            pickle.dump(self.model, open(dir_path, "wb"))
+            pickle.dump(self.model, open(filename, "wb"))
 
     def load_model(
         self, dir_path: str, scale_data: bool = False, separate_models: bool = False
@@ -145,4 +145,4 @@ if __name__ == "__main__":
     xgm.fit(X, y, fit_separate=False)
     yhat = xgm.predict(X)
 
-    xgm.save_model(dir_path="models/xgbm_pole_multi.pkl")
+    xgm.save_model(filename="models/xgbm_pole_multi.pkl")
