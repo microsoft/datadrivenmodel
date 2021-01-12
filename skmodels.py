@@ -26,10 +26,12 @@ from ray.tune.sklearn import TuneGridSearchCV, TuneSearchCV
 
 from base import BaseModel
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # param_grid = {"learning_rate": (0.01, 0.1), "n_estimators": (25, 250), "subsample": [False, True]}
+
 
 class SKModel(BaseModel):
     def build_model(self, model_type: str = "linear_model", scale_data: bool = False):
@@ -41,37 +43,40 @@ class SKModel(BaseModel):
             self.model = make_pipeline(StandardScaler(), SVR(C=1.0, epsilon=0.2))
         elif model_type == "GradientBoostingRegressor":
             self.model = GradientBoostingRegressor()
-        elif model_type =="PCA":
+        elif model_type == "PCA":
             self.model = PCA()
         else:
             raise NotImplementedError("unknown model selected")
-    
+
     def fit(self, X, y, fit_separate: bool = False):
 
-
         if self.scale_data:
-            X, y = self. scalar(X, y)
+            X, y = self.scalar(X, y)
 
         if self.model_type == "GradientBoostingRegressor" and fit_separate == False:
             fit_separate = True
-            print('Note: fit_separate should be True for GradientBoostingRegressor. Changing to True ..')
+            print(
+                "Note: fit_separate should be True for GradientBoostingRegressor. Changing to True .."
+            )
 
         if self.model_type == "SVR" and fit_separate == False:
             fit_separate = True
-            print('Note: fit_separate should be True for SVR. Changing to True ..')
-         
+            print("Note: fit_separate should be True for SVR. Changing to True ..")
+
         self.separate_models = fit_separate
 
         if self.separate_models:
             self.models = []
             for i in range(y.shape[1]):
                 logger.info(f"Fitting model {i+1} of {y.shape[1]}")
-                self.models.append(self.model.fit(X, y[:,i]))
+                self.models.append(self.model.fit(X, y[:, i]))
         else:
             try:
                 self.model.fit(X, y)
             except ValueError:
-                print(F'fit separate should be True for model type of {self.model_type}')
+                print(
+                    f"fit separate should be True for model type of {self.model_type}"
+                )
 
     def predict(self, X):
 
@@ -126,16 +131,16 @@ class SKModel(BaseModel):
 
         self.scale_data = scale_data
 
-    def sweep(self,X, y, params: Dict = None):
+    def sweep(self, X, y, params: Dict = None):
         if not params:
-            raise print("No Fully implemented")
+            raise NotImplementedError
 
         tune_search = TuneSearchCV(
-        self.model,
-        param_distributions=params,
-        n_trials=3,
-        # early_stopping=True,
-        # use_gpu=True
+            self.model,
+            param_distributions=params,
+            n_trials=3,
+            # early_stopping=True,
+            # use_gpu=True
         )
 
         tune_search.fit(X, y)
@@ -192,13 +197,12 @@ if __name__ == "__main__":
         augm_cols=["action_command", "config_length", "config_masspole"],
     )
 
-    skm.build_model(model_type = "linear_model")
-    skm.fit(X, y, fit_separate= False)
+    skm.build_model(model_type="linear_model")
+    skm.fit(X, y, fit_separate=False)
     print(X)
     yhat = skm.predict(X)
 
     skm.save_model(dir_path="models/linear_pole_multi.pkl")
-
 
     skm = SKModel()
     X, y = skm.load_csv(
@@ -207,16 +211,15 @@ if __name__ == "__main__":
         augm_cols=["action_command", "config_length", "config_masspole"],
     )
 
-    skm.build_model(model_type = "SVR")
-    skm.fit(X, y, fit_separate= False)
+    skm.build_model(model_type="SVR")
+    skm.fit(X, y, fit_separate=False)
     print(X)
     yhat = skm.predict(X)
 
     skm.save_model(dir_path="models/lsvc_pole_multi.pkl")
 
-
-    skm.build_model(model_type = "GradientBoostingRegressor")
-    skm.fit(X, y, fit_separate= False)
+    skm.build_model(model_type="GradientBoostingRegressor")
+    skm.fit(X, y, fit_separate=False)
     print(X)
     yhat = skm.predict(X)
 
@@ -263,5 +266,4 @@ if __name__ == "__main__":
     # grid = TuneGridSearchCV(pipe, param_grid=param_grid)
     # grid.fit(X, y)
     # print(grid.cv_results_)
-
 

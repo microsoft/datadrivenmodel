@@ -52,11 +52,11 @@ def test_base_reader():
     assert y.shape[1] == 4
 
 
-def test_diff_names():
+# def test_diff_names():
 
-    base_model = BaseModel()
-    X, y = base_model.load_csv(
-        dataset_path=os.path.join(data_dir, "off_names.csv"), max_rows=1000
-    )
+#     base_model = BaseModel()
+#     X, y = base_model.load_csv(
+#         dataset_path=os.path.join(data_dir, "off_names.csv"), max_rows=1000
+#     )
 
-    assert X.shape[0] == 980 == y.shape[0]
+#     assert X.shape[0] == 980 == y.shape[0]

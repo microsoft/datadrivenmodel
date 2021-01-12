@@ -29,7 +29,7 @@ def test_lgm_train():
     lgbm.save_model(filename="tmp/gbm_pole.pkl")
 
     lgbm2 = GBoostModel()
-    lgbm2.load_model(dir_path="tmp/gbm_pole.pkl")
+    lgbm2.load_model(filename="tmp/gbm_pole.pkl")
     yhat0 = lgbm.predict(X)
     yhat = lgbm2.predict(X)
 
@@ -43,7 +43,7 @@ def test_xgb_train():
     xgboost_model.save_model(filename="tmp/gbm_pole.pkl")
 
     xgm2 = GBoostModel()
-    xgm2.load_model(dir_path="tmp/gbm_pole.pkl")
+    xgm2.load_model(filename="tmp/gbm_pole.pkl")
     yhat0 = xgboost_model.predict(X)
     yhat = xgm2.predict(X)
 
