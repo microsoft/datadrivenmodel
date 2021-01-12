@@ -3,11 +3,8 @@ import pandas as pd
 from typing import List, Tuple, Union
 import logging
 
-FORMAT = "%(message)s"
-logging.basicConfig(level="INFO", format=FORMAT, datefmt="[%X]")
-logger = logging.getLogger("data_loader")
-data_dir = "csv_data"
-logger.info(f"Using data saved in directory {data_dir}")
+logger = logging.getLogger("data_loaders")
+logger.setLevel(logging.INFO)
 
 
 class CsvReader(object):
@@ -121,6 +118,9 @@ class CsvReader(object):
 
 
 if __name__ == "__main__":
+
+    data_dir = "csv_data"
+    logger.info(f"Using data saved in directory {data_dir}")
 
     csv_reader = CsvReader()
     df = csv_reader.read(

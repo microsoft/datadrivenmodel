@@ -79,7 +79,10 @@ class BaseModel(abc.ABC):
                 max_rows=max_rows,
             )
             features = csv_reader.feature_cols + augm_cols
-            output_cols = [col for col in df if col.startswith(output_col)]
+            if type(output_col) == str:
+                output_cols = [col for col in df if col.startswith(output_col)]
+            else:
+                output_cols = output_col
             X = df[features].values
             y = df[output_cols].values
 
@@ -117,7 +120,6 @@ class BaseModel(abc.ABC):
     def build_model(self, scale_data: bool = False):
 
         self.scale_data = scale_data
-        raise NotImplementedError
 
     def fit(self, X, y):
 
