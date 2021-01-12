@@ -1,23 +1,29 @@
-from torch_models import PyTorchModel
-from gboost_models import GBoostModel
+# from torch_models import PyTorchModel
+# from gboost_models import GBoostModel
 import typer
 import os
 import logging
+
+import model_loader
+from model_loader import available_models
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
-available_models = {"pytorch": PyTorchModel, "gboost": GBoostModel}
+# available_models = {"pytorch": PyTorchModel, "gboost": GBoostModel}
 
-default_model = "pytorch"
 
+with open("config/config_model.yml") as cmfile:
+        config = yaml.full_load(cmfile)
+
+config_model = config["MODEL"]["type"]
 
 def main(
     dataset_path: str,
     input_cols="state",
-    model: str = default_model,
-    augm_cols=["action_command", "config_length", "config_masspole",],
+    model: str = config_model,
+    augm_cols=["action_command", "config_length", "config_masspole"],
     output_col="state",
     save_file_path="saved_models",
 ):
