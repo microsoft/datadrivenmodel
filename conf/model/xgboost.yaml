@@ -1,14 +1,16 @@
 model:
   name: gboost
   build_params:
-    - network_class: MVRegressor
-    - num_units: 50
-    - dropout: 0.5
-    - num_layers: 10
+    - model_type: xgboost
+    - num_trees: 50
+    - objective: reg:squarederror
+    - step_size: 0.3
     - device: cpu
     - batch_size: 128
-    - num_epochs: 10
+    - gamma: 0
     - scale_data: True
+    - lambda: 1
+    - max_bin: 256
   saver:
     - filename: models/boost/xgboost_model
   sweep:

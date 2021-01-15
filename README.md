@@ -13,6 +13,8 @@ conda env update -f environment.yml
 conda activate ddm
 ```
 
+This will create and activate a new conda virtual environment named `ddm` based on the configuration in the [`environment.yml`](environment.yml) file.
+
 ## Tests
 
 To get an understanding of the package, you may want to look at the tests in [`tests`](./tests), and the configuration files in [`conf`](./conf).

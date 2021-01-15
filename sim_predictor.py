@@ -57,7 +57,6 @@ class Simulator(BaseModel):
             list(action.values()),
         ]
 
-        print("****")
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
         preds = self.model.predict(X)
@@ -105,7 +104,7 @@ def env_setup():
 
 
 def test_random_policy(
-    num_episodes: int = 2, num_iterations: int = 1, sim: Simulator = None,
+    num_episodes: int = 500, num_iterations: int = 250, sim: Simulator = None,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -163,7 +162,7 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(10, 10, sim)
+        test_random_policy(1000, 250, sim)
     elif policy == "bonsai":
         env_setup()
         load_dotenv(verbose=True, override=True)
