@@ -1,50 +1,67 @@
-# from torch_models import PyTorchModel
-# from gboost_models import GBoostModel
-import typer
 import os
 import logging
 
-import model_loader
-from model_loader import available_models
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
-# available_models = {"pytorch": PyTorchModel, "gboost": GBoostModel}
+from model_loader import available_models
+
+from omegaconf import DictConfig, OmegaConf, ListConfig
+import hydra
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-with open("config/config_model.yml") as cmfile:
-        config = yaml.full_load(cmfile)
+@hydra.main(config_path="conf", config_name="config")
+def main(cfg: DictConfig) -> None:
 
-config_model = config["MODEL"]["type"]
+    logger.info("Configuration: ")
+    logger.info(f"\n{OmegaConf.to_yaml(cfg)}")
 
-def main(
-    dataset_path: str,
-    input_cols="state",
-    model: str = config_model,
-    augm_cols=["action_command", "config_length", "config_masspole"],
-    output_col="state",
-    save_file_path="saved_models",
-):
-    """Train a Data-Driven Simulator Using Logged Dataset of Interactions with a Fixed Environment
-    """
+    input_cols = cfg["data"]["inputs"]
+    output_cols = cfg["data"]["outputs"]
+    augmented_cols = cfg["data"]["augmented_cols"]
+    iteration_order = cfg["data"]["iteration_order"]
+    episode_col = cfg["data"]["episode_col"]
+    iteration_col = cfg["data"]["iteration_col"]
+    dataset_path = cfg["data"]["path"]
+    save_path = cfg["model"]["saver"][0]["filename"]
+    model_name = cfg["model"]["name"]
+    Model = available_models[model_name]
 
-    logger.info(f"Using model type {model}")
-    model_class = available_models[model]()
-    X, y = model_class.load_csv(
+    if cfg["data"]["full_or_relative"] == "relative":
+        dataset_path = os.path.join(dir_path, dataset_path)
+
+    save_path = os.path.join(dir_path, save_path + ".pkl")
+
+    if type(input_cols) == ListConfig:
+        input_cols = list(input_cols)
+    if type(output_cols) == ListConfig:
+        output_cols = list(output_cols)
+    if type(augmented_cols) == ListConfig:
+        augmented_cols = list(augmented_cols)
+
+    model = Model()
+    X, y = model.load_csv(
+        input_cols=input_cols,
+        output_cols=output_cols,
+        augm_cols=augmented_cols,
         dataset_path=dataset_path,
-        input_cols_read=input_cols,
-        output_col=output_col,
-        augm_cols=augm_cols,
+        iteration_order=iteration_order,
+        episode_col=episode_col,
+        iteration_col=iteration_col,
     )
-    logger.info(f"Features shape {X.shape}")
-    logger.info(f"Labels shape {y.shape}")
-    model_class.build_model()
-    model_class.fit(X, y)
-    model_class.save_model(filename=os.path.join(save_file_path, "trained_model.pkl"))
+    logger.info("Building model...")
+    model.build_model()
+    logger.info("Fitting model...")
+    model.fit(X, y)
+
+    logger.info(f"Saving model to {save_path}")
+    model.save_model(filename=save_path)
 
 
 if __name__ == "__main__":
 
-    typer.run(main)
+    main()

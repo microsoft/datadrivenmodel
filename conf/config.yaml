@@ -1,0 +1,3 @@
+defaults:
+  - data: cartpole_st1_at.yaml
+  - model: torch.yaml
