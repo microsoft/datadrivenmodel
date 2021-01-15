@@ -1,0 +1,10 @@
+data:
+  path: csv_data/cartpole_at_st.csv
+  full_or_relative: relative
+  inputs: state
+  outputs: state
+  augmented_cols: ["config_length", "config_masspole", "action_command"]
+  iteration_order: 1
+  episode_col: episode
+  iteration_col: iteration
+  scale_data: True

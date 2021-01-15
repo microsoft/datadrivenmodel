@@ -5,16 +5,13 @@ the following function
 """
 # DEVELOPER TODO: Add your favorite models bases on abstract class here and also add then to available_models
 from torch_models import PyTorchModel
-from pltmodels import LightningNet
-from skmodels import SKModel 
+from skmodels import SKModel
 from gboost_models import GBoostModel
 
-available_models = {"pytorch": PyTorchModel,"SVR":SKModel(), "GradientBoostingRegressor": SKModel, "gboost": GBoostModel}
-
-
-
-
-
-
-
+available_models = {
+    "pytorch": PyTorchModel,
+    "SVR": SKModel,
+    "GradientBoostingRegressor": SKModel,
+    "gboost": GBoostModel,
+}
 
