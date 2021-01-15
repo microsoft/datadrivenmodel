@@ -180,6 +180,8 @@ class BaseModel(abc.ABC):
 
     def save_model(self, filename):
 
+        if not any([s in filename for s in [".pkl", ".pickle"]]):
+            filename += ".pkl"
         parent_dir = pathlib.Path(filename).parent
         if not parent_dir.exists():
             parent_dir.mkdir(parents=True, exist_ok=True)
