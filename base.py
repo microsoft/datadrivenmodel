@@ -85,7 +85,9 @@ class BaseModel(abc.ABC):
                 raise TypeError(
                     f"input_cols expected type List[str] or str but received type {type(input_cols)}"
                 )
-            if type(augm_cols) == str:
+            if not augm_cols:
+                logging.debug(f"No augmented columns...")
+            elif type(augm_cols) == str:
                 augm_features = [str(col) for col in df if col.startswith(augm_cols)]
             elif type(augm_cols) == list:
                 augm_features = augm_cols
@@ -94,7 +96,10 @@ class BaseModel(abc.ABC):
                     f"augm_cols expected type List[str] or str but received type {type(augm_cols)}"
                 )
 
-            features = base_features + augm_features
+            if augm_cols:
+                features = base_features + augm_features
+            else:
+                features = base_features
             self.features = features
             logging.info(f"Using {features} as the features for modeling DDM")
 
