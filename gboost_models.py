@@ -2,6 +2,7 @@ import os
 import pathlib
 import pickle
 from typing import Dict, Tuple
+from natsort import natsorted
 
 import numpy as np
 import pandas as pd
@@ -117,10 +118,11 @@ class GBoostModel(BaseModel):
         self, filename: str, scale_data: bool = False, separate_models: bool = False
     ):
 
+        self.scale_data = scale_data
         self.separate_models = separate_models
         if self.separate_models:
             all_models = os.listdir(filename)
-            all_models.sort()
+            all_models = natsorted(all_models)
             if self.scale_data:
                 all_models = all_models[:-2]
             num_models = len(all_models)
@@ -133,7 +135,6 @@ class GBoostModel(BaseModel):
         else:
             self.model = pickle.load(open(filename, "rb"))
 
-        self.scale_data = scale_data
         if scale_data:
             if not separate_models:
                 path_name = str(pathlib.Path(filename).parent)
