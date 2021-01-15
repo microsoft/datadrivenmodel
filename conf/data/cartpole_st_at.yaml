@@ -7,4 +7,5 @@ data:
   iteration_order: 1
   episode_col: episode
   iteration_col: iteration
+  max_rows: -1
   scale_data: True

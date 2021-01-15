@@ -27,6 +27,7 @@ def main(cfg: DictConfig) -> None:
     episode_col = cfg["data"]["episode_col"]
     iteration_col = cfg["data"]["iteration_col"]
     dataset_path = cfg["data"]["path"]
+    max_rows = cfg["data"]["max_rows"]
     save_path = cfg["model"]["saver"][0]["filename"]
     model_name = cfg["model"]["name"]
     Model = available_models[model_name]
@@ -52,6 +53,7 @@ def main(cfg: DictConfig) -> None:
         iteration_order=iteration_order,
         episode_col=episode_col,
         iteration_col=iteration_col,
+        max_rows=max_rows,
     )
     logger.info("Building model...")
     model.build_model()

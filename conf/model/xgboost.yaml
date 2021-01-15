@@ -1,0 +1,18 @@
+model:
+  name: gboost
+  build_params:
+    - network_class: MVRegressor
+    - num_units: 50
+    - dropout: 0.5
+    - num_layers: 10
+    - device: cpu
+    - batch_size: 128
+    - num_epochs: 10
+    - scale_data: True
+  saver:
+    - filename: models/xgboost_model
+  sweep:
+    - run: False
+    - search_algorithm: bayesian
+    - num_trials: 3
+    - scoring_func: r2

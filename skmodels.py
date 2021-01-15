@@ -11,6 +11,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
+from natsort import natsorted
 
 from tune_sklearn import TuneSearchCV
 from tune_sklearn import TuneGridSearchCV
@@ -43,8 +44,6 @@ class SKModel(BaseModel):
             self.model = make_pipeline(StandardScaler(), SVR(C=1.0, epsilon=0.2))
         elif model_type == "GradientBoostingRegressor":
             self.model = GradientBoostingRegressor()
-        elif model_type == "PCA":
-            self.model = PCA()
         else:
             raise NotImplementedError("unknown model selected")
 
@@ -98,18 +97,22 @@ class SKModel(BaseModel):
         # preds_df.columns = label_col_names
         return preds
 
-    def save_model(self, dir_path):
+    def save_model(self, filename):
 
+        dir_path = pathlib.Path(filename).parent
+        if not pathlib.Path(dir_path).exists():
+            pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
         if self.separate_models:
-            if not pathlib.Path(dir_path).exists():
-                pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
             # pickle.dump(self.models, open(filename, "wb"))
+            if not pathlib.Path(filename).exists():
+                pathlib.Path(filename).mkdir(parents=True, exist_ok=True)
+            logger.info(f"Saving models to {filename}")
             for i in range(len(self.models)):
-                pickle.dump(
-                    self.models[i], open(os.path.join(dir_path, f"model{i}.pkl"), "wb")
-                )
+                save_path = os.path.join(filename, f"model{i}.pkl")
+                logger.info(f"Saving model {i} to {save_path}")
+                pickle.dump(self.models[i], open(save_path, "wb"))
         else:
-            pickle.dump(self.model, open(dir_path, "wb"))
+            pickle.dump(self.model, open(filename, "wb"))
 
     def load_model(
         self, dir_path: str, scale_data: bool = False, separate_models: bool = False
@@ -118,7 +121,7 @@ class SKModel(BaseModel):
         self.separate_models = separate_models
         if self.separate_models:
             all_models = os.listdir(dir_path)
-            all_models.sort()
+            all_models = natsorted(all_models)
             num_models = len(all_models)
             models = []
             for i in range(num_models):
@@ -146,39 +149,6 @@ class SKModel(BaseModel):
         tune_search.fit(X, y)
 
         return tune_search
-
-
-# pipe = Pipeline(
-#     [
-#         # the reduce_dim stage is populated by the param_grid
-#         ("reduce_dim", "passthrough"),
-#         ("classify", LinearSVC(dual=False, max_iter=10000)),
-#     ]
-# )
-
-# N_FEATURES_OPTIONS = [2, 4, 8]
-# C_OPTIONS = [1, 10]
-# param_grid = [
-#     {
-#         "reduce_dim": [PCA(iterated_power=7), NMF()],
-#         "reduce_dim__n_components": N_FEATURES_OPTIONS,
-#         "classify__C": C_OPTIONS,
-#     },
-#     {
-#         "reduce_dim": [SelectKBest(chi2)],
-#         "reduce_dim__k": N_FEATURES_OPTIONS,
-#         "classify__C": C_OPTIONS,
-#     },
-# ]
-
-# random = TuneSearchCV(pipe, param_grid, search_optimization="random")
-# X, y = load_digits(return_X_y=True)
-# random.fit(X, y)
-# print(random.cv_results_)
-
-# grid = TuneGridSearchCV(pipe, param_grid=param_grid)
-# grid.fit(X, y)
-# print(grid.cv_results_)
 
 
 if __name__ == "__main__":

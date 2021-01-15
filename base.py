@@ -74,6 +74,8 @@ class BaseModel(abc.ABC):
         if not os.path.exists(dataset_path):
             raise ValueError(f"No data found at {dataset_path}")
         else:
+            if max_rows < 0:
+                max_rows = None
             df = pd.read_csv(dataset_path, nrows=max_rows)
             if type(input_cols) == str:
                 base_features = [str(col) for col in df if col.startswith(input_cols)]

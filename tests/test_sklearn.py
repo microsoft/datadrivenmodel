@@ -23,11 +23,11 @@ def test_svm_train():
         pathlib.Path("tmp").mkdir(parents=True, exist_ok=True)
     lsvm = SKModel()
     lsvm.build_model(model_type="SVR")
-    lsvm.fit(X, y)
-    lsvm.save_model(dir_path="tmp/lsvm_pole.pkl")
+    lsvm.fit(X, y, fit_separate=True)
+    lsvm.save_model(filename="tmp/lsvm_pole")
 
     lsvm2 = SKModel()
-    lsvm2.load_model(dir_path="tmp/lsvm_pole.pkl", separate_models=True)
+    lsvm2.load_model(dir_path="tmp/lsvm_pole", separate_models=True)
 
     yhat0 = lsvm.predict(X)
     yhat = lsvm2.predict(X)
@@ -42,7 +42,7 @@ def test_linear_train():
     linear = SKModel()
     linear.build_model(model_type="linear_model")
     linear.fit(X, y)
-    linear.save_model(dir_path="tmp/linear_pole.pkl")
+    linear.save_model(filename="tmp/linear_pole.pkl")
 
     linear2 = SKModel()
     linear2.load_model(dir_path="tmp/linear_pole.pkl")
@@ -61,7 +61,7 @@ def test_gbr_train():
     gbr = SKModel()
     gbr.build_model(model_type="GradientBoostingRegressor")
     gbr.fit(X, y)
-    gbr.save_model(dir_path="tmp/gbr_pole.pkl")
+    gbr.save_model(filename="tmp/gbr_pole.pkl")
 
     gbr2 = SKModel()
     gbr2.load_model(dir_path="tmp/gbr_pole.pkl", separate_models=True)
