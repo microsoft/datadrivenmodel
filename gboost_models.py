@@ -92,8 +92,14 @@ class GBoostModel(BaseModel):
     def save_model(self, filename):
 
         if self.scale_data:
+            logger.info(f"Scale transformations used, saving to {filename}")
             if not self.separate_models:
-                path_name = str(pathlib.Path(filename).parent)
+                if not any([s in filename for s in [".pkl", ".pickle"]]):
+                    filename += ".pkl"
+                parent_dir = pathlib.Path(filename).parent
+                if not parent_dir.exists():
+                    parent_dir.mkdir(parents=True, exist_ok=True)
+                path_name = str(parent_dir)
             else:
                 path_name = filename
             pickle.dump(
@@ -106,12 +112,14 @@ class GBoostModel(BaseModel):
         if self.separate_models:
             if not pathlib.Path(filename).exists():
                 pathlib.Path(filename).mkdir(parents=True, exist_ok=True)
-            # pickle.dump(self.models, open(filename, "wb"))
             for i in range(len(self.models)):
                 pickle.dump(
                     self.models[i], open(os.path.join(filename, f"model{i}.pkl"), "wb")
                 )
         else:
+            parent_dir = pathlib.Path(filename).parent
+            if not parent_dir.exists():
+                parent_dir.mkdir(parents=True, exist_ok=True)
             pickle.dump(self.model, open(filename, "wb"))
 
     def load_model(

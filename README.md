@@ -45,7 +45,8 @@ which will use the configuration file in [`conf/data/cartpole_st_at.yaml`](./con
 You can also override parameters of the configuration file by specifying their name:
 
 ```bash
-ython datamodeler2.py data.path=csv_data/cartpole_at_st.csv data.iteration_order=1
+python datamodeler2.py data.path=csv_data/cartpole_at_st.csv data.iteration_order=1
+python datamodeler2.py data.path=csv_data/cartpole_at_st.csv model=xgboost 
 ```
 
 The script automatically saves your model to the path specified by `model.saver.filename`. An `outputs` directory is also saved with your configuration file and logs.

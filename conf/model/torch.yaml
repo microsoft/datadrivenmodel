@@ -1,5 +1,14 @@
 model:
   name: pytorch
+  build_params:
+    - network_class: MVRegressor
+    - num_units: 50
+    - dropout: 0.5
+    - num_layers: 10
+    - device: cpu
+    - batch_size: 128
+    - num_epochs: 10
+    - scale_data: True
   network:
     - num_units: 50
     - p_dropout: 0.5

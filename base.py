@@ -180,10 +180,18 @@ class BaseModel(abc.ABC):
 
     def save_model(self, filename):
 
-        if not pathlib.Path(filename).parent.exists():
-            pathlib.Path(filename).parent.mkdir(parents=True)
+        parent_dir = pathlib.Path(filename).parent
+        if not parent_dir.exists():
+            parent_dir.mkdir(parents=True, exist_ok=True)
         if self.scale_data:
-            logging.warn("Saving scalars not yet implemented.")
+            logging.info(f"Scale transformations used, saving to {filename}")
+            pickle.dump(
+                self.xscalar, open(os.path.join(str(parent_dir), "xscalar.pkl"), "wb")
+            )
+            pickle.dump(
+                self.yscalar, open(os.path.join(str(parent_dir), "yscalar.pkl"), "wb")
+            )
+
         pickle.dump(self.model, open(filename, "wb"))
 
     def load_model(self, filename: str, scale_data: bool = False):

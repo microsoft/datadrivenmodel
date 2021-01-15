@@ -10,7 +10,7 @@ model:
     - num_epochs: 10
     - scale_data: True
   saver:
-    - filename: models/xgboost_model
+    - filename: models/boost/xgboost_model
   sweep:
     - run: False
     - search_algorithm: bayesian
