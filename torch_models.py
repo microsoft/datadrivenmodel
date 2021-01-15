@@ -13,7 +13,7 @@ from base import BaseModel
 class MVRegressor(nn.Module):
     def __init__(
         self,
-        num_units=50,
+        num_units: int = 50,
         input_dim: int = 28,
         output_dim: int = 18,
         p_dropout: float = 0.5,

@@ -33,9 +33,9 @@ class BaseModel(abc.ABC):
     def load_csv(
         self,
         dataset_path: str,
-        input_cols_read: Union[str, List[str]] = "state",
+        input_cols: Union[str, List[str]] = "state",
         augm_cols: Union[str, List[str]] = ["action_command"],
-        output_col: Union[str, List[str]] = "state",
+        output_cols: Union[str, List[str]] = "state",
         iteration_order: int = -1,
         max_rows: Union[int, None] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -45,7 +45,7 @@ class BaseModel(abc.ABC):
         ----------
         dataset_path : str
             path to csv dataset
-        input_cols_read : Union[str, List[str]], optional
+        input_cols : Union[str, List[str]], optional
             list of columns represent the inputs to the dynamical system in the raw dataset. Can either be a string which is then matched for all columns in the dataset, or a list of strings with exact matches, by default "state"
         augm_cols : Union[str, List[str]], optional
             Exact match of additional columns to use for modeling, such as the actions of the current iteration and any scenario/config parameters, by default ["action_command"]
@@ -72,19 +72,43 @@ class BaseModel(abc.ABC):
         if not os.path.exists(dataset_path):
             raise ValueError(f"No data found at {dataset_path}")
         else:
-            df = csv_reader.read(
-                dataset_path,
-                iteration_order=iteration_order,
-                feature_cols=input_cols_read,
-                max_rows=max_rows,
-            )
-            features = csv_reader.feature_cols + augm_cols
-            if type(output_col) == str:
-                output_cols = [col for col in df if col.startswith(output_col)]
+            df = pd.read_csv(dataset_path, nrows=max_rows)
+            if type(input_cols) == str:
+                base_features = [col for col in df if col.startswith(input_cols)]
+            elif type(input_cols) == list:
+                base_features = input_cols
             else:
-                output_cols = output_col
-            X = df[features].values
-            y = df[output_cols].values
+                raise TypeError(
+                    f"input_cols expected type List[str] or str but received type {type(input_cols)}"
+                )
+            if type(augm_cols) == str:
+                augm_features = [col for col in df if col.startswith(augm_cols)]
+            elif type(augm_cols) == list:
+                augm_features = augm_cols
+            else:
+                raise TypeError(
+                    f"augm_cols expected type List[str] or str but received type {type(augm_cols)}"
+                )
+
+            features = base_features + augm_features
+
+            if type(output_cols) == str:
+                labels = [col for col in df if col.startswith(output_cols)]
+            elif type(output_cols) == list:
+                labels = output_cols
+            else:
+                raise TypeError(
+                    f"output_cols expected type List[str] but received type {type(output_cols)}"
+                )
+
+            df = csv_reader.read(
+                df,
+                iteration_order=iteration_order,
+                feature_cols=features,
+                label_cols=labels,
+            )
+            X = df[csv_reader.feature_cols].values
+            y = df[csv_reader.label_cols].values
 
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]
@@ -168,7 +192,7 @@ class BaseModel(abc.ABC):
 if __name__ == "__main__":
 
     base_model = BaseModel()
-    base_model.load_csv(
+    x, y = base_model.load_csv(
         dataset_path="csv_data/cartpole-log.csv",
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
