@@ -141,6 +141,8 @@ class GBoostModel(BaseModel):
                 )
             self.models = models
         else:
+            if not any([s in filename for s in [".pkl", ".pickle"]]):
+                filename += ".pkl"
             self.model = pickle.load(open(filename, "rb"))
 
         if scale_data:

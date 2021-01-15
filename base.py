@@ -25,10 +25,10 @@ logging.getLogger(__name__).addHandler(console)
 
 
 class BaseModel(abc.ABC):
-    def __init__(self, log_dirs: str = "logs"):
+    def __init__(self, log_dirs: str = "logs", model=None):
 
         self.logs_dir = log_dirs
-        self.model = None
+        self.model = model
 
     def load_csv(
         self,
@@ -96,6 +96,7 @@ class BaseModel(abc.ABC):
 
             features = base_features + augm_features
             self.features = features
+            logging.info(f"Using {features} as the features for modeling DDM")
 
             if type(output_cols) == str:
                 labels = [col for col in df if col.startswith(output_cols)]
@@ -106,6 +107,7 @@ class BaseModel(abc.ABC):
                     f"output_cols expected type List[str] but received type {type(output_cols)}"
                 )
             self.labels = labels
+            logging.info(f"Using {labels} as the labels for modeling DDM")
 
             df = csv_reader.read(
                 df,

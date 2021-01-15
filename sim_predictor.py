@@ -1,7 +1,6 @@
 import logging
 import os
 import random
-import sys
 import time
 from distutils.util import strtobool
 from typing import Any, Dict, List
@@ -17,71 +16,52 @@ from microsoft_bonsai_api.simulator.generated.models import (
 )
 
 from base import BaseModel
-from gboost_models import GBoostModel
 
-# Add stdout handler, with level INFO
-console = logging.StreamHandler(sys.stdout)
-console.setLevel(logging.DEBUG)
-formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
-console.setFormatter(formater)
-logging.getLogger(__name__).addHandler(console)
+logging.basicConfig()
+logging.root.setLevel(logging.INFO)
+logger = logging.getLogger("datamodeler")
 
-#save_path = os.path.join("models", "gbm_pole")
-save_path = './models/xgbm_pole_multi.pkl'
-ddm_model = GBoostModel()
-#ddm_model.load_model(dir_path=save_path, model_type="lightgbm")
-ddm_model.load_model(dir_path=save_path)
+import hydra
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
-feature_cols = [
-    "state_theta",
-    "state_alpha",
-    "state_theta_dot",
-    "state_alpha_dot",
-    "action_Vm",
-]
+from model_loader import available_models
 
-label_cols = [
-    "state_theta",
-    "state_alpha",
-    "state_theta_dot",
-    "state_alpha_dot",
-]
-
-
-def random_action():
-
-    return {"action_Vm": random.uniform(-3, 3)}
-
-
-initial_state = {
-    "state_theta": 0.05,
-    "state_alpha": 0.05,
-    "state_theta_dot": 0.05,
-    "state_alpha_dot": 0.05,
-    "action_Vm": 0,
-}
+dir_path = os.path.dirname(os.path.realpath(__file__))
+env_name = "DDM"
 
 
 class Simulator(BaseModel):
-    def __init__(self, feature_cols=List[str], label_cols=List[str]):
+    def __init__(self, model, states=List[str], actions=List[str], configs=List[str]):
 
-        self.ddm = ddm_model
-        self.feature_cols = feature_cols
-        self.label_cols = label_cols
-        self.last_position = initial_state
+        self.model = model
+        self.features = states + actions + configs
+        self.labels = states
+        self.config_keys = configs
+        self.state_keys = states
+        self.action_keys = actions
 
-    def episode_start(self, config: Dict[str, Any] = initial_state):
+    def episode_start(self, config: Dict[str, Any] = None):
 
-        self.last_position.update(config)
-        action = random_action()
-        self.episode_step(action)
+        initial_state = {k: random.random() for k in self.state_keys}
+        if config:
+            self.config = config
+        else:
+            self.config = {k: random.random() for k in self.config_keys}
+        self.state = initial_state
 
     def episode_step(self, action: Dict[str, int]):
 
-        self.last_position.update(action)
-        X = np.array(list(self.last_position.values())).reshape(1, -1)
-        preds = self.ddm.predict(X)
-        self.state = dict(zip(self.label_cols, preds.reshape(preds.shape[1]).tolist()))
+        input_list = [
+            list(self.state.values()),
+            list(self.config.values()),
+            list(action.values()),
+        ]
+
+        print("****")
+        input_array = [item for subl in input_list for item in subl]
+        X = np.array(input_array).reshape(1, -1)
+        preds = self.model.predict(X)
+        self.state = dict(zip(self.features, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 
     def get_state(self):
@@ -125,7 +105,7 @@ def env_setup():
 
 
 def test_random_policy(
-    num_episodes: int = 2, num_iterations: int = 1,
+    num_episodes: int = 2, num_iterations: int = 1, sim: Simulator = None,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -135,12 +115,14 @@ def test_random_policy(
         number of iterations to run, by default 10
     """
 
-    sim = Simulator(feature_cols=feature_cols, label_cols=label_cols)
-    # test_config = {"length": 1.5}
+    def random_action():
+        return {k: random.random() for k in sim.action_keys}
+
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        # sim_state = sim.episode_start()
+        sim.episode_start()
+        sim_state = sim.get_state()
         while not terminal:
             action = random_action()
             sim.episode_step(action)
@@ -153,177 +135,200 @@ def test_random_policy(
     return sim
 
 
-def main(config_setup: bool = False, env_name: str = "ddm-sim-generic"):
-    """Main entrypoint for running simulator connections
+@hydra.main(config_path="conf", config_name="config")
+def main(cfg: DictConfig):
 
-    Parameters
-    ----------
-    render : bool, optional
-        visualize steps in environment, by default True, by default False
-    log_iterations: bool, optional
-        log iterations during training to a CSV file
-    """
+    save_path = cfg["model"]["saver"][0]["filename"]
+    if cfg["data"]["full_or_relative"] == "relative":
+        save_path = os.path.join(dir_path, save_path)
+    model_name = cfg["model"]["name"]
+    states = cfg["simulator"]["states"]
+    actions = cfg["simulator"]["actions"]
+    configs = cfg["simulator"]["configs"]
+    policy = cfg["simulator"]["policy"]
+    scale_data = cfg["model"]["build_params"][7]["scale_data"]
 
-    # workspace environment variables
-    if config_setup:
-        env_setup()
-        load_dotenv(verbose=True, override=True)
+    logger.info(f"Training with a new {policy} policy")
+
+    Model = available_models[model_name]
+    model = Model()
+
+    model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
     # sc1_path = os.path.join(os.getcwd(), "models/sc1-small.pkl")
-    sim = Simulator(feature_cols=feature_cols, label_cols=label_cols)
+    sim = Simulator(model, states, actions, configs)
 
     # do a random action to get initial state
     sim.episode_start()
 
-    # Configure client to interact with Bonsai service
-    config_client = BonsaiClientConfig()
-    client = BonsaiClient(config_client)
+    if policy == "random":
+        test_random_policy(10, 10, sim)
+    elif policy == "bonsai":
+        env_setup()
+        load_dotenv(verbose=True, override=True)
+        # Configure client to interact with Bonsai service
+        config_client = BonsaiClientConfig()
+        client = BonsaiClient(config_client)
 
-    # Create simulator session and init sequence id
-    registration_info = SimulatorInterface(
-        name=env_name, timeout=60, simulator_context=config_client.simulator_context,
-    )
+        # Create simulator session and init sequence id
+        registration_info = SimulatorInterface(
+            name=env_name,
+            timeout=60,
+            simulator_context=config_client.simulator_context,
+        )
 
-    def CreateSession(
-        registration_info: SimulatorInterface, config_client: BonsaiClientConfig
-    ):
-        """Creates a new Simulator Session and returns new session, sequenceId
-        """
+        def CreateSession(
+            registration_info: SimulatorInterface, config_client: BonsaiClientConfig
+        ):
+            """Creates a new Simulator Session and returns new session, sequenceId
+            """
 
-        try:
-            print(
-                "config: {}, {}".format(config_client.server, config_client.workspace)
-            )
-            registered_session: SimulatorSessionResponse = client.session.create(
-                workspace_name=config_client.workspace, body=registration_info
-            )
-            print("Registered simulator. {}".format(registered_session.session_id))
-
-            return registered_session, 1
-        except HttpResponseError as ex:
-            print(
-                "HttpResponseError in Registering session: StatusCode: {}, Error: {}, Exception: {}".format(
-                    ex.status_code, ex.error.message, ex
-                )
-            )
-            raise ex
-        except Exception as ex:
-            print(
-                "UnExpected error: {}, Most likely, it's some network connectivity issue, make sure you are able to reach bonsai platform from your network.".format(
-                    ex
-                )
-            )
-            raise ex
-
-    registered_session, sequence_id = CreateSession(registration_info, config_client)
-    episode = 0
-    iteration = 0
-
-    try:
-        while True:
-            # Advance by the new state depending on the event type
-            sim_state = SimulatorState(
-                sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
-            )
             try:
-                event = client.session.advance(
-                    workspace_name=config_client.workspace,
-                    session_id=registered_session.session_id,
-                    body=sim_state,
-                )
-                sequence_id = event.sequence_id
                 print(
-                    "[{}] Last Event: {}".format(time.strftime("%H:%M:%S"), event.type)
+                    "config: {}, {}".format(
+                        config_client.server, config_client.workspace
+                    )
                 )
+                registered_session: SimulatorSessionResponse = client.session.create(
+                    workspace_name=config_client.workspace, body=registration_info
+                )
+                print("Registered simulator. {}".format(registered_session.session_id))
+
+                return registered_session, 1
             except HttpResponseError as ex:
                 print(
-                    "HttpResponseError in Advance: StatusCode: {}, Error: {}, Exception: {}".format(
+                    "HttpResponseError in Registering session: StatusCode: {}, Error: {}, Exception: {}".format(
                         ex.status_code, ex.error.message, ex
                     )
                 )
-                # This can happen in network connectivity issue, though SDK has retry logic, but even after that request may fail,
-                # if your network has some issue, or sim session at platform is going away..
-                # So let's re-register sim-session and get a new session and continue iterating. :-)
-                registered_session, sequence_id = CreateSession(
-                    registration_info, config_client
+                raise ex
+            except Exception as ex:
+                print(
+                    "UnExpected error: {}, Most likely, it's some network connectivity issue, make sure you are able to reach bonsai platform from your network.".format(
+                        ex
+                    )
                 )
-                continue
-            except Exception as err:
-                print("Unexpected error in Advance: {}".format(err))
-                # Ideally this shouldn't happen, but for very long-running sims It can happen with various reasons, let's re-register sim & Move on.
-                # If possible try to notify Bonsai team to see, if this is platform issue and can be fixed.
-                registered_session, sequence_id = CreateSession(
-                    registration_info, config_client
-                )
-                continue
+                raise ex
 
-            # Event loop
-            if event.type == "Idle":
-                time.sleep(event.idle.callback_time)
-                print("Idling...")
-            elif event.type == "EpisodeStart":
-                print(event.episode_start.config)
-                sim.episode_start(event.episode_start.config)
-                episode += 1
-            elif event.type == "EpisodeStep":
-                iteration += 1
-                sim.episode_step(event.episode_step.action)
-            elif event.type == "EpisodeFinish":
-                print("Episode Finishing...")
-                iteration = 0
-            elif event.type == "Unregister":
-                print("Simulator Session unregistered by platform because '{}', Registering again!".format(event.unregister.details))
-                registered_session, sequence_id = CreateSession(
-                    registration_info, config_client
+        registered_session, sequence_id = CreateSession(
+            registration_info, config_client
+        )
+        episode = 0
+        iteration = 0
+
+        try:
+            while True:
+                # Advance by the new state depending on the event type
+                sim_state = SimulatorState(
+                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
                 )
-                continue
-            else:
-                pass
-    except KeyboardInterrupt:
-        # Gracefully unregister with keyboard interrupt
-        client.session.delete(
-            workspace_name=config_client.workspace,
-            session_id=registered_session.session_id,
-        )
-        print("Unregistered simulator.")
-    except Exception as err:
-        # Gracefully unregister for any other exceptions
-        client.session.delete(
-            workspace_name=config_client.workspace,
-            session_id=registered_session.session_id,
-        )
-        print("Unregistered simulator because: {}".format(err))
+                try:
+                    event = client.session.advance(
+                        workspace_name=config_client.workspace,
+                        session_id=registered_session.session_id,
+                        body=sim_state,
+                    )
+                    sequence_id = event.sequence_id
+                    print(
+                        "[{}] Last Event: {}".format(
+                            time.strftime("%H:%M:%S"), event.type
+                        )
+                    )
+                except HttpResponseError as ex:
+                    print(
+                        "HttpResponseError in Advance: StatusCode: {}, Error: {}, Exception: {}".format(
+                            ex.status_code, ex.error.message, ex
+                        )
+                    )
+                    # This can happen in network connectivity issue, though SDK has retry logic, but even after that request may fail,
+                    # if your network has some issue, or sim session at platform is going away..
+                    # So let's re-register sim-session and get a new session and continue iterating. :-)
+                    registered_session, sequence_id = CreateSession(
+                        registration_info, config_client
+                    )
+                    continue
+                except Exception as err:
+                    print("Unexpected error in Advance: {}".format(err))
+                    # Ideally this shouldn't happen, but for very long-running sims It can happen with various reasons, let's re-register sim & Move on.
+                    # If possible try to notify Bonsai team to see, if this is platform issue and can be fixed.
+                    registered_session, sequence_id = CreateSession(
+                        registration_info, config_client
+                    )
+                    continue
+
+                # Event loop
+                if event.type == "Idle":
+                    time.sleep(event.idle.callback_time)
+                    print("Idling...")
+                elif event.type == "EpisodeStart":
+                    print(event.episode_start.config)
+                    sim.episode_start(event.episode_start.config)
+                    episode += 1
+                elif event.type == "EpisodeStep":
+                    iteration += 1
+                    sim.episode_step(event.episode_step.action)
+                elif event.type == "EpisodeFinish":
+                    print("Episode Finishing...")
+                    iteration = 0
+                elif event.type == "Unregister":
+                    print(
+                        "Simulator Session unregistered by platform because '{}', Registering again!".format(
+                            event.unregister.details
+                        )
+                    )
+                    registered_session, sequence_id = CreateSession(
+                        registration_info, config_client
+                    )
+                    continue
+                else:
+                    pass
+        except KeyboardInterrupt:
+            # Gracefully unregister with keyboard interrupt
+            client.session.delete(
+                workspace_name=config_client.workspace,
+                session_id=registered_session.session_id,
+            )
+            print("Unregistered simulator.")
+        except Exception as err:
+            # Gracefully unregister for any other exceptions
+            client.session.delete(
+                workspace_name=config_client.workspace,
+                session_id=registered_session.session_id,
+            )
+            print("Unregistered simulator because: {}".format(err))
 
 
 if __name__ == "__main__":
 
-    import argparse
+    main()
 
-    parser = argparse.ArgumentParser(description="Bonsai and Simulator Integration...")
-    parser.add_argument(
-        "--log-iterations",
-        type=lambda x: bool(strtobool(x)),
-        default=False,
-        help="Log iterations during training",
-    )
-    parser.add_argument(
-        "--config-setup",
-        type=lambda x: bool(strtobool(x)),
-        default=False,
-        help="Use a local environment file to setup access keys and workspace ids",
-    )
-    parser.add_argument(
-        "--test-local",
-        type=lambda x: bool(strtobool(x)),
-        default=True,
-        help="Run simulator locally without connecting to platform",
-    )
+    # import argparse
 
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(description="Bonsai and Simulator Integration...")
+    # parser.add_argument(
+    #     "--log-iterations",
+    #     type=lambda x: bool(strtobool(x)),
+    #     default=False,
+    #     help="Log iterations during training",
+    # )
+    # parser.add_argument(
+    #     "--config-setup",
+    #     type=lambda x: bool(strtobool(x)),
+    #     default=False,
+    #     help="Use a local environment file to setup access keys and workspace ids",
+    # )
+    # parser.add_argument(
+    #     "--test-local",
+    #     type=lambda x: bool(strtobool(x)),
+    #     default=True,
+    #     help="Run simulator locally without connecting to platform",
+    # )
 
-    if args.test_local:
-        test_random_policy(num_episodes=100, num_iterations=1)
-    else:
-        main(config_setup=args.config_setup,)
+    # args = parser.parse_args()
+
+    # if args.test_local:
+    #     test_random_policy(num_episodes=100, num_iterations=1)
+    # else:
+    #     main(config_setup=args.config_setup,)
 
