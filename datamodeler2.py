@@ -32,6 +32,8 @@ def main(
         output_col=output_col,
         augm_cols=augm_cols,
     )
+    logger.info(f"Features shape {X.shape}")
+    logger.info(f"Labels shape {y.shape}")
     model_class.build_model()
     model_class.fit(X, y)
     model_class.save_model(filename=os.path.join(save_file_path, "trained_model.pkl"))
