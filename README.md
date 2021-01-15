@@ -43,8 +43,7 @@ python datamodeler2.py data=cartpole_st_at
 
 which will use the configuration file in [`conf/data/cartpole_st_at.yaml`](./conf/data/cartpole_st_at.yaml).
 
-
-You can also override parameters of the configuration file by specifying their name:
+You can also override the parameters of the configuration file by specifying their name:
 
 ```bash
 python datamodeler2.py data.path=csv_data/cartpole_at_st.csv data.iteration_order=1
