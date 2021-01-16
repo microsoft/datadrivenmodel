@@ -1,4 +1,4 @@
 defaults:
-  - data: cartpole_st1_at.yaml
-  - model: xgboost.yaml
-  - simulator: gboost_cartpole.yaml
+  - data: quanser-log.yaml
+  - model: SVR.yaml
+  - simulator: quanser-log.yaml
