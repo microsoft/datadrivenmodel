@@ -68,5 +68,8 @@ test-output.xml
 # jupyter
 .ipynb_checkpoints
 
-# big models
-bigmodels/
+# tmp directories
+tmp/
+
+# hydra outputs
+outputs/

@@ -12,10 +12,9 @@ model:
     - lambda: 1
     - max_bin: 256
   saver:
-    - filename: models/boost/SVR_model
+    - filename: models/SVR_model
   sweep:
     - run: False
     - search_algorithm: bayesian
     - num_trials: 3
     - scoring_func: r2
-

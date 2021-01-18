@@ -122,40 +122,40 @@ class GBoostModel(BaseModel):
                 parent_dir.mkdir(parents=True, exist_ok=True)
             pickle.dump(self.model, open(filename, "wb"))
 
-    def load_model(
-        self, filename: str, scale_data: bool = False, separate_models: bool = False
-    ):
+    # def load_model(
+    #     self, filename: str, scale_data: bool = False, separate_models: bool = False
+    # ):
 
-        self.scale_data = scale_data
-        self.separate_models = separate_models
-        if self.separate_models:
-            all_models = os.listdir(filename)
-            all_models = natsorted(all_models)
-            if self.scale_data:
-                all_models = all_models[:-2]
-            num_models = len(all_models)
-            models = []
-            for i in range(num_models):
-                models.append(
-                    pickle.load(open(os.path.join(filename, all_models[i]), "rb"))
-                )
-            self.models = models
-        else:
-            if not any([s in filename for s in [".pkl", ".pickle"]]):
-                filename += ".pkl"
-            self.model = pickle.load(open(filename, "rb"))
+    #     self.scale_data = scale_data
+    #     self.separate_models = separate_models
+    #     if self.separate_models:
+    #         all_models = os.listdir(filename)
+    #         all_models = natsorted(all_models)
+    #         if self.scale_data:
+    #             all_models = all_models[:-2]
+    #         num_models = len(all_models)
+    #         models = []
+    #         for i in range(num_models):
+    #             models.append(
+    #                 pickle.load(open(os.path.join(filename, all_models[i]), "rb"))
+    #             )
+    #         self.models = models
+    #     else:
+    #         if not any([s in filename for s in [".pkl", ".pickle"]]):
+    #             filename += ".pkl"
+    #         self.model = pickle.load(open(filename, "rb"))
 
-        if scale_data:
-            if not separate_models:
-                path_name = str(pathlib.Path(filename).parent)
-            else:
-                path_name = filename
-            self.xscalar = pickle.load(
-                open(os.path.join(path_name, "xscalar.pkl"), "rb")
-            )
-            self.yscalar = pickle.load(
-                open(os.path.join(path_name, "yscalar.pkl"), "rb")
-            )
+    #     if scale_data:
+    #         if not separate_models:
+    #             path_name = str(pathlib.Path(filename).parent)
+    #         else:
+    #             path_name = filename
+    #         self.xscalar = pickle.load(
+    #             open(os.path.join(path_name, "xscalar.pkl"), "rb")
+    #         )
+    #         self.yscalar = pickle.load(
+    #             open(os.path.join(path_name, "yscalar.pkl"), "rb")
+    #         )
 
     def sweep(self, params: Dict, X, y):
 

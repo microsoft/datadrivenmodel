@@ -54,13 +54,15 @@ class SKModel(BaseModel):
 
         if self.model_type == "GradientBoostingRegressor" and fit_separate == False:
             fit_separate = True
-            print(
+            logger.info(
                 "Note: fit_separate should be True for GradientBoostingRegressor. Changing to True .."
             )
 
         if self.model_type == "SVR" and fit_separate == False:
             fit_separate = True
-            print("Note: fit_separate should be True for SVR. Changing to True ..")
+            logger.info(
+                "Note: fit_separate should be True for SVR. Changing to True .."
+            )
 
         self.separate_models = fit_separate
 
@@ -73,7 +75,7 @@ class SKModel(BaseModel):
             try:
                 self.model.fit(X, y)
             except ValueError:
-                print(
+                logger.info(
                     f"fit separate should be True for model type of {self.model_type}"
                 )
 
@@ -114,25 +116,25 @@ class SKModel(BaseModel):
         else:
             pickle.dump(self.model, open(filename, "wb"))
 
-    def load_model(
-        self, dir_path: str, scale_data: bool = False, separate_models: bool = False
-    ):
+    # def load_model(
+    #     self, filename: str, scale_data: bool = False, separate_models: bool = False
+    # ):
 
-        self.separate_models = separate_models
-        if self.separate_models:
-            all_models = os.listdir(dir_path)
-            all_models = natsorted(all_models)
-            num_models = len(all_models)
-            models = []
-            for i in range(num_models):
-                models.append(
-                    pickle.load(open(os.path.join(dir_path, all_models[i]), "rb"))
-                )
-            self.models = models
-        else:
-            self.model = pickle.load(open(dir_path, "rb"))
+    #     self.separate_models = separate_models
+    #     if self.separate_models:
+    #         all_models = os.listdir(filename)
+    #         all_models = natsorted(all_models)
+    #         num_models = len(all_models)
+    #         models = []
+    #         for i in range(num_models):
+    #             models.append(
+    #                 pickle.load(open(os.path.join(filename, all_models[i]), "rb"))
+    #             )
+    #         self.models = models
+    #     else:
+    #         self.model = pickle.load(open(filename, "rb"))
 
-        self.scale_data = scale_data
+    #     self.scale_data = scale_data
 
     def sweep(self, X, y, params: Dict = None):
         if not params:
@@ -169,7 +171,7 @@ if __name__ == "__main__":
 
     skm.build_model(model_type="linear_model")
     skm.fit(X, y, fit_separate=False)
-    print(X)
+    logger.info(X)
     yhat = skm.predict(X)
 
     skm.save_model(dir_path="models/linear_pole_multi.pkl")
@@ -183,14 +185,14 @@ if __name__ == "__main__":
 
     skm.build_model(model_type="SVR")
     skm.fit(X, y, fit_separate=False)
-    print(X)
+    logger.info(X)
     yhat = skm.predict(X)
 
     skm.save_model(dir_path="models/lsvc_pole_multi.pkl")
 
     skm.build_model(model_type="GradientBoostingRegressor")
     skm.fit(X, y, fit_separate=False)
-    print(X)
+    logger.info(X)
     yhat = skm.predict(X)
 
     skm.save_model(dir_path="models/gbr_pole_multi.pkl")
@@ -231,9 +233,9 @@ if __name__ == "__main__":
     # random = TuneSearchCV(pipe, param_grid, search_optimization="random")
     # X, y = load_digits(return_X_y=True)
     # random.fit(X, y)
-    # print(random.cv_results_)
+    # logger.info(random.cv_results_)
 
     # grid = TuneGridSearchCV(pipe, param_grid=param_grid)
     # grid.fit(X, y)
-    # print(grid.cv_results_)
+    # logger.info(grid.cv_results_)
 

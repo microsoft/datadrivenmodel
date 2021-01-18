@@ -27,7 +27,7 @@ def test_svm_train():
     lsvm.save_model(filename="tmp/lsvm_pole")
 
     lsvm2 = SKModel()
-    lsvm2.load_model(dir_path="tmp/lsvm_pole", separate_models=True)
+    lsvm2.load_model(filename="tmp/lsvm_pole", separate_models=True)
 
     yhat0 = lsvm.predict(X)
     yhat = lsvm2.predict(X)
@@ -45,7 +45,7 @@ def test_linear_train():
     linear.save_model(filename="tmp/linear_pole.pkl")
 
     linear2 = SKModel()
-    linear2.load_model(dir_path="tmp/linear_pole.pkl")
+    linear2.load_model(filename="tmp/linear_pole.pkl")
 
     yhat0 = linear.predict(X)
     yhat = linear2.predict(X)
@@ -64,7 +64,7 @@ def test_gbr_train():
     gbr.save_model(filename="tmp/gbr_pole.pkl")
 
     gbr2 = SKModel()
-    gbr2.load_model(dir_path="tmp/gbr_pole.pkl", separate_models=True)
+    gbr2.load_model(filename="tmp/gbr_pole.pkl", separate_models=True)
 
     yhat0 = gbr.predict(X)
     yhat = gbr2.predict(X)
