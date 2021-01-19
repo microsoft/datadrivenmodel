@@ -21,7 +21,11 @@ To get an understanding of the package, you may want to look at the tests in [`t
 
 ## Usage
 
-The scripts in this package expect that you have a dataset of CSVs or numpy arrays. If you are using a CSV, you should ensure your CSV has a header with unique column names describing your inputs to the model and the outputs of the model. In addition, your CSV should have a column for the episode index and another column for the iteration index.
+The scripts in this package expect that you have a dataset of CSVs or numpy arrays. If you are using a CSV, you should ensure that:
+
+- The CSV has a header with unique column names describing your inputs to the model and the outputs of the model.
+- The CSV should have a column for the episode index and another column for the iteration index.
+- The CSV should have been cleaned from any rows containing NaNs
 
 ### Generating Logs from an Existing Simulator
 
@@ -38,10 +42,10 @@ python ddm_trainer.py
 You can change any configuration parameter by specifying the configuration file you would like to change and its new path, i.e.,
 
 ```bash
-python ddm_trainer.py data=cartpole_st_at
+python ddm_trainer.py data=cartpole_st_at simulator=gboost_cartpole.yaml
 ```
 
-which will use the configuration file in [`conf/data/cartpole_st_at.yaml`](./conf/data/cartpole_st_at.yaml).
+which will use the configuration files in [`conf/data/cartpole_st_at.yaml`](./conf/data/cartpole_st_at.yaml) and [`conf/simulator/gboost_cartpole.yaml`](./conf/simulator/gboost_cartpole.yaml).
 
 You can also override the parameters of the configuration file by specifying their name:
 
@@ -57,13 +61,13 @@ The script automatically saves your model to the path specified by `model.saver.
 The schema for your simulator resides in [`conf/simulator`](./conf/simulator). After defining your states, actions, and configs, you can run the simulator as follows:
 
 ```bash
-python ddm_predictor sim=$YOUR_SIM_CONFIG.yaml
+python ddm_predictor simulator=$YOUR_SIM_CONFIG.yaml
 ```
 
 If you would like to test your simulator before connecting to the platform, you can use a random policy:
 
 ```bash
-python ddm_predictor.py simulator.policy=random
+python ddm_predictor.py simulator=$YOUR_SIM_CONFIG.yaml simulator.policy=random
 ```
 
 ## Build Simulator Package
