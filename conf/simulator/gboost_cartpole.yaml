@@ -1,0 +1,11 @@
+simulator:
+  states:
+    [
+      "state_x_position",
+      "state_x_velocity",
+      "state_angle_position",
+      "state_angle_velocity",
+    ]
+  actions: ["action_command"]
+  configs: ["config_length", "config_masspole"]
+  policy: bonsai

@@ -1,3 +1,22 @@
+# IDE
+.idea
+.vscode/
+*.code-workspace
+
+# python
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# config
+*.env
+
+# saved models
+models/
+
 # data directories
 data/
 etc/
@@ -24,15 +43,8 @@ logs/*
 # Vim files
 *.sw[l-p]
 
-# User brains
-.brains
-*.bproj
-
 # Python intermediate files
 *.pyc
-
-# User Bonsai Platform configuration
-.bonsai
 
 # log files
 nohup.out
@@ -55,3 +67,9 @@ test-output.xml
 
 # jupyter
 .ipynb_checkpoints
+
+# tmp directories
+tmp/
+
+# hydra outputs
+outputs/
