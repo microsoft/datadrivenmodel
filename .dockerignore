@@ -1,0 +1,12 @@
+.env
+csv_data/
+env_data/
+.git/
+source/
+release/
+img/
+*.ipynb
+.ipynb_checkpoints
+bigmodels/
+.vscode/
+__pycache__/

@@ -1,222 +1,69 @@
-# Data driven model creation for simulators to train brains on Bonsai
+# Training Data-Driven or Surrogate Simulators
 
-Tooling to simplify the creation and use of data driven simulators using supervised learning with the purpose of training brains with Project Bonsai. It digests data as csv and will generate simulation models which can then be directly used to train a reinforcement learning agent.
+This repository provides a template for training data-driven simulators that can then be leveraged for training brains (reinforcement learning agents) with [Project Bonsai](https://docs.bons.ai/).
 
->🚩 Disclaimer: This is not an official Microsoft product. This application is considered an experimental addition to Microsoft Project Bonsai's software toolchain. It's primary goal is to reduce barriers of entry to use Project Bonsai's core Machine Teaching. Pull requests for fixes and small enhancements are welcome, but we do expect this to be replaced by out-of-the-box features of Project Bonsai in the near future.
+:warning: Disclaimer: This is not an official Microsoft product. This application is considered an experimental addition to Microsoft's Project Bonsai toolbox. Its primary goal is to reduce barriers of entry to use Project Bonsai's core Machine Teaching. Pull requests for fixes and small enhancements are welcome, but we expect this to be replaced by out-of-the-box features of Project Bonsai shortly.
 
 ## Dependencies
 
+This repository leverages [Anaconda](https://docs.conda.io/en/latest/miniconda.html) for Python virtual environments and all dependencies. Please install Anaconda or miniconda first and then run the following:
+
 ```bash
 conda env update -f environment.yml
-conda activate datadriven
+conda activate ddm
 ```
 
-## Main steps to follow
+This will create and activate a new conda virtual environment named `ddm` based on the configuration in the [`environment.yml`](environment.yml) file.
 
-`Step 1.` Obtain historical or surrogate sim data in csv format.
+## Tests
 
-- header names 
-- a single row should be a slice in time
-- ensure data ranges cover what we might set reinforcement learning to explore
-- smooth noisy data, get rid of outliers
-- remove NaN or SNA values
+To get an understanding of the package, you may want to look at the tests in [`tests`](./tests), and the configuration files in [`conf`](./conf).
 
-Refer to later sections for help with checking data quality before using this tool.
+## Usage
 
-`Step 2.` Change the `config_model.yml` file in the `config/` folder
+The scripts in this package expect that you have a dataset of CSVs or numpy arrays. If you are using a CSV, you should ensure your CSV has a header with unique column names describing your inputs to the model and the outputs of the model. In addition, your CSV should have a column for the episode index and another column for the iteration index.
 
-Enter the csv file name. Enter the timelag, i.e. the number of rows or iterations that define the state transition in the data. A timelag of `1` will use every row of data, where if one makes a change in the system/process the result is shown in the next sample measurement.
+### Generating Logs from an Existing Simulator
 
- Define the names of the features as input to the simulator model you will create. The names should match the headers of the csv file you provide. Set the values as either `state` or `action`. Define the `output_name` matching the headers in your csv. 
+For an example on how to generate logged datasets from a simulator using the Python SDK, take a look at the examples in the [samples repository](https://github.com/microsoft/microsoft-bonsai-api/tree/main/Python/samples), in particular, you can use the flag `--test-local True --log-iteration True` to generate a CSV data that matches the schema used in this repository.
 
-Define the model type as either `gb, poly, nn, or lstm`. Depending on the specific model one chooses, alter the hyperparameters in this config file as well. 
+### Training Your Models
 
-```YAML
-# Define csv file path to train a simulator with
-DATA:
-  path: ./csv_data/example_data.csv
-  timelag: 1
-# Define the inputs and outputs of datadriven simulator
-IO:
-  feature_name:
-    theta: state
-    alpha: state
-    theta_dot: state
-    alpha_dot: state
-    Vm: action
-  output_name:
-    - theta
-    - alpha
-    - theta_dot
-    - alpha_dot
-# Select the model type gb, poly, nn, or lstm
-MODEL:
-  type: gb
-# Polynomial Regression hyperparameters
-POLY:
-  degree: 1
-# Gradient Boost hyperparameters
-GB:
-  n_estimators: 100
-  lr: 0.1
-  max_depth: 3
-# MLP Neural Network hyperparameters
-NN:
-  epochs: 100
-  batch_size: 512
-  activation: linear
-  n_layer: 5
-  n_neuron: 12
-  lr: 0.00001
-  decay: 0.0000003
-  dropout: 0.5
-# LSTM Neural Network hyperparameters
-LSTM:
-  epochs: 100
-  batch_size: 512
-  activation: linear
-  num_hidden_layer: 5
-  n_neuron: 12
-  lr: 0.00001
-  decay: 0.0000003
-  dropout: 0.5
-  markovian_order: 2
-  num_lstm_units: 1
-```
-
-`Step 3.` Run the tool
+The scripts in this package leverage the configuration files saved in the [`conf`](./conf) folder to load CSV files, train and save models, and interface them to the Bonsai service. The library comes with a default configuration set in [`conf/config.yaml`](conf/config.yaml).
 
 ```bash
-python datamodeler.py
+python datamodeler2.py
 ```
 
-The tool will ingest your csv file as input and create a simulator model of the type you selected. THe resultant model will be placed into `models/`.
-
-`Step 4.` Use the model directly 
-
-An adaptor class is available for usage in the following way to make custom integrations. We've already done this for you in `Step 5`, but this provides a good understanding. Initialize the class with model type, which consists of either `'gb', 'poly', 'nn', or 'lstm'`. 
-
-Specify a `noise_percentage` to optionally add to the states of the simulator, leaving it at zero will not add noise. Training a brain can benefit from adding noise to the states of an approximated simulator to promote robustness.
-
-Define the `action_space_dimensions` and the `state_space_dimensions`. The `markovian_order` is needed when setting the sequence length of the features for an `LSTM`. 
-
-```python
-from predictor import ModelPredictor
-
-predictor = ModelPredictor(
-    modeltype="gb",
-    noise_percentage=0,
-    state_space_dim=4,
-    action_space_dim=1,
-    markovian_order=0
-)
-```
-
-Calculate next state as a function of current state and current action. IMPORTANT: input state and action are arrays. You need to convert brain action, i.e. dictionary, to an array before feeding into the predictor class. 
-
-```python
-next_state = predictor.predict(action=action, state=state)
-```
-
-The thing to watch out for with datadriven simulators is one cannot trust the approximations when the feature inputs are not within the range it was trained on, i.e. you may get erroneous results. One can optionally evaluate if this occurs by using the `warn_limitation()` functionality. 
-
-```python
-features = np.concatenate([state, action]
-predictor.warn_limitation(features)
-```
-> Sim should not be necessarily trusted since predicting with the feature Vm outside of range it was trained on, i.e. extrapolating.
-
-`Step 5.` Train with Bonsai
-
-Create a brain and write Inkling with type definitions that match what the simulator can provide, which you defined in `config_model.yml`. Run the `train_bonsai_main.py` file to register your newly created simulator. The integration is already done! Then connect the simulator to your brain.
-
-Be sure to specify `noise_percentage` in your Inkling's scenario. Training a brain can benefit from adding noise to the states of an approximated simulator to promote robustness.
-
-> The episode_start in `train_bonsai_main.py` is expecting initial conditions of your states defined in `config_model.yml` to match scenario dictionary passed in. If you want to pass in other variables that are not modeled by the datadrivenmodel tool (except for noise_percentage), you'll likely have to modify `train_bonsai_main.py`.
-
-```javascript
-lesson `Start Inverted` {
-    scenario {
-        theta: number<-1.4 .. 1.4>,
-        alpha: number<-0.05 .. 0.05>,  # reset inverted
-        theta_dot: number <-0.05 .. 0.05>,
-        alpha_dot: number<-0.05 .. 0.05>,
-        noise_percentage: 5,
-    }
-}
-```
-
-> Ensure the SimConfig in Inkling matches the names of the headers in the `config_model.yml` to allow `train_bonsai_main.py` to work.
+You can change any configuration parameter by specifying the configuration file you would like to change and its new path, i.e.,
 
 ```bash
-python train_bonsai_main.py --workspace <workspace-id> --accesskey <accesskey>
+python datamodeler2.py data=cartpole_st_at
 ```
 
-## Optional Flags
+which will use the configuration file in [`conf/data/cartpole_st_at.yaml`](./conf/data/cartpole_st_at.yaml).
 
-### Use pickle instead of csv as data input
-
-Name your dataset as `x_set.pickle` and `y_set.pickle`. 
+You can also override the parameters of the configuration file by specifying their name:
 
 ```bash
-python datamodeler.py --pickle <foldername>
+python datamodeler2.py data.path=csv_data/cartpole_at_st.csv data.iteration_order=1
+python datamodeler2.py data.path=csv_data/cartpole_at_st.csv model=xgboost 
 ```
 
-For example one might use a `<foldername>` of `env_data`. 
+The script automatically saves your model to the path specified by `model.saver.filename`. An `outputs` directory is also saved with your configuration file and logs.
 
-### Hyperparameter tuning
+### Building Your Simulators
 
-Gradient Boost should not require much tuning at all. Polynomial Regression may benefit from changing the order. Neural Networks, however, may require significant hyperparameter tuning. Use the flag to use the specified ranges in the `model_config.yml` file to randomly search.
+The schema for your simulator resides in [`conf/simulator`](./conf/simulator). After defining your states, actions, and configs, you can run the simulator as follows:
 
 ```bash
-python datamodeler.py --tune-rs=True
+python sim_predictor sim=$YOUR_SIM_CONFIG.yaml
 ```
 
-## LSTM
-
-After creating an LSTM model for your sim, you can use the predictor class in the same way as the other models. The predictor class initializes a sequence and will continue to stack a history of state transitions and pop off the oldest information. In order to maintain a sequence of valid distributions when starting a sim using the LSTM model, the predictor class takes a single timestep of initial conditions and will automatically step through the sim using the mean value of each of the actions captured from the data in `model_limits.yml`. 
-
-```python
-from predictor import ModelPredictor
-import numpy as np
-
-predictor = ModelPredictor(
-    modeltype="lstm",
-    noise_percentage=0,
-    state_space_dim=4,
-    action_space_dim=1,
-    markovian_order=3
-)
-
-config = {
-    'theta': 0.01,
-    'alpha': 0.02,
-    'theta_dot': 0.04,
-    'alpha_dot': 0.05,
-    'noise_percentage': 5,
-}
-
-predictor.reset_state(config)
-
-for i in range(1):
-    next_state = predictor.predict(
-        action=np.array([0.83076303]),
-        state=np.array(
-            [ 0.6157155  , 0.19910571 , 0.15492792 , 0.09268583]
-        )
-    )
-    print('next_state: ', next_state)
-
-print('history state: ', predictor.state)
-print('history action: ', predictor.action_history)
-```
-
-The code snippet using the LSTM results in the following history of states and actions. Take note that `reset_state(config)` will auto populate realistic trajectories for the sequence using the mean action. This means that the `0th` iteration of the simulation does not necessarily start where the user specified in the `config`. Continuing to `predict()` will step through the sim and maintain a history of the state transitions automatically for you, matching the sequence of information required for the LSTM. 
+If you would like to test your simulator before connecting to the platform, you can use a random policy:
 
 ```bash
-next_state:  [ 0.41453919  0.07664483 -0.13645072  0.81335021]
-history state:  deque([0.6157155, 0.19910571, 0.15492792, 0.09268583, 0.338321704451164, 0.018040116405597596, -0.5707406858943783, 0.3023940018967715, 0.01, 0.02, 0.04, 0.05], maxlen=12)
-history action:  deque([0.83076303, -0.004065768182411825, -0.004065768182411825], maxlen=3)
+python sim_predictor.py simulator.policy=random
 ```
 
 ## Build Simulator Package
