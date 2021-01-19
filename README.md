@@ -32,13 +32,13 @@ For an example on how to generate logged datasets from a simulator using the Pyt
 The scripts in this package leverage the configuration files saved in the [`conf`](./conf) folder to load CSV files, train and save models, and interface them to the Bonsai service. The library comes with a default configuration set in [`conf/config.yaml`](conf/config.yaml).
 
 ```bash
-python datamodeler2.py
+python ddm_trainer.py
 ```
 
 You can change any configuration parameter by specifying the configuration file you would like to change and its new path, i.e.,
 
 ```bash
-python datamodeler2.py data=cartpole_st_at
+python ddm_trainer.py data=cartpole_st_at
 ```
 
 which will use the configuration file in [`conf/data/cartpole_st_at.yaml`](./conf/data/cartpole_st_at.yaml).
@@ -46,8 +46,8 @@ which will use the configuration file in [`conf/data/cartpole_st_at.yaml`](./con
 You can also override the parameters of the configuration file by specifying their name:
 
 ```bash
-python datamodeler2.py data.path=csv_data/cartpole_at_st.csv data.iteration_order=1
-python datamodeler2.py data.path=csv_data/cartpole_at_st.csv model=xgboost 
+python ddm_trainer.py data.path=csv_data/cartpole_at_st.csv data.iteration_order=1
+python ddm_trainer.py data.path=csv_data/cartpole_at_st.csv model=xgboost 
 ```
 
 The script automatically saves your model to the path specified by `model.saver.filename`. An `outputs` directory is also saved with your configuration file and logs.
@@ -57,13 +57,13 @@ The script automatically saves your model to the path specified by `model.saver.
 The schema for your simulator resides in [`conf/simulator`](./conf/simulator). After defining your states, actions, and configs, you can run the simulator as follows:
 
 ```bash
-python sim_predictor sim=$YOUR_SIM_CONFIG.yaml
+python ddm_predictor sim=$YOUR_SIM_CONFIG.yaml
 ```
 
 If you would like to test your simulator before connecting to the platform, you can use a random policy:
 
 ```bash
-python sim_predictor.py simulator.policy=random
+python ddm_predictor.py simulator.policy=random
 ```
 
 ## Build Simulator Package
