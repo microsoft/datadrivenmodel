@@ -12,7 +12,7 @@ model:
     - lambda: 1
     - max_bin: 256
   saver:
-    - filename: models/SVR_model
+    - filename: models/moab/SVR_model
   sweep:
     - run: False
     - search_algorithm: bayesian

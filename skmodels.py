@@ -41,7 +41,7 @@ class SKModel(BaseModel):
         if model_type == "linear_model":
             self.model = linear_model.LinearRegression()
         elif model_type == "SVR":
-            self.model = make_pipeline(StandardScaler(), SVR(C=1.0, epsilon=0.2))
+            self.model = SVR(C=1.0, epsilon=0.2)
         elif model_type == "GradientBoostingRegressor":
             self.model = GradientBoostingRegressor()
         else:
@@ -101,19 +101,35 @@ class SKModel(BaseModel):
 
     def save_model(self, filename):
 
-        dir_path = pathlib.Path(filename).parent
-        if not pathlib.Path(dir_path).exists():
-            pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
+        if self.scale_data:
+            logger.info(f"Scale transformations used, saving to {filename}")
+            if not self.separate_models:
+                if not any([s in filename for s in [".pkl", ".pickle"]]):
+                    filename += ".pkl"
+                parent_dir = pathlib.Path(filename).parent
+                if not parent_dir.exists():
+                    parent_dir.mkdir(parents=True, exist_ok=True)
+                path_name = str(parent_dir)
+            else:
+                path_name = filename
+            pickle.dump(
+                self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")
+            )
+            pickle.dump(
+                self.yscalar, open(os.path.join(path_name, "yscalar.pkl"), "wb")
+            )
+
         if self.separate_models:
-            # pickle.dump(self.models, open(filename, "wb"))
             if not pathlib.Path(filename).exists():
                 pathlib.Path(filename).mkdir(parents=True, exist_ok=True)
-            logger.info(f"Saving models to {filename}")
             for i in range(len(self.models)):
-                save_path = os.path.join(filename, f"model{i}.pkl")
-                logger.info(f"Saving model {i} to {save_path}")
-                pickle.dump(self.models[i], open(save_path, "wb"))
+                pickle.dump(
+                    self.models[i], open(os.path.join(filename, f"model{i}.pkl"), "wb")
+                )
         else:
+            parent_dir = pathlib.Path(filename).parent
+            if not parent_dir.exists():
+                parent_dir.mkdir(parents=True, exist_ok=True)
             pickle.dump(self.model, open(filename, "wb"))
 
     # def load_model(

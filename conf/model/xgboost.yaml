@@ -1,5 +1,5 @@
 model:
-  name: gboost
+  name: xgboost
   build_params:
     - model_type: xgboost
     - num_trees: 50
@@ -12,7 +12,7 @@ model:
     - lambda: 1
     - max_bin: 256
   saver:
-    - filename: models/boost/xgboost_model
+    - filename: models/boost/moab/xgboost_model
   sweep:
     - run: False
     - search_algorithm: bayesian

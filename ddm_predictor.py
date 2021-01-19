@@ -152,6 +152,7 @@ def main(cfg: DictConfig):
     Model = available_models[model_name]
     model = Model()
 
+    model.build_model(model_type=model_name)
     model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API

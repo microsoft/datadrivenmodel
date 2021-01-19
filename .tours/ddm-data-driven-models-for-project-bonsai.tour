@@ -1,0 +1,37 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "DDM, Data-Driven Models for Project Bonsai",
+  "steps": [
+    {
+      "file": "environment.yml",
+      "line": 1,
+      "description": "This is environment configuration file we have tested this package with. If you hit any issues with installation, please post a new [issue](https://github.com/microsoft/datadrivenmodel/issues) to our repository"
+    },
+    {
+      "file": "conf/config.yaml",
+      "line": 1,
+      "description": "This file lists the default configurations of the project. Each line here links to a separate configuration file for each step."
+    },
+    {
+      "file": "conf/data/cartpole_st1_at.yaml",
+      "line": 1,
+      "description": "This is a sample configuration for the data-loaders.\n\nWe specify the path of the file, as well as its schema for loading, and whether we want to learn a scale transformation for all the features."
+    },
+    {
+      "file": "conf/model/xgboost.yaml",
+      "line": 1,
+      "description": "This is the configuration file for a model. All parameters in `build_params` will be passed to the `model.build_model` method"
+    },
+    {
+      "file": "datamodeler2.py",
+      "line": 17,
+      "description": "Our entrypoint to train and save the models. Hydra reads the configuration files specified in the [`conf`](./conf) folder and passes them to the main method."
+    },
+    {
+      "file": "sim_predictor.py",
+      "line": 139,
+      "description": "Our entrypoint for connecting simulators to training policies. Hydra reads the configs from [`conf/simulator`](./conf/simulator)"
+    }
+  ],
+  "ref": "alizaidi/refactor"
+}

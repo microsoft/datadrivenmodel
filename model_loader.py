@@ -13,5 +13,7 @@ available_models = {
     "SVR": SKModel,
     "GradientBoostingRegressor": SKModel,
     "gboost": GBoostModel,
+    "xgboost": GBoostModel,
+    "lightgbm": GBoostModel,
 }
 

@@ -40,6 +40,7 @@ class BaseModel(abc.ABC):
         iteration_order: int = -1,
         episode_col: str = "episode",
         iteration_col: str = "iteration",
+        drop_nulls: bool = True,
         max_rows: Union[int, None] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
@@ -78,6 +79,8 @@ class BaseModel(abc.ABC):
             if max_rows < 0:
                 max_rows = None
             df = pd.read_csv(dataset_path, nrows=max_rows)
+            if drop_nulls:
+                df = df[~df.isnull().any(axis=1)]
             if type(input_cols) == str:
                 base_features = [str(col) for col in df if col.startswith(input_cols)]
             elif type(input_cols) == list:
