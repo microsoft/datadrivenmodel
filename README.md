@@ -33,7 +33,12 @@ For an example on how to generate logged datasets from a simulator using the Pyt
 
 ### Training Your Models
 
-The scripts in this package leverage the configuration files saved in the [`conf`](./conf) folder to load CSV files, train and save models, and interface them to the Bonsai service. The library comes with a default configuration set in [`conf/config.yaml`](conf/config.yaml).
+The scripts in this package leverage the configuration files saved in the [`conf`](./conf) folder to load CSV files, train and save models, and interface them to the Bonsai service. There are three configuration files:
+- conf/data/$YOUR_DATA_CONFIG.yaml defines the interface to the data to train on
+- conf/model/$YOUR_MODEL_CONFIG.yaml defines the Machine Learning model's hyper-parameters
+- conf/simulator/$YOUR_SIM_CONFIG.yaml defines the simulator interface
+
+The library comes with a default configuration set in [`conf/config.yaml`](conf/config.yaml).
 
 ```bash
 python ddm_trainer.py
