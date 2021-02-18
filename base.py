@@ -4,14 +4,19 @@ import os
 import pathlib
 import pickle
 import sys
+from typing import List, Tuple, Union
+
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-from typing import Tuple, List, Union
 from natsort import natsorted
+from sklearn.metrics import auc, roc_curve
 from sklearn.preprocessing import StandardScaler
+
 from loaders import CsvReader
 
+matplotlib.rcParams["figure.figsize"] = [12, 10]
 
 # Add stdout handler, with level INFO
 console = logging.StreamHandler(sys.stdout)
@@ -278,7 +283,6 @@ class BaseModel(abc.ABC):
 
         self.halt_model = pickle.load(open(filename, "rb"))
 
-
     def evaluate(
         self, X_test: np.ndarray, y_test: np.ndarray, metric, marginal: bool = False
     ):
@@ -306,6 +310,28 @@ class BaseModel(abc.ABC):
             results[var] = scores
             idx += 1
         return pd.DataFrame(results.items(), columns=["var", "score"])
+
+    def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
+
+        test_halt_preds = self.predict_halt_classifier(halt_x)
+        halt_fpr, halt_tpr, _ = roc_curve(halt_y, test_halt_preds)
+        roc_auc = auc(halt_fpr, halt_tpr)
+
+        lw = 2
+        plt.figure()
+        plt.plot(
+            halt_fpr,
+            halt_tpr,
+            color="darkorange",
+            lw=lw,
+            label="ROC curve (AUC = %0.2f)" % roc_auc,
+        )
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
+        plt.title("ROC for Recycle Predictions")
+        plt.legend(loc="lower right")
 
 
 if __name__ == "__main__":
