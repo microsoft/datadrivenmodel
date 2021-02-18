@@ -6,11 +6,11 @@ from natsort import natsorted
 
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
+from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.exceptions import NotFittedError
 from tune_sklearn import TuneGridSearchCV, TuneSearchCV
-from xgboost import XGBRegressor
+from xgboost import XGBRegressor, XGBClassifier
 
 from base import BaseModel
 
@@ -21,7 +21,12 @@ logger.setLevel(logging.INFO)
 
 
 class GBoostModel(BaseModel):
-    def build_model(self, model_type: str = "xgboost", scale_data: bool = False):
+    def build_model(
+        self,
+        model_type: str = "xgboost",
+        scale_data: bool = False,
+        halt_model: bool = False,
+    ):
 
         self.scale_data = scale_data
         if model_type == "xgboost":
@@ -30,6 +35,15 @@ class GBoostModel(BaseModel):
             self.single_model = LGBMRegressor()
         else:
             raise NotImplementedError("Unknown model selected")
+
+        if halt_model:
+            logger.info(
+                f"Halt model specified, using same model_type for halt classifier: {model_type}"
+            )
+            if model_type == "xgboost":
+                self.halt_model = XGBClassifier()
+            elif model_type == "lightgbm":
+                self.halt_model = LGBMClassifier()
 
         self.model = MultiOutputRegressor(self.single_model)
         self.model_type = model_type

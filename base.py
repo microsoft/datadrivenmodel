@@ -30,6 +30,7 @@ class BaseModel(abc.ABC):
 
         self.logs_dir = log_dirs
         self.model = model
+        self.halt_model = None
 
     def load_csv(
         self,
@@ -160,9 +161,10 @@ class BaseModel(abc.ABC):
 
         return X_scaled, y_scaled
 
-    def build_model(self, scale_data: bool = False):
+    def build_model(self, scale_data: bool = False, halt_model: bool = False):
 
         self.scale_data = scale_data
+        self.halt_model = halt_model
 
     def fit(self, X, y):
 
@@ -172,6 +174,14 @@ class BaseModel(abc.ABC):
         if self.scale_data:
             X, y = self.scalar(X, y)
         self.model.fit(X, y)
+
+    def fit_halt_classifier(self, X, y):
+
+        if not self.halt_model:
+            raise ValueError("Please build or load the halted model first")
+        if self.scale_data:
+            X = self.xscalar.transform(X)
+        self.halt_model.fit(X, y)
 
     def predict(self, X, label_col_names: List[str] = None):
 
@@ -188,6 +198,17 @@ class BaseModel(abc.ABC):
             preds_df.columns = label_col_names
 
             return preds_df
+
+    def predict_halt_classifier(self, X):
+
+        if not self.halt_model:
+            raise ValueError("Please build or load the model first")
+        else:
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+            halts = self.halt_model.predict(X)
+
+        return halts
 
     def save_model(self, filename):
 
@@ -206,6 +227,13 @@ class BaseModel(abc.ABC):
             )
 
         pickle.dump(self.model, open(filename, "wb"))
+
+    def save_halt_model(self, dir_path: str = "models"):
+
+        filename = os.path.join(dir_path, "halted_classifier.pkl")
+        if not pathlib.Path(filename).parent.exists():
+            pathlib.Path(filename).parent.mkdir(parents=True)
+        pickle.dump(self.halt_model, open(filename, "wb"))
 
     def load_model(
         self, filename: str, scale_data: bool = False, separate_models: bool = False
@@ -246,10 +274,38 @@ class BaseModel(abc.ABC):
             )
         self.models = models
 
-    def evaluate(self, test_data: np.ndarray):
+    def load_halt_classifier(self, filename: str):
+
+        self.halt_model = pickle.load(open(filename, "rb"))
+
+
+    def evaluate(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, marginal: bool = False
+    ):
 
         if not self.model:
             raise Exception("No model found, please run fit first")
+        else:
+            if not marginal:
+                y_hat = self.predict(X_test)
+                return metric(y_test, y_hat)
+            else:
+                results_df = self.evalaute_margins()
+
+    def evaluate_margins(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False
+    ):
+
+        y_pred = self.predict(X_test)
+        idx = 0
+        results = {}
+        for var in X_test.shape[1]:
+            scores = metric(y_test[:, idx], y_pred[:, idx])
+            if verbose:
+                print(f"Score for var {var}: {scores}")
+            results[var] = scores
+            idx += 1
+        return pd.DataFrame(results.items(), columns=["var", "score"])
 
 
 if __name__ == "__main__":
