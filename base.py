@@ -204,6 +204,10 @@ class BaseModel(abc.ABC):
 
             return preds_df
 
+    def predict_sequentially(self, X, label_col_names: List[str] = None):
+
+        raise NotImplementedError
+
     def predict_halt_classifier(self, X):
 
         if not self.halt_model:
@@ -294,7 +298,7 @@ class BaseModel(abc.ABC):
                 y_hat = self.predict(X_test)
                 return metric(y_test, y_hat)
             else:
-                results_df = self.evaluate_margins()
+                results_df = self.evaluate_margins(X_test, y_test, metric, False)
                 return results_df
 
     def evaluate_margins(
