@@ -17,7 +17,13 @@ This will create and activate a new conda virtual environment named `ddm` based 
 
 ## Tests
 
-To get an understanding of the package, you may want to look at the tests in [`tests`](./tests), and the configuration files in [`conf`](./conf).
+To get an understanding of the package, you may want to look at the tests in [`tests`](./tests), and the configuration files in [`conf`](./conf). You can run the tests by simply:
+
+```bash
+pytest tests
+# or
+python -m pytest tests/
+```
 
 ## Usage
 

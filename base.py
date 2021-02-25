@@ -294,7 +294,7 @@ class BaseModel(abc.ABC):
                 y_hat = self.predict(X_test)
                 return metric(y_test, y_hat)
             else:
-                results_df = self.evalaute_margins()
+                results_df = self.evaluate_margins()
 
     def evaluate_margins(
         self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False
