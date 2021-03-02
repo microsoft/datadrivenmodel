@@ -1,4 +1,4 @@
 defaults:
-  - data: cartpole_st1_at.yaml
-  - model: SVR.yaml
-  - simulator: gboost_cartpole.yaml
+  - data: moab_100epi.yaml
+  - model: xgboost.yaml
+  - simulator: moab_simparam.yaml
