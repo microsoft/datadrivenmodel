@@ -65,8 +65,9 @@ class Simulator(BaseModel):
         if config:
             self.config = config
         else:
-            self.config = {"initial_x":np.random.uniform(-1,1),"initial_y":np.random.uniform(-1,1),"initial_vel_x":np.random.uniform(-1,1), 
-                            "initial_vel_y":np.random.uniform(-1,1),"initial_roll": np.random.uniform(-1,1), "initial_pitch": np.random.uniform(-1,1)}
+            # configs randomized here. Need to decide a single place for configs
+            # range either in main.py or in simulator configs
+            self.config = {j:np.random.uniform(-1,1) for j in self.config_keys}
         # Assign same state as would be used by simulator
         self.sim_physics.episode_start(config)
         _fullstate = self.sim_physics.get_state()
@@ -95,6 +96,13 @@ class Simulator(BaseModel):
         _fullstate = self.sim_physics.get_state()
         # idempotent dict comprehension for sims with prefix in configurations
         return {j:_fullstate[l] for j in self.state_keys for l in _fullstate.keys() if l in j}
+    
+    def get_init_sim_actions(self):
+        _fullstate = self.sim_physics.get_state()
+        _init_actions = {j:_fullstate[l] for j in self.action_keys for l in _fullstate.keys() if l in j}
+        if not _init_actions:
+            _init_actions = {j:np.random.uniform(-1,1) for j in self.action_keys} 
+        return _init_actions
 
     def halted(self):
         pass
@@ -145,7 +153,8 @@ def test_random_policy(
         sim_state = sim.get_sim_state()
         # it is important to know initial actions for evolution of the dynamics
         # action = random_action()
-        action = {"input_roll":ddm_state["state_roll"],"input_pitch":ddm_state["state_pitch"]}
+        
+        action = sim.get_init_sim_actions()
         if log_iterations:
             sim.log_iterations(ddm_state, action, sim.log_file, episode, iteration)
             sim.log_iterations(sim_state, action, sim.log_file2, episode, iteration)
