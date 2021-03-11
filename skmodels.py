@@ -4,6 +4,7 @@ import pickle
 from typing import Dict, Tuple
 
 import numpy as np
+import copy
 
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import GradientBoostingRegressor
@@ -70,7 +71,9 @@ class SKModel(BaseModel):
             self.models = []
             for i in range(y.shape[1]):
                 logger.info(f"Fitting model {i+1} of {y.shape[1]}")
-                self.models.append(self.model.fit(X, y[:, i]))
+                 # ensure model doesn't change in between per-output models
+                aux_model = copy.deepcopy(self.model.fit(X, y[:, i]))
+                self.models.append(aux_model)
         else:
             try:
                 self.model.fit(X, y)
@@ -111,6 +114,9 @@ class SKModel(BaseModel):
                     parent_dir.mkdir(parents=True, exist_ok=True)
                 path_name = str(parent_dir)
             else:
+                file_dir = pathlib.Path(filename)
+                if not file_dir.exists():
+                    file_dir.mkdir(parents=True, exist_ok=True)
                 path_name = filename
             pickle.dump(
                 self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")
