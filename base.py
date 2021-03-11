@@ -311,6 +311,98 @@ class BaseModel(abc.ABC):
             results[var] = scores
             idx += 1
         return pd.DataFrame(results.items(), columns=["var", "score"])
+        
+
+
+    def get_feat_importance(self):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+
+        feats = self.features
+        outputs = self.labels
+
+        if self.model_type == "SVR":
+            # Note, .coef_ is only available for linear models
+            raise ValueError("Feat importance hasn't been configured for 'SVR'")
+
+        if self.model_type in ["linear_model", "SVR"] and not self.scale_data:
+            # Note, coefficients do NOT match feature importance for NON scaled data (self.scale_data == False)
+            raise ValueError("Feat importance hasn't been configured for non-scaled data in 'linear_model'")
+
+        
+        feat_importance_d = dict()
+
+        if not self.separate_models:
+
+            if self.model_type in ["GradientBoostingRegressor", "xgboost", "lightgbm"]:
+                for i,(feat_name,estimator) in enumerate(zip(outputs, self.model.estimators_)):
+                    feat_importance_d[feat_name] = estimator.feature_importances_
+            
+            elif self.model_type in ["linear_model"]:
+                print("self.model.coef_", self.model.coef_)
+                for i,(feat_name,coefficients) in enumerate(zip(outputs, self.model.coef_)):
+                    feat_importance_d[feat_name] = coefficients
+            
+            else:
+                raise ValueError("Unknown model type")
+
+        else:
+            
+            if self.model_type in ["GradientBoostingRegressor", "xgboost", "lightgbm"]:
+                for i,feat_name in enumerate(outputs):
+                    feat_importance_d[feat_name] = self.models[i].feature_importances_
+            elif self.model_type in ["linear_model"]:
+                for i,feat_name in enumerate(outputs):
+                    feat_importance_d[feat_name] = self.models[i].coef_
+            else:
+                raise ValueError("Unknown model type")
+
+
+        return feat_importance_d
+
+    
+
+    def plot_feature_importance(self,
+                                feature_data = None,
+                                in_feats_dim = None,
+                                out_labels = None,
+                                total_width = 1.0):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+        
+        if feature_data is None:
+            feature_data = self.get_feat_importance()
+        if in_feats_dim is None:
+            in_feats_dim = self.input_dim
+        if out_labels is None:
+            out_labels = self.features
+        
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(figsize=(8, 7))
+
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']  
+        n_bars = len(feature_data) + 1  # plus 1 to add a space in between predictors
+        bar_width = total_width / n_bars # width of single bar
+        bars = []
+        for i, (name, values) in enumerate(feature_data.items()):
+            x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
+            for x, y in enumerate(values):
+                bar = ax.bar(x + x_offset, y, width=bar_width , color=colors[i % len(colors)])
+            bars.append(bar[0])
+
+
+        ax.legend(bars, feature_data.keys())
+        plt.title('Feature Importance / Feature Multipliers', fontsize=18)
+        plt.xlabel('Feature Column Names', fontsize=18)
+        plt.ylabel('Feature Importance', fontsize=18)
+
+        plt.xticks(ticks=range(in_feats_dim), labels=out_labels)
+        ax.tick_params(labelrotation=90)
+        plt.show()
+
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
 
