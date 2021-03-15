@@ -14,6 +14,11 @@ from natsort import natsorted
 from sklearn.metrics import auc, roc_curve
 from sklearn.preprocessing import StandardScaler
 
+import lime
+import lime.lime_tabular
+from collections import defaultdict
+import random
+
 from loaders import CsvReader
 
 matplotlib.rcParams["figure.figsize"] = [12, 10]
@@ -318,50 +323,69 @@ class BaseModel(abc.ABC):
         
 
 
-    def get_feat_importance(self):
+    def get_feat_importance(self, X = None, num_times = 200):
 
         if not self.model:
             raise Exception("No model found, please run fit first")
 
+        if X is None:
+            raise Exception("Training data for feature importance has not been provided, but it should")
+
+        if not self.separate_models:
+            raise NotImplementedError("Lime doesn't support regression analysis with multiple outputs")
+
         feats = self.features
         outputs = self.labels
 
-        if self.model_type == "SVR":
-            # Note, .coef_ is only available for linear models
-            raise ValueError("Feat importance hasn't been configured for 'SVR'")
-
-        if self.model_type in ["linear_model", "SVR"] and not self.scale_data:
-            # Note, coefficients do NOT match feature importance for NON scaled data (self.scale_data == False)
-            raise ValueError("Feat importance hasn't been configured for non-scaled data in 'linear_model'")
-
-        
+        # Initialize feature importance final dictionary
         feat_importance_d = dict()
 
-        if not self.separate_models:
+        # Identify as categorical all inputs with 10 or less unique values
+        categorical_features = np.argwhere(np.array([len(set(X[:,i])) for i in range(X.shape[1])]) <= 10).flatten()
 
-            if self.model_type in ["GradientBoostingRegressor", "xgboost", "lightgbm"]:
-                for i,(feat_name,estimator) in enumerate(zip(outputs, self.model.estimators_)):
-                    feat_importance_d[feat_name] = estimator.feature_importances_
-            
-            elif self.model_type in ["linear_model"]:
-                print("self.model.coef_", self.model.coef_)
-                for i,(feat_name,coefficients) in enumerate(zip(outputs, self.model.coef_)):
-                    feat_importance_d[feat_name] = coefficients
-            
-            else:
-                raise ValueError("Unknown model type")
+        # Prepare lime predictor
+        explainer = lime.lime_tabular.LimeTabularExplainer(X, feature_names=feats, categorical_features=categorical_features, verbose=False, mode='regression')
 
-        else:
-            
-            if self.model_type in ["GradientBoostingRegressor", "xgboost", "lightgbm"]:
-                for i,feat_name in enumerate(outputs):
-                    feat_importance_d[feat_name] = self.models[i].feature_importances_
-            elif self.model_type in ["linear_model"]:
-                for i,feat_name in enumerate(outputs):
-                    feat_importance_d[feat_name] = self.models[i].coef_
-            else:
-                raise ValueError("Unknown model type")
+        aux_X = X.copy()
+        random.shuffle(aux_X)
 
+        for output,inner_model in zip(outputs, self.models):
+
+            feats_coef_d = defaultdict(list)
+
+            for i in range(100):
+                # Get explainer for single instance
+                exp = explainer.explain_instance(aux_X[i], inner_model.predict, num_features=7)
+                # exp_data is a list of tuples of type (range_str, importance) --> e.g.: ('state_x_position > 0.12', 0.671470753024958)
+                exp_data = exp.as_list()
+                
+                # Iterate extracting feature importance (order is given as per feat importance)
+                aux_idx_list = list(range(len(feats)))
+                feat_coefs = []
+                for i,f in enumerate(feats):
+
+                    for idx in aux_idx_list:
+                        feat_range_str, feat_coef = exp_data[idx]
+
+                        # Extract state name & append to list
+                        if f in feat_range_str:
+                            feat_coefs.append(abs(feat_coef))
+                            break
+
+                    # Remove state before running over again
+                    aux_idx_list.remove(idx)
+
+                # Normalize vector of importances
+                coef_sum = sum(feat_coefs)
+                feat_coefs = [coef/coef_sum for coef in feat_coefs]
+
+                # Append to list
+                for f,c in zip(feats, feat_coefs):
+                    feats_coef_d[f].append(c)
+
+            
+            # Get mean across all importances per example
+            feat_importance_d[output] = [np.mean(feats_coef_d[f]) for f in feats]
 
         return feat_importance_d
 
@@ -383,8 +407,6 @@ class BaseModel(abc.ABC):
         if out_labels is None:
             out_labels = self.features
         
-        import matplotlib.pyplot as plt
-
         fig, ax = plt.subplots(figsize=(8, 7))
 
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']  
