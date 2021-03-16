@@ -409,7 +409,7 @@ class BaseModel(abc.ABC):
         y_pred = self.predict(X_test)
         idx = 0
         results = {}
-        for var in X_test.shape[1]:
+        for var in self.labels:
             scores = metric(y_test[:, idx], y_pred[:, idx])
             if verbose:
                 print(f"Score for var {var}: {scores}")
