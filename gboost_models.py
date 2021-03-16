@@ -115,6 +115,10 @@ class GBoostModel(BaseModel):
                     parent_dir.mkdir(parents=True, exist_ok=True)
                 path_name = str(parent_dir)
             else:
+                file_dir = pathlib.Path(filename)
+                if not file_dir.exists():
+                    logger.info(f"Creating new directories at {file_dir}")
+                    file_dir.mkdir(parents=True, exist_ok=True)
                 path_name = filename
             pickle.dump(
                 self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")

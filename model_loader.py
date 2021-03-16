@@ -10,6 +10,7 @@ from gboost_models import GBoostModel
 
 available_models = {
     "pytorch": PyTorchModel,
+    "linear_model": SKModel,
     "SVR": SKModel,
     "GradientBoostingRegressor": SKModel,
     "gboost": GBoostModel,
