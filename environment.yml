@@ -36,3 +36,4 @@ dependencies:
       - hydra-core==1.0.5
       - natsort==7.1.0
       - seaborn==0.11.1
+      - rich==9.13.0

@@ -137,7 +137,7 @@ def test_random_policy(
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig):
 
-    save_path = cfg["model"]["saver"][0]["filename"]
+    save_path = cfg["model"]["saver"]["filename"]
     if cfg["data"]["full_or_relative"] == "relative":
         save_path = os.path.join(dir_path, save_path)
     model_name = cfg["model"]["name"]
