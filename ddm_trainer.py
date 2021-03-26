@@ -30,7 +30,6 @@ def main(cfg: DictConfig) -> None:
     max_rows = cfg["data"]["max_rows"]
     save_path = cfg["model"]["saver"]["filename"]
     model_name = cfg["model"]["name"]
-    scale_data = cfg["model"]["build_params"]["scale_data"]
     Model = available_models[model_name]
 
     if cfg["data"]["full_or_relative"] == "relative":
@@ -57,7 +56,7 @@ def main(cfg: DictConfig) -> None:
         max_rows=max_rows,
     )
     logger.info("Building model...")
-    model.build_model(scale_data=scale_data)
+    model.build_model(**cfg["model"]["build_params"])
     logger.info("Fitting model...")
     model.fit(X, y)
 
