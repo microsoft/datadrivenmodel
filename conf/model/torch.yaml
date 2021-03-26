@@ -1,7 +1,6 @@
 model:
   name: pytorch
   build_params:
-    network_class: MVRegressor
     num_units: 50
     dropout: 0.5
     num_layers: 10
