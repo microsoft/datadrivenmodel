@@ -1,20 +1,13 @@
 model:
   name: SVR
   build_params:
-    - model_type: SVR
-    - num_trees: 50
-    - objective: reg:squarederror
-    - step_size: 0.3
-    - device: cpu
-    - batch_size: 128
-    - gamma: 0
-    - scale_data: True
-    - lambda: 1
-    - max_bin: 256
+    model_type: SVR
+    scale_data: True
+    fit_separate: True
   saver:
-    - filename: models/moab/SVR_model
+    filename: models/moab/SVR_model
   sweep:
-    - run: False
-    - search_algorithm: bayesian
-    - num_trials: 3
-    - scoring_func: r2
+    run: False
+    search_algorithm: bayesian
+    num_trials: 3
+    scoring_func: r2

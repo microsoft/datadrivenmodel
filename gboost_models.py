@@ -26,11 +26,18 @@ class GBoostModel(BaseModel):
         model_type: str = "xgboost",
         scale_data: bool = False,
         halt_model: bool = False,
+        objective: str = "reg:squarederror",
+        num_trees: int = 50,
+        step_size: float = 0.3,
+        device: str = "cpu",
+        batch_size: int = 128,
+        gamma: int = 0,
+        max_bin: int = 256,
     ):
 
         self.scale_data = scale_data
         if model_type == "xgboost":
-            self.single_model = XGBRegressor(objective="reg:squarederror")
+            self.single_model = XGBRegressor(objective=objective)
         elif model_type == "lightgbm":
             self.single_model = LGBMRegressor()
         else:

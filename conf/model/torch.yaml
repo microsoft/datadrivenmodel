@@ -1,26 +1,26 @@
 model:
   name: pytorch
   build_params:
-    - network_class: MVRegressor
-    - num_units: 50
-    - dropout: 0.5
-    - num_layers: 10
-    - device: cpu
-    - batch_size: 128
-    - num_epochs: 10
-    - scale_data: True
+    network_class: MVRegressor
+    num_units: 50
+    dropout: 0.5
+    num_layers: 10
+    device: cpu
+    batch_size: 128
+    num_epochs: 10
+    scale_data: True
   network:
-    - num_units: 50
-    - p_dropout: 0.5
-    - n_layers: 10
+    num_units: 50
+    p_dropout: 0.5
+    n_layers: 10
   trainer:
-    - device: cpu
-    - batch_size: 128
-    - num_epochs: 10
+    device: cpu
+    batch_size: 128
+    num_epochs: 10
   saver:
-    - filename: models/torch_model
+    filename: models/torch_model
   sweep:
-    - run: False
-    - search_algorithm: bayesian
-    - num_trials: 3
-    - scoring_func: r2
+    run: False
+    search_algorithm: bayesian
+    num_trials: 3
+    scoring_func: r2

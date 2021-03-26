@@ -36,9 +36,15 @@ logger.setLevel(logging.INFO)
 
 
 class SKModel(BaseModel):
-    def build_model(self, model_type: str = "linear_model", scale_data: bool = False):
+    def build_model(
+        self,
+        model_type: str = "linear_model",
+        scale_data: bool = False,
+        fit_separate: bool = False,
+    ):
         self.scale_data = scale_data
         self.model_type = model_type
+        self.fit_separate = fit_separate
         if model_type == "linear_model":
             self.model = linear_model.LinearRegression()
         elif model_type == "SVR":
@@ -48,30 +54,33 @@ class SKModel(BaseModel):
         else:
             raise NotImplementedError("unknown model selected")
 
-    def fit(self, X, y, fit_separate: bool = False):
+    def fit(self, X, y):
 
         if self.scale_data:
             X, y = self.scalar(X, y)
 
-        if self.model_type == "GradientBoostingRegressor" and fit_separate == False:
+        if (
+            self.model_type == "GradientBoostingRegressor"
+            and self.fit_separate == False
+        ):
             fit_separate = True
-            logger.info(
-                "Note: fit_separate should be True for GradientBoostingRegressor. Changing to True .."
+            logger.warn(
+                "Note: fit_separate must be set toTrue for GradientBoostingRegressor, but False was provided. Changing to True"
             )
 
-        if self.model_type == "SVR" and fit_separate == False:
+        if self.model_type == "SVR" and self.fit_separate == False:
             fit_separate = True
-            logger.info(
-                "Note: fit_separate should be True for SVR. Changing to True .."
+            logger.warn(
+                "Note: fit_separate must be set to True for SVR, but False was provided. Changing to True"
             )
 
-        self.separate_models = fit_separate
+        self.separate_models = self.fit_separate
 
         if self.separate_models:
             self.models = []
             for i in range(y.shape[1]):
                 logger.info(f"Fitting model {i+1} of {y.shape[1]}")
-                 # ensure model doesn't change in between per-output models
+                # ensure model doesn't change in between per-output models
                 aux_model = copy.deepcopy(self.model.fit(X, y[:, i]))
                 self.models.append(aux_model)
         else:
@@ -114,10 +123,10 @@ class SKModel(BaseModel):
                     parent_dir.mkdir(parents=True, exist_ok=True)
                 path_name = str(parent_dir)
             else:
-                file_dir = pathlib.Path(filename)
-                if not file_dir.exists():
-                    file_dir.mkdir(parents=True, exist_ok=True)
-                path_name = filename
+                path_name = os.path.splitext(filename)[0]
+                if not pathlib.Path(path_name).exists():
+                    pathlib.Path(path_name).mkdir(parents=True, exist_ok=True)
+
             pickle.dump(
                 self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")
             )
@@ -126,11 +135,12 @@ class SKModel(BaseModel):
             )
 
         if self.separate_models:
-            if not pathlib.Path(filename).exists():
-                pathlib.Path(filename).mkdir(parents=True, exist_ok=True)
+            path_name = os.path.splitext(filename)[0]
+            if not pathlib.Path(path_name).exists():
+                pathlib.Path(path_name).mkdir(parents=True, exist_ok=True)
             for i in range(len(self.models)):
                 pickle.dump(
-                    self.models[i], open(os.path.join(filename, f"model{i}.pkl"), "wb")
+                    self.models[i], open(os.path.join(path_name, f"model{i}.pkl"), "wb")
                 )
         else:
             parent_dir = pathlib.Path(filename).parent

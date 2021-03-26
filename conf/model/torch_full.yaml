@@ -11,9 +11,9 @@ model:
     num_epochs: 10
     scale_data: True
   saver:
-    - filename: models/torch_model
+    filename: models/torch_model
   sweep:
-    - run: False
-    - search_algorithm: bayesian
-    - num_trials: 3
-    - scoring_func: r2
+    run: False
+    search_algorithm: bayesian
+    num_trials: 3
+    scoring_func: r2

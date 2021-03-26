@@ -1,4 +1,4 @@
 defaults:
   - data: cartpole_st1_at.yaml
-  - model: SVR.yaml
+  - model: xgboost.yaml
   - simulator: gboost_cartpole.yaml

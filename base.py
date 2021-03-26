@@ -14,6 +14,8 @@ from natsort import natsorted
 from sklearn.metrics import auc, roc_curve
 from sklearn.preprocessing import StandardScaler
 
+from collections import OrderedDict
+
 from loaders import CsvReader
 
 matplotlib.rcParams["figure.figsize"] = [12, 10]
@@ -204,9 +206,90 @@ class BaseModel(abc.ABC):
 
             return preds_df
 
-    def predict_sequentially(self, X, label_col_names: List[str] = None):
+    def predict_sequentially_all(self, X, label_col_names: List[str] = None):
 
-        raise NotImplementedError
+        if not self.model:
+            raise ValueError("Please build or load the model first")
+        else:
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+
+            if label_col_names is None:
+                label_col_names = self.labels
+                if label_col_names is None:
+                    # If None provided, and None stored in self.labels, we ask user to provide as input
+                    # - Currently needed to match outputs to inputs when running the model forward -
+                    raise ValueError("Please provide a list of predicted output labels ('label_col_names')")
+            
+            # prepare features & a list of predictions that are feats too (often all)
+            feats = self.features
+            preds_that_are_feats = [f_name for f_name in feats if f_name in label_col_names]
+            # initialize feat_dict to first row & pred_dict to match first row too
+            feat_dict = OrderedDict(list(zip(feats, X[0])))
+            pred_dict = dict([(k,v) for (k,v) in feat_dict.items() if k in preds_that_are_feats])
+
+            # sequentially iterate retriving next prediction based on previous prediction
+            preds = []
+            for i in range(len(X)):
+                # extrac next row feats
+                feat_dict = OrderedDict(list(zip(feats, list(X[i]))))
+                # update feats with previous prediction
+                for f_name in preds_that_are_feats:
+                    feat_dict[f_name] = pred_dict[f_name]
+                # get next prediction
+                pred = self.predict(np.array([list(feat_dict.values())]))
+                preds.append(pred[0])
+                # update prediction dictionary (for next iteration)
+                pred_dict = OrderedDict(list(zip(label_col_names, pred.tolist()[0])))
+
+            preds = np.array(preds) #.transpose()
+
+            if self.scale_data:
+                preds = self.yscalar.inverse_transform(preds)
+
+            #preds_df = pd.DataFrame(preds)
+            #preds_df.columns = label_col_names
+
+            return preds #preds_df
+
+    
+    def predict_sequentially(self, X, label_col_names: List[str] = None, it_per_episode: int = None):
+
+        if not self.model:
+            raise ValueError("Please build or load the model first")
+        else:
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+            
+            if label_col_names is None:
+                label_col_names = self.labels
+                if label_col_names is None:
+                    # If None provided, and None stored in self.labels, we ask user to provide as input
+                    # - Currently needed to match outputs to inputs when running the model forward -
+                    raise ValueError("Please provide a list of predicted output labels ('label_col_names')")
+
+            # initialize predictions
+            preds = []
+
+            if not it_per_episode:
+                it_per_episode = np.shape(X)[0]
+
+            num_of_episodes = int(np.shape(X)[0]/it_per_episode)
+
+            # iterate per as many episodes as selected
+            for i in range(num_of_episodes):
+
+                X_aux = X[i*it_per_episode:(i+1)*it_per_episode]
+
+                preds_aux = self.predict_sequentially_all(X_aux, label_col_names)
+                preds.extend(preds_aux)
+
+            preds = np.array(preds)
+
+            #preds_df = pd.DataFrame(preds)
+            #preds_df.columns = label_col_names
+
+            return preds #preds_df
 
     def predict_halt_classifier(self, X):
 
@@ -301,6 +384,24 @@ class BaseModel(abc.ABC):
                 results_df = self.evaluate_margins(X_test, y_test, metric, False)
                 return results_df
 
+    def evaluate_sequentially(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, marginal: bool = False, it_per_episode = 100
+    ):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+        else:
+            
+            if not marginal:
+                y_hat = self.predict_sequentially(X_test, it_per_episode = it_per_episode)
+                y_hat_len = np.shape(y_hat)[0]
+                y_test = y_test[:y_hat_len]
+                return metric(y_test, y_hat)
+            else:
+                results_df = self.evaluate_margins_sequentially(X_test, y_test, metric, False, it_per_episode=it_per_episode)
+                return results_df
+                
+
     def evaluate_margins(
         self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False
     ):
@@ -308,7 +409,26 @@ class BaseModel(abc.ABC):
         y_pred = self.predict(X_test)
         idx = 0
         results = {}
-        for var in X_test.shape[1]:
+        for var in self.labels:
+            scores = metric(y_test[:, idx], y_pred[:, idx])
+            if verbose:
+                print(f"Score for var {var}: {scores}")
+            results[var] = scores
+            idx += 1
+        return pd.DataFrame(results.items(), columns=["var", "score"])
+
+    def evaluate_margins_sequentially(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False, it_per_episode: int = 100
+    ):
+
+        # Extract prediction and remove any tail reminder from int(len(X_test)/it_per_episode)
+        y_pred = self.predict_sequentially(X_test, it_per_episode = it_per_episode)
+        y_pred_len = np.shape(y_pred)[0]
+        y_test = y_test[:y_pred_len]
+
+        idx = 0
+        results = {}
+        for var in self.labels:
             scores = metric(y_test[:, idx], y_pred[:, idx])
             if verbose:
                 print(f"Score for var {var}: {scores}")
