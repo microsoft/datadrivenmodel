@@ -9,3 +9,4 @@ simulator:
   actions: ["action_command"]
   configs: ["config_length", "config_masspole"]
   policy: bonsai
+  logging: enable

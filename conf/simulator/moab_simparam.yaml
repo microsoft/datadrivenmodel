@@ -5,6 +5,8 @@ simulator:
       "state_pitch",
       "state_ball_x",
       "state_ball_y",
+      "state_roll_vel",
+      "state_pitch_vel",
       "state_ball_vel_x",
       "state_ball_vel_y",
     ]
@@ -15,12 +17,6 @@ simulator:
     ]
   configs: 
     [
-      "config_initial_vel_x",
-      "config_initial_vel_y",
-      "config_initial_x",
-      "config_initial_y",
-      "config_initial_pitch",
-      "config_initial_roll"
     ]
   policy: random
   logging: enable
