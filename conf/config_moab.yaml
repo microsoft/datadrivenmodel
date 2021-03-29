@@ -1,0 +1,4 @@
+defaults:
+  - data: moab_5Kepi.yaml
+  - model: xgboost.yaml
+  - simulator: moab_simparam.yaml
