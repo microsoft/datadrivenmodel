@@ -31,9 +31,9 @@ class Simulator(BaseModel):
     def __init__(
         self,
         model,
-        states=List[str],
-        actions=List[str],
-        configs=List[str],
+        states: List[str],
+        actions: List[str],
+        configs: List[str],
         log_file: str = None,
         sim_orig=None,
     ):
