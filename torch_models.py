@@ -111,7 +111,7 @@ class PyTorchModel(BaseModel):
         self.scale_data = scale_data
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.build_model()
+        self.build_model(scale_data=scale_data)
         self.model = pickle.load(open(filename, "rb"))
 
     def predict(self, X):
