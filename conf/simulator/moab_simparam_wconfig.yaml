@@ -1,0 +1,26 @@
+simulator:
+  states:
+    [
+      "state_roll",
+      "state_pitch",
+      "state_ball_x",
+      "state_ball_y",
+      "state_ball_vel_x",
+      "state_ball_vel_y",
+    ]
+  actions: 
+    [
+      "action_input_roll",
+      "action_input_pitch",
+    ]
+  configs: 
+    [
+      "config_initial_vel_x",
+      "config_initial_vel_y",
+      "config_initial_x",
+      "config_initial_y",
+      "config_initial_pitch",
+      "config_initial_roll"
+    ]
+  policy: random
+  logging: enable
