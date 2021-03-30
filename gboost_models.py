@@ -6,11 +6,11 @@ from natsort import natsorted
 
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
+from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.exceptions import NotFittedError
 from tune_sklearn import TuneGridSearchCV, TuneSearchCV
-from xgboost import XGBRegressor
+from xgboost import XGBRegressor, XGBClassifier
 
 from base import BaseModel
 
@@ -21,15 +21,36 @@ logger.setLevel(logging.INFO)
 
 
 class GBoostModel(BaseModel):
-    def build_model(self, model_type: str = "xgboost", scale_data: bool = False):
+    def build_model(
+        self,
+        model_type: str = "xgboost",
+        scale_data: bool = False,
+        halt_model: bool = False,
+        objective: str = "reg:squarederror",
+        num_trees: int = 50,
+        step_size: float = 0.3,
+        device: str = "cpu",
+        batch_size: int = 128,
+        gamma: int = 0,
+        max_bin: int = 256,
+    ):
 
         self.scale_data = scale_data
         if model_type == "xgboost":
-            self.single_model = XGBRegressor(objective="reg:squarederror")
+            self.single_model = XGBRegressor(objective=objective)
         elif model_type == "lightgbm":
             self.single_model = LGBMRegressor()
         else:
             raise NotImplementedError("Unknown model selected")
+
+        if halt_model:
+            logger.info(
+                f"Halt model specified, using same model_type for halt classifier: {model_type}"
+            )
+            if model_type == "xgboost":
+                self.halt_model = XGBClassifier()
+            elif model_type == "lightgbm":
+                self.halt_model = LGBMClassifier()
 
         self.model = MultiOutputRegressor(self.single_model)
         self.model_type = model_type
@@ -101,6 +122,10 @@ class GBoostModel(BaseModel):
                     parent_dir.mkdir(parents=True, exist_ok=True)
                 path_name = str(parent_dir)
             else:
+                file_dir = pathlib.Path(filename)
+                if not file_dir.exists():
+                    logger.info(f"Creating new directories at {file_dir}")
+                    file_dir.mkdir(parents=True, exist_ok=True)
                 path_name = filename
             pickle.dump(
                 self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")

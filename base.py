@@ -4,14 +4,21 @@ import os
 import pathlib
 import pickle
 import sys
+from typing import List, Tuple, Union
+
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-from typing import Tuple, List, Union
 from natsort import natsorted
+from sklearn.metrics import auc, roc_curve
 from sklearn.preprocessing import StandardScaler
+
+from collections import OrderedDict
+
 from loaders import CsvReader
 
+matplotlib.rcParams["figure.figsize"] = [12, 10]
 
 # Add stdout handler, with level INFO
 console = logging.StreamHandler(sys.stdout)
@@ -30,6 +37,7 @@ class BaseModel(abc.ABC):
 
         self.logs_dir = log_dirs
         self.model = model
+        self.halt_model = None
 
     def load_csv(
         self,
@@ -160,9 +168,10 @@ class BaseModel(abc.ABC):
 
         return X_scaled, y_scaled
 
-    def build_model(self, scale_data: bool = False):
+    def build_model(self, scale_data: bool = False, halt_model: bool = False):
 
         self.scale_data = scale_data
+        self.halt_model = halt_model
 
     def fit(self, X, y):
 
@@ -172,6 +181,14 @@ class BaseModel(abc.ABC):
         if self.scale_data:
             X, y = self.scalar(X, y)
         self.model.fit(X, y)
+
+    def fit_halt_classifier(self, X, y):
+
+        if not self.halt_model:
+            raise ValueError("Please build or load the halted model first")
+        if self.scale_data:
+            X = self.xscalar.transform(X)
+        self.halt_model.fit(X, y)
 
     def predict(self, X, label_col_names: List[str] = None):
 
@@ -188,6 +205,102 @@ class BaseModel(abc.ABC):
             preds_df.columns = label_col_names
 
             return preds_df
+
+    def predict_sequentially_all(self, X, label_col_names: List[str] = None):
+
+        if not self.model:
+            raise ValueError("Please build or load the model first")
+        else:
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+
+            if label_col_names is None:
+                label_col_names = self.labels
+                if label_col_names is None:
+                    # If None provided, and None stored in self.labels, we ask user to provide as input
+                    # - Currently needed to match outputs to inputs when running the model forward -
+                    raise ValueError("Please provide a list of predicted output labels ('label_col_names')")
+            
+            # prepare features & a list of predictions that are feats too (often all)
+            feats = self.features
+            preds_that_are_feats = [f_name for f_name in feats if f_name in label_col_names]
+            # initialize feat_dict to first row & pred_dict to match first row too
+            feat_dict = OrderedDict(list(zip(feats, X[0])))
+            pred_dict = dict([(k,v) for (k,v) in feat_dict.items() if k in preds_that_are_feats])
+
+            # sequentially iterate retriving next prediction based on previous prediction
+            preds = []
+            for i in range(len(X)):
+                # extrac next row feats
+                feat_dict = OrderedDict(list(zip(feats, list(X[i]))))
+                # update feats with previous prediction
+                for f_name in preds_that_are_feats:
+                    feat_dict[f_name] = pred_dict[f_name]
+                # get next prediction
+                pred = self.predict(np.array([list(feat_dict.values())]))
+                preds.append(pred[0])
+                # update prediction dictionary (for next iteration)
+                pred_dict = OrderedDict(list(zip(label_col_names, pred.tolist()[0])))
+
+            preds = np.array(preds) #.transpose()
+
+            if self.scale_data:
+                preds = self.yscalar.inverse_transform(preds)
+
+            #preds_df = pd.DataFrame(preds)
+            #preds_df.columns = label_col_names
+
+            return preds #preds_df
+
+    
+    def predict_sequentially(self, X, label_col_names: List[str] = None, it_per_episode: int = None):
+
+        if not self.model:
+            raise ValueError("Please build or load the model first")
+        else:
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+            
+            if label_col_names is None:
+                label_col_names = self.labels
+                if label_col_names is None:
+                    # If None provided, and None stored in self.labels, we ask user to provide as input
+                    # - Currently needed to match outputs to inputs when running the model forward -
+                    raise ValueError("Please provide a list of predicted output labels ('label_col_names')")
+
+            # initialize predictions
+            preds = []
+
+            if not it_per_episode:
+                it_per_episode = np.shape(X)[0]
+
+            num_of_episodes = int(np.shape(X)[0]/it_per_episode)
+
+            # iterate per as many episodes as selected
+            for i in range(num_of_episodes):
+
+                X_aux = X[i*it_per_episode:(i+1)*it_per_episode]
+
+                preds_aux = self.predict_sequentially_all(X_aux, label_col_names)
+                preds.extend(preds_aux)
+
+            preds = np.array(preds)
+
+            #preds_df = pd.DataFrame(preds)
+            #preds_df.columns = label_col_names
+
+            return preds #preds_df
+
+    def predict_halt_classifier(self, X):
+
+        if not self.halt_model:
+            raise ValueError("Please build or load the model first")
+        else:
+            if self.scale_data:
+                X = self.xscalar.transform(X)
+            halts = self.halt_model.predict(X)
+
+        return halts
 
     def save_model(self, filename):
 
@@ -206,6 +319,13 @@ class BaseModel(abc.ABC):
             )
 
         pickle.dump(self.model, open(filename, "wb"))
+
+    def save_halt_model(self, dir_path: str = "models"):
+
+        filename = os.path.join(dir_path, "halted_classifier.pkl")
+        if not pathlib.Path(filename).parent.exists():
+            pathlib.Path(filename).parent.mkdir(parents=True)
+        pickle.dump(self.halt_model, open(filename, "wb"))
 
     def load_model(
         self, filename: str, scale_data: bool = False, separate_models: bool = False
@@ -246,10 +366,97 @@ class BaseModel(abc.ABC):
             )
         self.models = models
 
-    def evaluate(self, test_data: np.ndarray):
+    def load_halt_classifier(self, filename: str):
+
+        self.halt_model = pickle.load(open(filename, "rb"))
+
+    def evaluate(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, marginal: bool = False
+    ):
 
         if not self.model:
             raise Exception("No model found, please run fit first")
+        else:
+            if not marginal:
+                y_hat = self.predict(X_test)
+                return metric(y_test, y_hat)
+            else:
+                results_df = self.evaluate_margins(X_test, y_test, metric, False)
+                return results_df
+
+    def evaluate_sequentially(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, marginal: bool = False, it_per_episode = 100
+    ):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+        else:
+            
+            if not marginal:
+                y_hat = self.predict_sequentially(X_test, it_per_episode = it_per_episode)
+                y_hat_len = np.shape(y_hat)[0]
+                y_test = y_test[:y_hat_len]
+                return metric(y_test, y_hat)
+            else:
+                results_df = self.evaluate_margins_sequentially(X_test, y_test, metric, False, it_per_episode=it_per_episode)
+                return results_df
+                
+
+    def evaluate_margins(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False
+    ):
+
+        y_pred = self.predict(X_test)
+        idx = 0
+        results = {}
+        for var in self.labels:
+            scores = metric(y_test[:, idx], y_pred[:, idx])
+            if verbose:
+                print(f"Score for var {var}: {scores}")
+            results[var] = scores
+            idx += 1
+        return pd.DataFrame(results.items(), columns=["var", "score"])
+
+    def evaluate_margins_sequentially(
+        self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False, it_per_episode: int = 100
+    ):
+
+        # Extract prediction and remove any tail reminder from int(len(X_test)/it_per_episode)
+        y_pred = self.predict_sequentially(X_test, it_per_episode = it_per_episode)
+        y_pred_len = np.shape(y_pred)[0]
+        y_test = y_test[:y_pred_len]
+
+        idx = 0
+        results = {}
+        for var in self.labels:
+            scores = metric(y_test[:, idx], y_pred[:, idx])
+            if verbose:
+                print(f"Score for var {var}: {scores}")
+            results[var] = scores
+            idx += 1
+        return pd.DataFrame(results.items(), columns=["var", "score"])
+
+    def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
+
+        test_halt_preds = self.predict_halt_classifier(halt_x)
+        halt_fpr, halt_tpr, _ = roc_curve(halt_y, test_halt_preds)
+        roc_auc = auc(halt_fpr, halt_tpr)
+
+        lw = 2
+        plt.figure()
+        plt.plot(
+            halt_fpr,
+            halt_tpr,
+            color="darkorange",
+            lw=lw,
+            label="ROC curve (AUC = %0.2f)" % roc_auc,
+        )
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
+        plt.title("ROC for Recycle Predictions")
+        plt.legend(loc="lower right")
 
 
 if __name__ == "__main__":
