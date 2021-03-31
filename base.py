@@ -50,6 +50,7 @@ class BaseModel(abc.ABC):
         iteration_col: str = "iteration",
         drop_nulls: bool = True,
         max_rows: Union[int, None] = None,
+        del_state: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -136,6 +137,10 @@ class BaseModel(abc.ABC):
             )
             X = df[csv_reader.feature_cols].values
             y = df[csv_reader.label_cols].values
+        
+        if del_state == True:
+            print("diff state implemented")
+            y = y-X[:,:y.shape[1]] # s_t+1 - s_t
 
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]

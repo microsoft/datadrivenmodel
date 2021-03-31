@@ -35,3 +35,4 @@ data:
   iteration_col: iteration
   max_rows: -1
   scale_data: True
+  diff_state: False
