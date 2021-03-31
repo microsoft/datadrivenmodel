@@ -34,9 +34,9 @@ class Simulator(BaseModel):
     def __init__(
         self,
         model,
-        states=List[str],
-        actions=List[str],
-        configs=List[str],
+        states: List[str],
+        actions: List[str],
+        configs: List[str],
         log_file: str = None,
         diff_state: bool = False,):
 
@@ -167,7 +167,7 @@ def main(cfg: DictConfig):
     Model = available_models[model_name]
     model = Model()
 
-    model.build_model(model_type=model_name)
+    model.build_model(**cfg["model"]["build_params"])
     model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
