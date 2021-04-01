@@ -31,7 +31,14 @@ env_name = "DDM"
 
 
 class Simulator(BaseModel):
-    def __init__(self, model, states=List[str], actions=List[str], configs=List[str]):
+    def __init__(
+        self,
+        model,
+        states: List[str],
+        actions: List[str],
+        configs: List[str],
+        diff_state: bool = False,
+    ):
 
         self.model = model
         self.features = states + actions + configs
@@ -39,6 +46,8 @@ class Simulator(BaseModel):
         self.config_keys = configs
         self.state_keys = states
         self.action_keys = actions
+        self.diff_state = diff_state
+        # TODO: Add logging
 
     def episode_start(self, config: Dict[str, Any] = None):
 
@@ -59,7 +68,13 @@ class Simulator(BaseModel):
 
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
-        preds = self.model.predict(X)
+        if self.diff_state:
+            preds = np.array(list(self.state.values())) + self.model.predict(
+                X
+            )  # compensating for output being delta state st+1-st
+            # preds = np.array(list(simstate))+self.dd_model.predict(X) # if doing per iteration prediction of delta state st+1-st
+        else:
+            preds = self.model.predict(X)  # absolute prediction
         self.state = dict(zip(self.features, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 
@@ -145,18 +160,21 @@ def main(cfg: DictConfig):
     actions = cfg["simulator"]["actions"]
     configs = cfg["simulator"]["configs"]
     policy = cfg["simulator"]["policy"]
+    logflag = cfg["simulator"]["logging"]
+    # logging not yet implemented
     scale_data = cfg["model"]["build_params"][7]["scale_data"]
+    diff_state = cfg["data"]["diff_state"]
 
     logger.info(f"Training with a new {policy} policy")
 
     Model = available_models[model_name]
     model = Model()
 
-    model.build_model(model_type=model_name)
+    model.build_model(**cfg["model"]["build_params"])
     model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs)
+    sim = Simulator(model, states, actions, configs, diff_state)
 
     # do a random action to get initial state
     sim.episode_start()

@@ -35,6 +35,7 @@ class Simulator(BaseModel):
         actions: List[str],
         configs: List[str],
         log_file: str = None,
+        diff_state: bool = False,
         sim_orig=None,
     ):
         self.dd_model = model
@@ -44,7 +45,7 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.sim_orig = sim_orig  # include simulator function if comparing to simulator
-
+        self.diff_state = diff_state
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
             log_file = os.path.join(
@@ -92,14 +93,18 @@ class Simulator(BaseModel):
     def episode_step(self, action: Dict[str, int]):
 
         input_list = [
-            list(self.state.values()),  #
+            list(self.state.values()),  # replace by self.sim_orig.state.values() for per iteration
             list(self.config.values()),
             list(action.values()),
         ]
 
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
-        preds = self.dd_model.predict(X)
+        if self.diff_state:
+            preds = np.array(list(self.state.values()))+self.dd_model.predict(X) # compensating for output being delta state st+1-st
+            # preds = np.array(list(simstate))+self.dd_model.predict(X) # if doing per iteration prediction of delta state st+1-st
+        else:
+            preds = self.dd_model.predict(X) # absolute prediction
         self.state = dict(zip(self.features, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 
@@ -235,17 +240,18 @@ def main(cfg: DictConfig):
     policy = cfg["simulator"]["policy"]
     logflag = cfg["simulator"]["logging"]
     scale_data = cfg["model"]["build_params"][7]["scale_data"]
+    diff_state = cfg["data"]["diff_state"]
 
     logger.info(f"Training with a new {policy} policy")
 
     ddModel = available_models[model_name]
     model = ddModel()
 
-    model.build_model(model_type=model_name)
+    model.build_model(**cfg["model"]["build_params"])
     model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag)
+    sim = Simulator(model, states, actions, configs, logflag, diff_state)
 
     test_sim_model(2, 250, logflag, sim)
 
