@@ -37,8 +37,8 @@ class Simulator(BaseModel):
         states: List[str],
         actions: List[str],
         configs: List[str],
-        log_file: str = None,
-        diff_state: bool = False,):
+        diff_state: bool = False,
+    ):
 
         self.model = model
         self.features = states + actions + configs
@@ -47,7 +47,7 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
-        # TO DO: Add logging or Telescope workflow
+        # TODO: Add logging
 
     def episode_start(self, config: Dict[str, Any] = None):
 
@@ -69,10 +69,12 @@ class Simulator(BaseModel):
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
         if self.diff_state:
-            preds = np.array(list(self.state.values()))+self.model.predict(X) # compensating for output being delta state st+1-st
+            preds = np.array(list(self.state.values())) + self.model.predict(
+                X
+            )  # compensating for output being delta state st+1-st
             # preds = np.array(list(simstate))+self.dd_model.predict(X) # if doing per iteration prediction of delta state st+1-st
         else:
-            preds = self.model.predict(X) # absolute prediction
+            preds = self.model.predict(X)  # absolute prediction
         self.state = dict(zip(self.features, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 
@@ -159,6 +161,7 @@ def main(cfg: DictConfig):
     configs = cfg["simulator"]["configs"]
     policy = cfg["simulator"]["policy"]
     logflag = cfg["simulator"]["logging"]
+    # logging not yet implemented
     scale_data = cfg["model"]["build_params"][7]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
 
@@ -171,7 +174,7 @@ def main(cfg: DictConfig):
     model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state)
+    sim = Simulator(model, states, actions, configs, diff_state)
 
     # do a random action to get initial state
     sim.episode_start()
