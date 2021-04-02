@@ -195,6 +195,47 @@ class GBoostModel(BaseModel):
         tune_search.fit(X, y)
 
         return tune_search
+        
+
+
+    def get_feat_importance(self, X = None):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+
+        feats = self.features
+        outputs = self.labels
+
+        
+        feat_importance_d = dict()
+
+        if not self.separate_models:
+
+            if self.model_type in ["xgboost", "lightgbm"]:
+                for i,(feat_name,estimator) in enumerate(zip(outputs, self.model.estimators_)):
+                    feat_importance_d[feat_name] = estimator.feature_importances_
+            
+            else:
+                raise ValueError("Unknown model type")
+
+        else:
+            
+            if self.model_type in ["xgboost", "lightgbm"]:
+                for i,feat_name in enumerate(outputs):
+                    feat_importance_d[feat_name] = self.models[i].feature_importances_
+            else:
+                raise ValueError("Unknown model type")
+            
+
+        # Normalize vector of importances
+        for f_name in feat_importance_d.keys():
+            feat_importances = np.abs(feat_importance_d[f_name]).tolist()
+            importance_sum = sum(feat_importances)
+            feat_importances_norm = [imp/importance_sum for imp in feat_importances]
+            feat_importance_d[f_name] = feat_importances_norm
+
+        return feat_importance_d
+
 
 
 if __name__ == "__main__":

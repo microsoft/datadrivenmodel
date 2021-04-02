@@ -3,9 +3,13 @@ import logging
 import os
 import pathlib
 import pickle
+import random
 import sys
+from collections import OrderedDict, defaultdict
 from typing import List, Tuple, Union
 
+import lime
+import lime.lime_tabular
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,8 +17,6 @@ import pandas as pd
 from natsort import natsorted
 from sklearn.metrics import auc, roc_curve
 from sklearn.preprocessing import StandardScaler
-
-from collections import OrderedDict
 
 from loaders import CsvReader
 
@@ -464,6 +466,122 @@ class BaseModel(abc.ABC):
             results[var] = scores
             idx += 1
         return pd.DataFrame(results.items(), columns=["var", "score"])
+
+    def get_feat_importance(self, X=None, num_times=200):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+
+        if X is None:
+            raise Exception(
+                "Training data for feature importance has not been provided, but it should"
+            )
+
+        if not self.separate_models:
+            raise NotImplementedError(
+                "Lime doesn't support regression analysis with multiple outputs"
+            )
+
+        feats = self.features
+        outputs = self.labels
+
+        # Initialize feature importance final dictionary
+        feat_importance_d = dict()
+
+        # Identify as categorical all inputs with 10 or less unique values
+        categorical_features = np.argwhere(
+            np.array([len(set(X[:, i])) for i in range(X.shape[1])]) <= 10
+        ).flatten()
+
+        # Prepare lime predictor
+        explainer = lime.lime_tabular.LimeTabularExplainer(
+            X,
+            feature_names=feats,
+            categorical_features=categorical_features,
+            verbose=False,
+            mode="regression",
+        )
+
+        aux_X = X.copy()
+        random.shuffle(aux_X)
+
+        for output, inner_model in zip(outputs, self.models):
+
+            feats_coef_d = defaultdict(list)
+
+            for i in range(100):
+                # Get explainer for single instance
+                exp = explainer.explain_instance(
+                    aux_X[i], inner_model.predict, num_features=7
+                )
+                # exp_data is a list of tuples of type (range_str, importance) --> e.g.: ('state_x_position > 0.12', 0.671470753024958)
+                exp_data = exp.as_list()
+
+                # Iterate extracting feature importance (order is given as per feat importance)
+                aux_idx_list = list(range(len(feats)))
+                feat_coefs = []
+                for i, f in enumerate(feats):
+
+                    for idx in aux_idx_list:
+                        feat_range_str, feat_coef = exp_data[idx]
+
+                        # Extract state name & append to list
+                        if f in feat_range_str:
+                            feat_coefs.append(abs(feat_coef))
+                            break
+
+                    # Remove state before running over again
+                    aux_idx_list.remove(idx)
+
+                # Normalize vector of importances
+                coef_sum = sum(feat_coefs)
+                feat_coefs = [coef / coef_sum for coef in feat_coefs]
+
+                # Append to list
+                for f, c in zip(feats, feat_coefs):
+                    feats_coef_d[f].append(c)
+
+            # Get mean across all importances per example
+            feat_importance_d[output] = [np.mean(feats_coef_d[f]) for f in feats]
+
+        return feat_importance_d
+
+    def plot_feature_importance(
+        self, feature_data=None, in_feats_dim=None, out_labels=None, total_width=1.0
+    ):
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+
+        if feature_data is None:
+            feature_data = self.get_feat_importance()
+        if in_feats_dim is None:
+            in_feats_dim = self.input_dim
+        if out_labels is None:
+            out_labels = self.features
+
+        fig, ax = plt.subplots(figsize=(8, 7))
+
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        n_bars = len(feature_data) + 1  # plus 1 to add a space in between predictors
+        bar_width = total_width / n_bars  # width of single bar
+        bars = []
+        for i, (name, values) in enumerate(feature_data.items()):
+            x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
+            for x, y in enumerate(values):
+                bar = ax.bar(
+                    x + x_offset, y, width=bar_width, color=colors[i % len(colors)]
+                )
+            bars.append(bar[0])
+
+        ax.legend(bars, feature_data.keys())
+        plt.title("Feature Importance / Feature Multipliers", fontsize=18)
+        plt.xlabel("Feature Column Names", fontsize=18)
+        plt.ylabel("Feature Importance", fontsize=18)
+
+        plt.xticks(ticks=range(in_feats_dim), labels=out_labels)
+        ax.tick_params(labelrotation=90)
+        plt.show()
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
 
