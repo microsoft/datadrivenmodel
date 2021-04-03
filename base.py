@@ -143,6 +143,7 @@ class BaseModel(abc.ABC):
             # store episode_id to group_per_episode
             self.episode_ids = df[episode_col].values
 
+        self.diff_state = diff_state
         if diff_state == True:
             logging.info(
                 "delta states enabled, calculating differential between current and previous predicted output"
@@ -248,16 +249,19 @@ class BaseModel(abc.ABC):
             # sequentially iterate retriving next prediction based on previous prediction
             preds = []
             for i in range(len(X)):
-                # extrac next row feats
-                feat_dict = OrderedDict(list(zip(feats, list(X[i]))))
-                # update feats with previous prediction
-                for f_name in preds_that_are_feats:
-                    feat_dict[f_name] = pred_dict[f_name]
+                for (f_name, x_value) in zip(feats, list(X[i])):
+                    if f_name in preds_that_are_feats:
+                        if not self.diff_state:
+                            feat_dict[f_name] = pred_dict[f_name]
+                        else:
+                            feat_dict[f_name] += pred_dict[f_name]
+                    else:
+                        feat_dict[f_name] = x_value
                 # get next prediction
                 pred = self.predict(np.array([list(feat_dict.values())]))
                 preds.append(pred[0])
                 # update prediction dictionary (for next iteration)
-                pred_dict = OrderedDict(list(zip(label_col_names, list(pred)[0])))
+                pred_dict = OrderedDict(list(zip(label_col_names, list(pred[0]))))
 
             preds = np.array(preds)  # .transpose()
 
