@@ -5,6 +5,7 @@ import pathlib
 import pickle
 import sys
 from typing import List, Tuple, Union
+import copy
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -139,13 +140,15 @@ class BaseModel(abc.ABC):
             )
             X = df[csv_reader.feature_cols].values
             y = df[csv_reader.label_cols].values
+            # store episode_id to group_per_episode
+            self.episode_ids = df[episode_col].values
 
         if diff_state == True:
             logging.info(
                 "delta states enabled, calculating differential between current and previous predicted output"
             )
             y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
-
+        
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]
 
@@ -220,8 +223,7 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
-            if self.scale_data:
-                X = self.xscalar.transform(X)
+            # scaling is performed within "predict" (self.scale_data)
 
             if label_col_names is None:
                 label_col_names = self.labels
@@ -238,7 +240,7 @@ class BaseModel(abc.ABC):
                 f_name for f_name in feats if f_name in label_col_names
             ]
             # initialize feat_dict to first row & pred_dict to match first row too
-            feat_dict = OrderedDict(list(zip(feats, X[0])))
+            feat_dict = OrderedDict(zip(feats, list(X[0])))
             pred_dict = dict(
                 [(k, v) for (k, v) in feat_dict.items() if k in preds_that_are_feats]
             )
@@ -255,12 +257,9 @@ class BaseModel(abc.ABC):
                 pred = self.predict(np.array([list(feat_dict.values())]))
                 preds.append(pred[0])
                 # update prediction dictionary (for next iteration)
-                pred_dict = OrderedDict(list(zip(label_col_names, pred.tolist()[0])))
+                pred_dict = OrderedDict(list(zip(label_col_names, list(pred)[0])))
 
             preds = np.array(preds)  # .transpose()
-
-            if self.scale_data:
-                preds = self.yscalar.inverse_transform(preds)
 
             # preds_df = pd.DataFrame(preds)
             # preds_df.columns = label_col_names
@@ -268,14 +267,17 @@ class BaseModel(abc.ABC):
             return preds  # preds_df
 
     def predict_sequentially(
-        self, X, label_col_names: List[str] = None, it_per_episode: int = None
+        self,
+        X,
+        label_col_names: List[str] = None,
+        it_per_episode: int = None,
+        episode_ids: Union[np.ndarray, list, None] = None
     ):
 
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
-            if self.scale_data:
-                X = self.xscalar.transform(X)
+            # note, scaling is performed in inner function "predict_sequentially_all" > "predict" (self.scale_data)
 
             if label_col_names is None:
                 label_col_names = self.labels
@@ -286,22 +288,40 @@ class BaseModel(abc.ABC):
                         "Please provide a list of predicted output labels ('label_col_names')"
                     )
 
+            # group data into episodes
+            if episode_ids is not None:
+                assert len(X) == len(episode_ids), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+            X_grouped,_ = self.group_per_episode(X, episode_ids = episode_ids)
+
             # initialize predictions
             preds = []
 
             if not it_per_episode:
-                it_per_episode = np.shape(X)[0]
-
-            num_of_episodes = int(np.shape(X)[0] / it_per_episode)
+                # when grouped, X has shape {episode_count, iteration_count, feature_count} 
+                it_per_episode = np.inf
+                
+            num_of_episodes = int(np.shape(X_grouped)[0])
 
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
+                    
+                n_iterations = len(X_grouped[i])
+                if it_per_episode >= n_iterations:
+                    preds_aux = self.predict_sequentially_all(X_grouped[i], label_col_names)
+                    
+                else:
+                    # split episodes into subepisodes when it_per_episode < episode length
+                    n_subepisodes = int(np.ceil(n_iterations/it_per_episode))
+                    preds_aux_array = []
+                    for j in range(n_subepisodes):
+                        preds_aux = self.predict_sequentially_all(X_grouped[i][j*it_per_episode:(j+1)*it_per_episode], label_col_names)
+                        preds_aux_array.append(copy.deepcopy(preds_aux))
 
-                X_aux = X[i * it_per_episode : (i + 1) * it_per_episode]
-
-                preds_aux = self.predict_sequentially_all(X_aux, label_col_names)
-                preds.extend(preds_aux)
-
+                    preds_aux = np.concatenate(preds_aux_array, axis=0)
+                    
+                # append to predictions before getting into next episode
+                preds.extend(copy.deepcopy(preds_aux))
+            
             preds = np.array(preds)
 
             # preds_df = pd.DataFrame(preds)
@@ -486,6 +506,38 @@ class BaseModel(abc.ABC):
         plt.ylabel("TPR")
         plt.title("ROC for Recycle Predictions")
         plt.legend(loc="lower right")
+
+    def group_per_episode(self, X, y = None, episode_ids = None):
+        """ groups the X, y data into independent episodes using episode_ids as reference,
+            an array of same length than X/y with a unique id per independent episode
+        """
+        
+        if not episode_ids:
+            episode_ids = self.episode_ids
+
+        assert np.shape(X)[0] == np.shape(episode_ids)[0], f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+
+        if len(episode_ids) < 1:
+            return X, y
+
+        # [TODO] validate if episode_ids are consecutive, and have required length
+        #  (possibly best at loaders.py? to also check if iterations are consecutive)
+        X_grouped = []
+        y_grouped = []
+        prev_ep_index = 0
+        for i,ep_id in enumerate(episode_ids[1:]):
+            if ep_id != episode_ids[i]:
+                X_grouped.append(X[prev_ep_index:i+1])
+                if y is not None:
+                    y_grouped.append(y[prev_ep_index:i+1])
+                prev_ep_index = i+1
+
+        # add last episode to array
+        X_grouped.append(X[prev_ep_index:])
+        if y is not None:
+            y_grouped.append(y[prev_ep_index:])
+            
+        return X_grouped, y_grouped
 
 
 if __name__ == "__main__":
