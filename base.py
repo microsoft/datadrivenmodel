@@ -146,7 +146,7 @@ class BaseModel(abc.ABC):
         self.diff_state = diff_state
         if diff_state == True:
             logging.info(
-                "delta states enabled, calculating differential between current and previous predicted output"
+                "delta states enabled, calculating differential between input and output values"
             )
             y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
         
@@ -242,9 +242,14 @@ class BaseModel(abc.ABC):
             ]
             # initialize feat_dict to first row & pred_dict to match first row too
             feat_dict = OrderedDict(zip(feats, list(X[0])))
-            pred_dict = dict(
-                [(k, v) for (k, v) in feat_dict.items() if k in preds_that_are_feats]
-            )
+            if not self.diff_state:
+                pred_dict = dict(
+                    [(k, v) for (k, v) in feat_dict.items() if k in preds_that_are_feats]
+                )
+            else:
+                pred_dict = dict(
+                    [(k, 0) for k in feat_dict.keys() if k in preds_that_are_feats]
+                )
 
             # sequentially iterate retriving next prediction based on previous prediction
             preds = []
