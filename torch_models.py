@@ -105,7 +105,11 @@ class PyTorchModel(BaseModel):
         self.model.fit(X, y, **fit_params)
 
     def load_model(
-        self, input_dim: str, output_dim: str, filename: str, scale_data: bool = False,
+        self,
+        input_dim: str,
+        output_dim: str,
+        filename: str,
+        scale_data: bool = False,
     ):
 
         self.scale_data = scale_data
