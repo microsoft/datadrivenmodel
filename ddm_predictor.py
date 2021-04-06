@@ -6,7 +6,9 @@ from distutils.util import strtobool
 from typing import Any, Dict, List
 
 import numpy as np
-from azure.core.exceptions import HttpResponseError
+
+# see reason below for why commented out (UPDATE #comment-out-azure-cli)
+# from azure.core.exceptions import HttpResponseError
 from dotenv import load_dotenv, set_key
 from microsoft_bonsai_api.simulator.client import BonsaiClient, BonsaiClientConfig
 from microsoft_bonsai_api.simulator.generated.models import (
@@ -213,13 +215,13 @@ def main(cfg: DictConfig):
                 print("Registered simulator. {}".format(registered_session.session_id))
 
                 return registered_session, 1
-            except HttpResponseError as ex:
-                print(
-                    "HttpResponseError in Registering session: StatusCode: {}, Error: {}, Exception: {}".format(
-                        ex.status_code, ex.error.message, ex
-                    )
-                )
-                raise ex
+            # except HttpResponseError as ex:
+            # print(
+            #     "HttpResponseError in Registering session: StatusCode: {}, Error: {}, Exception: {}".format(
+            #         ex.status_code, ex.error.message, ex
+            #     )
+            # )
+            # raise ex
             except Exception as ex:
                 print(
                     "UnExpected error: {}, Most likely, it's some network connectivity issue, make sure you are able to reach bonsai platform from your network.".format(
@@ -252,19 +254,23 @@ def main(cfg: DictConfig):
                             time.strftime("%H:%M:%S"), event.type
                         )
                     )
-                except HttpResponseError as ex:
-                    print(
-                        "HttpResponseError in Advance: StatusCode: {}, Error: {}, Exception: {}".format(
-                            ex.status_code, ex.error.message, ex
-                        )
-                    )
-                    # This can happen in network connectivity issue, though SDK has retry logic, but even after that request may fail,
-                    # if your network has some issue, or sim session at platform is going away..
-                    # So let's re-register sim-session and get a new session and continue iterating. :-)
-                    registered_session, sequence_id = CreateSession(
-                        registration_info, config_client
-                    )
-                    continue
+                # UPDATE #comment-out-azure-cli:
+                # - commented out the HttpResponseError since it relies on azure-cli-core which has
+                # - conflicting dependencies with microsoft-bonsai-api
+                # - the catch-all exception below should still re-connect on disconnects
+                # except HttpResponseError as ex:
+                #     print(
+                #         "HttpResponseError in Advance: StatusCode: {}, Error: {}, Exception: {}".format(
+                #             ex.status_code, ex.error.message, ex
+                #         )
+                #     )
+                #     # This can happen in network connectivity issue, though SDK has retry logic, but even after that request may fail,
+                #     # if your network has some issue, or sim session at platform is going away..
+                #     # So let's re-register sim-session and get a new session and continue iterating. :-)
+                #     registered_session, sequence_id = CreateSession(
+                #         registration_info, config_client
+                #     )
+                #     continue
                 except Exception as err:
                     print("Unexpected error in Advance: {}".format(err))
                     # Ideally this shouldn't happen, but for very long-running sims It can happen with various reasons, let's re-register sim & Move on.
