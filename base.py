@@ -27,10 +27,6 @@ formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
 console.setFormatter(formater)
 logging.getLogger("datamodeler").addHandler(console)
 
-# TODO: add weighting to the model
-# TODO: this should go into a metrics function?
-# TODO: implement saving of scalar transformers
-
 
 class BaseModel(abc.ABC):
     def __init__(self, log_dirs: str = "logs", model=None):
