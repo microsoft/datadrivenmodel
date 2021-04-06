@@ -1,4 +1,4 @@
-azure-cli==2.5.1
+azure-cli==2.21.1
 microsoft-bonsai-api==0.1.2
 python-dotenv==0.13.0
 numpy==1.19.2
@@ -8,3 +8,4 @@ xgboost==1.2.1
 lightgbm==3.1.0
 ray==1.0.0
 tune-sklearn==0.1.0
+pytorch-lightning==1.2.6
