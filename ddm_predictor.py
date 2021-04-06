@@ -162,7 +162,7 @@ def main(cfg: DictConfig):
     policy = cfg["simulator"]["policy"]
     logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
-    scale_data = cfg["model"]["build_params"][7]["scale_data"]
+    scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
 
     logger.info(f"Training with a new {policy} policy")
@@ -170,8 +170,8 @@ def main(cfg: DictConfig):
     Model = available_models[model_name]
     model = Model()
 
-    model.build_model(**cfg["model"]["build_params"])
     model.load_model(filename=save_path, scale_data=scale_data)
+    model.build_model(**cfg["model"]["build_params"])
 
     # Grab standardized way to interact with sim API
     sim = Simulator(model, states, actions, configs, diff_state)
