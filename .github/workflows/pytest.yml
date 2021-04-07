@@ -26,6 +26,6 @@ jobs:
       - name: Build coverage file
         shell: bash
         run: |
-          python -m pytest --cov="." tests > pytest-coverage.txt || exit -1
+          python -m pytest --cov="." tests > pytest-coverage.txt
       - name: Comment coverage
         uses: coroo/pytest-coverage-commentator@v1.0.2
