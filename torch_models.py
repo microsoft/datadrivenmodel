@@ -166,9 +166,9 @@ if __name__ == "__main__":
     pytorch_model.build_model()
     pytorch_model.fit(X, y)
     # tune tests
-    # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
-    # gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
-    # gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
+    params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
+    gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
+    gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
 
     # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
     # pytorch_model.sweep(params=params, X=X, y=y, search_algorithm="hyperopt")
