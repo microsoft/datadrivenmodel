@@ -93,7 +93,9 @@ class Simulator(BaseModel):
     def episode_step(self, action: Dict[str, int]):
 
         input_list = [
-            list(self.state.values()),  # replace by self.sim_orig.state.values() for per iteration
+            list(
+                self.state.values()
+            ),  # replace by self.sim_orig.state.values() for per iteration
             list(self.config.values()),
             list(action.values()),
         ]
@@ -101,10 +103,12 @@ class Simulator(BaseModel):
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
         if self.diff_state:
-            preds = np.array(list(self.state.values()))+self.dd_model.predict(X) # compensating for output being delta state st+1-st
+            preds = np.array(list(self.state.values())) + self.dd_model.predict(
+                X
+            )  # compensating for output being delta state st+1-st
             # preds = np.array(list(simstate))+self.dd_model.predict(X) # if doing per iteration prediction of delta state st+1-st
         else:
-            preds = self.dd_model.predict(X) # absolute prediction
+            preds = self.dd_model.predict(X)  # absolute prediction
         self.state = dict(zip(self.features, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 

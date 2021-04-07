@@ -72,7 +72,7 @@ class BaseModel(abc.ABC):
         -------
         Tuple[np.array, np.array]
             Features and labels for modeling
-            
+
 
         Raises
         ------
@@ -145,7 +145,7 @@ class BaseModel(abc.ABC):
                 "delta states enabled, calculating differential between input and output values"
             )
             y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
-        
+
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]
 
@@ -240,7 +240,11 @@ class BaseModel(abc.ABC):
             feat_dict = OrderedDict(zip(feats, list(X[0])))
             if not self.diff_state:
                 pred_dict = dict(
-                    [(k, v) for (k, v) in feat_dict.items() if k in preds_that_are_feats]
+                    [
+                        (k, v)
+                        for (k, v) in feat_dict.items()
+                        if k in preds_that_are_feats
+                    ]
                 )
             else:
                 pred_dict = dict(
@@ -276,7 +280,7 @@ class BaseModel(abc.ABC):
         X,
         label_col_names: List[str] = None,
         it_per_episode: int = None,
-        episode_ids: Union[np.ndarray, list, None] = None
+        episode_ids: Union[np.ndarray, list, None] = None,
     ):
 
         if not self.model:
@@ -295,38 +299,45 @@ class BaseModel(abc.ABC):
 
             # group data into episodes
             if episode_ids is not None:
-                assert len(X) == len(episode_ids), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
-            X_grouped,_ = self.group_per_episode(X, episode_ids = episode_ids)
+                assert len(X) == len(
+                    episode_ids
+                ), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+            X_grouped, _ = self.group_per_episode(X, episode_ids=episode_ids)
 
             # initialize predictions
             preds = []
 
             if not it_per_episode:
-                # when grouped, X has shape {episode_count, iteration_count, feature_count} 
+                # when grouped, X has shape {episode_count, iteration_count, feature_count}
                 it_per_episode = np.inf
-                
+
             num_of_episodes = int(np.shape(X_grouped)[0])
 
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
-                    
+
                 n_iterations = len(X_grouped[i])
                 if it_per_episode >= n_iterations:
-                    preds_aux = self.predict_sequentially_all(X_grouped[i], label_col_names)
-                    
+                    preds_aux = self.predict_sequentially_all(
+                        X_grouped[i], label_col_names
+                    )
+
                 else:
                     # split episodes into subepisodes when it_per_episode < episode length
-                    n_subepisodes = int(np.ceil(n_iterations/it_per_episode))
+                    n_subepisodes = int(np.ceil(n_iterations / it_per_episode))
                     preds_aux_array = []
                     for j in range(n_subepisodes):
-                        preds_aux = self.predict_sequentially_all(X_grouped[i][j*it_per_episode:(j+1)*it_per_episode], label_col_names)
+                        preds_aux = self.predict_sequentially_all(
+                            X_grouped[i][j * it_per_episode : (j + 1) * it_per_episode],
+                            label_col_names,
+                        )
                         preds_aux_array.append(copy.deepcopy(preds_aux))
 
                     preds_aux = np.concatenate(preds_aux_array, axis=0)
-                    
+
                 # append to predictions before getting into next episode
                 preds.extend(copy.deepcopy(preds_aux))
-            
+
             preds = np.array(preds)
 
             # preds_df = pd.DataFrame(preds)
@@ -512,15 +523,17 @@ class BaseModel(abc.ABC):
         plt.title("ROC for Recycle Predictions")
         plt.legend(loc="lower right")
 
-    def group_per_episode(self, X, y = None, episode_ids = None):
-        """ groups the X, y data into independent episodes using episode_ids as reference,
-            an array of same length than X/y with a unique id per independent episode
+    def group_per_episode(self, X, y=None, episode_ids=None):
+        """groups the X, y data into independent episodes using episode_ids as reference,
+        an array of same length than X/y with a unique id per independent episode
         """
-        
+
         if not episode_ids:
             episode_ids = self.episode_ids
 
-        assert np.shape(X)[0] == np.shape(episode_ids)[0], f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+        assert (
+            np.shape(X)[0] == np.shape(episode_ids)[0]
+        ), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
 
         if len(episode_ids) < 1:
             return X, y
@@ -530,18 +543,18 @@ class BaseModel(abc.ABC):
         X_grouped = []
         y_grouped = []
         prev_ep_index = 0
-        for i,ep_id in enumerate(episode_ids[1:]):
+        for i, ep_id in enumerate(episode_ids[1:]):
             if ep_id != episode_ids[i]:
-                X_grouped.append(X[prev_ep_index:i+1])
+                X_grouped.append(X[prev_ep_index : i + 1])
                 if y is not None:
-                    y_grouped.append(y[prev_ep_index:i+1])
-                prev_ep_index = i+1
+                    y_grouped.append(y[prev_ep_index : i + 1])
+                prev_ep_index = i + 1
 
         # add last episode to array
         X_grouped.append(X[prev_ep_index:])
         if y is not None:
             y_grouped.append(y[prev_ep_index:])
-            
+
         return X_grouped, y_grouped
 
 
