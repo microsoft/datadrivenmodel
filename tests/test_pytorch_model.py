@@ -1,3 +1,4 @@
+import pytest
 from torch_models import PyTorchModel
 import numpy as np
 import os
@@ -32,6 +33,7 @@ def test_fit():
     torch_model.fit(X, y)
 
 
+@pytest.mark.skip(reason="Long test, skipping for CI speed")
 def test_sweep():
 
     torch_model.build_model()
