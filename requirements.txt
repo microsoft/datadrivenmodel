@@ -13,3 +13,4 @@ rich==9.13.0
 hydra-core==1.0.5
 natsort==7.1.0
 skorch==0.9.0
+hyperopt==0.2.5
