@@ -13,13 +13,14 @@ jobs:
         run: pip install black
       - name: Run black --check .
         run: black --check .
-      - name: If needed, commit black changes to the pull request
-        if: failure()
-        run: |
-          black .
-          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git config --global user.name "$GITHUB_ACTOR"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git checkout $GITHUB_HEAD_REF
-          git commit -am "fixup: Format Python code with Black"
-          git push
+      - name: Commit linted files back to repo
+        uses: EndBug/add-and-commit@v4
+        with:
+          author_name: $GITHUB_USER
+          author_email: $GITHUB_ACTOR@users.noreply.github.com
+          message: "LINTING"
+          add: "."
+          force: false
+          ref: ${{ github.head_ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
