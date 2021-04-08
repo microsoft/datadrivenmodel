@@ -1,0 +1,26 @@
+name: autoblack
+on: [pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install Black
+        run: pip install black
+      - name: Run black --check .
+        run: black --check .
+      - name: Commit linted files back to repo
+        uses: EndBug/add-and-commit@v4
+        with:
+          author_name: $GITHUB_USER
+          author_email: $GITHUB_ACTOR@users.noreply.github.com
+          message: "LINTING"
+          add: "."
+          force: false
+          ref: ${{ github.head_ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
