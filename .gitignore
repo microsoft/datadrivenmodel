@@ -34,6 +34,7 @@ __pycache__
 # Session log files
 ilogs/*
 logs/*
+lightning_logs/*
 
 # User vscode config
 .vscode/
