@@ -18,7 +18,6 @@ __pycache__/
 models/
 
 # data directories
-data/
 etc/
 
 # User R files
