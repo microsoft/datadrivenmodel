@@ -2,12 +2,14 @@ name: ddm
 channels:
   - pytorch
   - defaults
+  - conda-forge
 dependencies:
   - python=3.7.7
   - pip=19.1.1
-  - pytorch=1.7.0
+  - pytorch=1.7.1
   - torchvision=0.8
   - cryptography=3.1.1
+  - jupyter
   - pip:
       - ray==1.0.0
       - dataclasses==0.6
@@ -37,3 +39,6 @@ dependencies:
       - natsort==7.1.0
       - seaborn==0.11.1
       - rich==9.13.0
+      - torchdyn==0.2.2.1
+      - torchdiffeq==0.2.1
+      - git+https://github.com/google-research/torchsde.git
