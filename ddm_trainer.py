@@ -1,15 +1,14 @@
-import os
 import logging
-
+import os
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
-from model_loader import available_models
-
-from omegaconf import DictConfig, OmegaConf, ListConfig
 import hydra
+from omegaconf import DictConfig, ListConfig, OmegaConf
+
+from model_loader import available_models
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -31,6 +30,8 @@ def main(cfg: DictConfig) -> None:
     save_path = cfg["model"]["saver"]["filename"]
     model_name = cfg["model"]["name"]
     delta_state = cfg["data"]["diff_state"]
+    run_sweep = cfg["model"]["sweep"]["run"]
+
     Model = available_models[model_name]
 
     if cfg["data"]["full_or_relative"] == "relative":
@@ -59,8 +60,21 @@ def main(cfg: DictConfig) -> None:
     )
     logger.info("Building model...")
     model.build_model(**cfg["model"]["build_params"])
-    logger.info("Fitting model...")
-    model.fit(X, y)
+
+    if run_sweep:
+        params = OmegaConf.to_container(cfg["model"]["sweep"]["params"])
+        logger.info(f"Sweeping with parameters: {params}")
+        model.sweep(
+            params=params,
+            X=X,
+            y=y,
+            search_algorithm=cfg["model"]["sweep"]["search_algorithm"],
+            num_trials=cfg["model"]["sweep"]["num_trials"],
+            scoring_func=cfg["model"]["sweep"]["scoring_func"],
+        )
+    else:
+        logger.info("Fitting model...")
+        model.fit(X, y)
 
     logger.info(f"Saving model to {save_path}")
     model.save_model(filename=save_path)

@@ -73,3 +73,11 @@ tmp/
 
 # hydra outputs
 outputs/
+multirun/
+
+# pytest reports
+.coverage
+pytest-coverage.txt
+
+# saved models
+saved_models/

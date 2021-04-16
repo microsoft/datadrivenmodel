@@ -1,15 +1,13 @@
 import os
 import pathlib
 import pickle
-from typing import Dict, Tuple
-from natsort import natsorted
+from typing import Dict
 
 import numpy as np
-import pandas as pd
 from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.exceptions import NotFittedError
-from tune_sklearn import TuneGridSearchCV, TuneSearchCV
+from tune_sklearn import TuneSearchCV
 from xgboost import XGBRegressor, XGBClassifier
 
 from base import BaseModel
@@ -27,6 +25,7 @@ class GBoostModel(BaseModel):
         scale_data: bool = False,
         halt_model: bool = False,
         objective: str = "reg:squarederror",
+        fit_separate: bool = False,
         num_trees: int = 50,
         step_size: float = 0.3,
         device: str = "cpu",
@@ -54,6 +53,7 @@ class GBoostModel(BaseModel):
 
         self.model = MultiOutputRegressor(self.single_model)
         self.model_type = model_type
+        self.separate_models = fit_separate
 
     def fit(self, X, y, fit_separate: bool = False):
 
@@ -67,7 +67,7 @@ class GBoostModel(BaseModel):
             for i in range(y.shape[1]):
 
                 if self.model_type == "xgboost":
-                    boost_model = XGBRegressor(objective="reg:squarederror")
+                    boost_model = XGBRegressor()
                 elif self.model_type == "lightgbm":
                     boost_model = LGBMRegressor()
                 else:
@@ -182,17 +182,33 @@ class GBoostModel(BaseModel):
     #             open(os.path.join(path_name, "yscalar.pkl"), "rb")
     #         )
 
-    def sweep(self, params: Dict, X, y):
+    def sweep(
+        self,
+        params: Dict,
+        X,
+        y,
+        search_algorithm: str = "bayesian",
+        num_trials: int = 3,
+        scoring_func: str = "r2",
+    ):
+
+        if self.scale_data:
+            X, y = self.scalar(X, y)
+
+        # early stopping only supported for learners that have a
+        # `partial_fit` method
 
         tune_search = TuneSearchCV(
             self.model,
             param_distributions=params,
-            n_trials=3,
-            # early_stopping=True,
-            # use_gpu=True
+            n_trials=num_trials,
+            search_optimization=search_algorithm,
+            early_stopping=False,
+            scoring=scoring_func,
         )
 
         tune_search.fit(X, y)
+        self.model = tune_search.best_estimator_
 
         return tune_search
 
@@ -207,7 +223,22 @@ if __name__ == "__main__":
     )
 
     xgm.build_model(model_type="xgboost")
-    xgm.fit(X, y, fit_separate=False)
-    yhat = xgm.predict(X)
+    # xgm.fit(X, y, fit_separate=False)
+    # yhat = xgm.predict(X)
 
-    xgm.save_model(filename="models/xgbm_pole_multi.pkl")
+    # xgm.save_model(filename="models/xgbm_pole_multi.pkl")
+
+    ## Tune tests
+
+    # xgbm = XGBRegressor()
+    # mgbm = MultiOutputRegressor(xgbm)
+
+    params = {"estimator__max_depth": [1, 5, 10]}
+    # from sklearn.model_selection import GridSearchCV
+
+    # gsxgbm = GridSearchCV(mgbm, param_grid=params, scoring="r2")
+    # gsxgbm.fit(X, y)
+
+    tunexgbm = TuneSearchCV(xgm.model, param_distributions=params, scoring="r2")
+    tunexgbm.fit(X, y)
+
