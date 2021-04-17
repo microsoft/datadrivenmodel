@@ -64,6 +64,7 @@ def main(cfg: DictConfig) -> None:
     if run_sweep:
         params = OmegaConf.to_container(cfg["model"]["sweep"]["params"])
         logger.info(f"Sweeping with parameters: {params}")
+
         model.sweep(
             params=params,
             X=X,

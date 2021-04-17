@@ -136,12 +136,16 @@ class PyTorchModel(BaseModel):
         scoring_func: str = "r2",
     ):
 
-        from tune_sklearn import TuneGridSearchCV, TuneSearchCV
+        from tune_sklearn import TuneSearchCV
+
+        if self.scale_data:
+            X, y = self.scalar(X, y)
 
         X, y = (
             torch.tensor(X).float().to(device=self.device),
             torch.tensor(y).float().to(device=self.device),
         )
+
         tune_search = TuneSearchCV(
             self.model,
             params,

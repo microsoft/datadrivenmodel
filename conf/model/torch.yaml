@@ -19,7 +19,10 @@ model:
   saver:
     filename: models/torch_model
   sweep:
-    run: False
-    search_algorithm: bayesian
+    run: True
+    search_algorithm: random
     num_trials: 3
     scoring_func: r2
+    params:
+      lr: [0.01, 0.02]
+      module__num_units: [10, 50]
