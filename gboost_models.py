@@ -209,6 +209,7 @@ class GBoostModel(BaseModel):
 
         tune_search.fit(X, y)
         self.model = tune_search.best_estimator_
+        logger.info(f"Best hyperparams: {tune_search.best_params}")
 
         return tune_search
 

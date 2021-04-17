@@ -67,6 +67,24 @@ python ddm_trainer.py data.path=csv_data/cartpole_at_st.csv model=xgboost
 
 The script automatically saves your model to the path specified by `model.saver.filename`. An `outputs` directory is also saved with your configuration file and logs.
 
+### Hyperparameter Tuning
+
+You can also do some hyperparameter tuning by setting `sweep.run` to True in your `conf.model.yaml` file and specifying the parameters to sweep over and their distributions in the params argument:
+
+```yaml
+sweep:
+  run: True
+  search_algorithm: random
+  num_trials: 3
+  scoring_func: r2
+  params:
+    estimator__max_depth: [1, 3, 5, 10]
+    estimator__gamma: [0, 0.5, 1, 5]
+    estimator__subsample: [0.1, 0.5, 1]
+```
+
+The sweeping function uses [`tune-sklearn`](https://github.com/ray-project/tune-sklearn/). Valid choices for `search_algorithm` are: bayesian, random, bohb, and hyperopt.
+
 ### Building Your Simulators
 
 The schema for your simulator resides in [`conf/simulator`](./conf/simulator). After defining your states, actions, and configs, you can run the simulator as follows:
