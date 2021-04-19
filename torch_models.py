@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from skorch import NeuralNetRegressor
 from skorch.callbacks import LRScheduler
 from torch.optim.lr_scheduler import CyclicLR
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from base import BaseModel
 
@@ -146,17 +147,38 @@ class PyTorchModel(BaseModel):
             torch.tensor(y).float().to(device=self.device),
         )
 
-        tune_search = TuneSearchCV(
-            self.model,
-            params,
-            search_optimization=search_algorithm,
-            n_trials=num_trials,
-            early_stopping=True,
-            scoring=scoring_func,
-        )
-        tune_search.fit(X, y)
+        if search_algorithm == "bayesian" or search_algorithm == "hyperopt":
+            search = TuneSearchCV(
+                self.model,
+                params,
+                search_optimization=search_algorithm,
+                n_trials=num_trials,
+                early_stopping=True,
+                scoring=scoring_func,
+            )
+        elif search_algorithm == "grid":
+            search = GridSearchCV(
+                self.model,
+                params=params,
+                refit=False,
+                cv=num_trials,
+                scoring=scoring_func,
+            )
+        elif search_algorithm == "random":
+            search = RandomizedSearchCV(
+                self.model,
+                param_distributions=params,
+                refit=False,
+                cv=num_trials,
+                scoring=scoring_func,
+            )
+        else:
+            raise NotImplementedError(
+                "Search algorithm should be one of gridsearch, hyperopt, bayesian, or randomsearch"
+            )
+        search.fit(X, y)
 
-        return tune_search
+        return
 
 
 if __name__ == "__main__":

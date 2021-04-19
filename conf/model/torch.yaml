@@ -19,7 +19,7 @@ model:
   saver:
     filename: models/torch_model
   sweep:
-    run: True
+    run: False
     search_algorithm: random
     num_trials: 3
     scoring_func: r2
