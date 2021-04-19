@@ -9,6 +9,10 @@ from torch.optim.lr_scheduler import CyclicLR
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from base import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class MVRegressor(nn.Module):
@@ -159,8 +163,8 @@ class PyTorchModel(BaseModel):
         elif search_algorithm == "grid":
             search = GridSearchCV(
                 self.model,
-                params=params,
-                refit=False,
+                param_grid=params,
+                refit=True,
                 cv=num_trials,
                 scoring=scoring_func,
             )
@@ -168,7 +172,7 @@ class PyTorchModel(BaseModel):
             search = RandomizedSearchCV(
                 self.model,
                 param_distributions=params,
-                refit=False,
+                refit=True,
                 cv=num_trials,
                 scoring=scoring_func,
             )
@@ -177,8 +181,10 @@ class PyTorchModel(BaseModel):
                 "Search algorithm should be one of gridsearch, hyperopt, bayesian, or randomsearch"
             )
         search.fit(X, y)
+        self.model = search.best_estimator_
+        logger.info(f"Best hyperparams: {search.best_params_}")
 
-        return
+        return search
 
 
 if __name__ == "__main__":

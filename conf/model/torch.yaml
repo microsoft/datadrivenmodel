@@ -19,8 +19,8 @@ model:
   saver:
     filename: models/torch_model
   sweep:
-    run: False
-    search_algorithm: random
+    run: True
+    search_algorithm: grid
     num_trials: 3
     scoring_func: r2
     params:
