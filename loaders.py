@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import List, Tuple, Union
+from typing import List
 import logging
 
 logger = logging.getLogger("data_loaders")
@@ -90,7 +90,7 @@ class CsvReader(object):
 
         Parameters
         ----------
-        df : pdf.DataFrame 
+        df : pdf.DataFrame
             [description]
         iteration_order : int, optional
             [description], by default -1

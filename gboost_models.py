@@ -7,7 +7,6 @@ import numpy as np
 from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.exceptions import NotFittedError
-from tune_sklearn import TuneSearchCV
 from xgboost import XGBRegressor, XGBClassifier
 
 from base import BaseModel
@@ -26,17 +25,19 @@ class GBoostModel(BaseModel):
         halt_model: bool = False,
         objective: str = "reg:squarederror",
         fit_separate: bool = False,
-        num_trees: int = 50,
-        step_size: float = 0.3,
-        device: str = "cpu",
-        batch_size: int = 128,
-        gamma: int = 0,
-        max_bin: int = 256,
+        n_estimators: int = 100,
+        learning_rate: float = 0.3,
+        max_depth: int = 6,
     ):
 
         self.scale_data = scale_data
         if model_type == "xgboost":
-            self.single_model = XGBRegressor(objective=objective)
+            self.single_model = XGBRegressor(
+                objective=objective,
+                n_estimators=n_estimators,
+                max_depth=max_depth,
+                learning_rate=learning_rate,
+            )
         elif model_type == "lightgbm":
             self.single_model = LGBMRegressor()
         else:
@@ -182,36 +183,6 @@ class GBoostModel(BaseModel):
     #             open(os.path.join(path_name, "yscalar.pkl"), "rb")
     #         )
 
-    def sweep(
-        self,
-        params: Dict,
-        X,
-        y,
-        search_algorithm: str = "bayesian",
-        num_trials: int = 3,
-        scoring_func: str = "r2",
-    ):
-
-        if self.scale_data:
-            X, y = self.scalar(X, y)
-
-        # early stopping only supported for learners that have a
-        # `partial_fit` method
-
-        tune_search = TuneSearchCV(
-            self.model,
-            param_distributions=params,
-            n_trials=num_trials,
-            search_optimization=search_algorithm,
-            early_stopping=False,
-            scoring=scoring_func,
-        )
-
-        tune_search.fit(X, y)
-        self.model = tune_search.best_estimator_
-
-        return tune_search
-
 
 if __name__ == "__main__":
 
@@ -239,6 +210,5 @@ if __name__ == "__main__":
     # gsxgbm = GridSearchCV(mgbm, param_grid=params, scoring="r2")
     # gsxgbm.fit(X, y)
 
-    tunexgbm = TuneSearchCV(xgm.model, param_distributions=params, scoring="r2")
-    tunexgbm.fit(X, y)
-
+    # tunexgbm = TuneSearchCV(xgm.model, param_distributions=params, scoring="r2")
+    # tunexgbm.fit(X, y)

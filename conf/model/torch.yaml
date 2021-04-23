@@ -19,7 +19,13 @@ model:
   saver:
     filename: models/torch_model
   sweep:
-    run: False
+    run: True
     search_algorithm: bayesian
-    num_trials: 3
+    split_strategy: timeseries
+    num_trials: 50
     scoring_func: r2
+    results_csv_path: torch/search_results.csv
+    early_stopping: False
+    params:
+      lr: [0.01, 0.02]
+      module__num_units: [10, 50]

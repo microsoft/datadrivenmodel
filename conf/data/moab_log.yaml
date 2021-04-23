@@ -20,3 +20,4 @@ data:
   max_rows: -1
   scale_data: True
   diff_state: False
+  test_perc: 0.25

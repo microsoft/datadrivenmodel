@@ -121,7 +121,9 @@ def env_setup():
 
 
 def test_random_policy(
-    num_episodes: int = 500, num_iterations: int = 250, sim: Simulator = None,
+    num_episodes: int = 500,
+    num_iterations: int = 250,
+    sim: Simulator = None,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -200,8 +202,7 @@ def main(cfg: DictConfig):
         def CreateSession(
             registration_info: SimulatorInterface, config_client: BonsaiClientConfig
         ):
-            """Creates a new Simulator Session and returns new session, sequenceId
-            """
+            """Creates a new Simulator Session and returns new session, sequenceId"""
 
             try:
                 print(
@@ -240,7 +241,9 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
+                    sequence_id=sequence_id,
+                    state=sim.get_state(),
+                    halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(

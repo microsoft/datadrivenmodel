@@ -1,13 +1,29 @@
+import os
+import pathlib
 from typing import Dict
 import pickle
+import pandas as pd
 import torch
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetRegressor
 from skorch.callbacks import LRScheduler
 from torch.optim.lr_scheduler import CyclicLR
+from tune_sklearn import TuneSearchCV
+from sklearn.model_selection import (
+    GridSearchCV,
+    GroupShuffleSplit,
+    RandomizedSearchCV,
+    TimeSeriesSplit,
+    PredefinedSplit,
+)
 
 from base import BaseModel
+import logging
+from rich.logging import RichHandler
+import mlflow
+
+logger = logging.getLogger(__name__)
 
 
 class MVRegressor(nn.Module):
@@ -105,7 +121,11 @@ class PyTorchModel(BaseModel):
         self.model.fit(X, y, **fit_params)
 
     def load_model(
-        self, input_dim: str, output_dim: str, filename: str, scale_data: bool = False,
+        self,
+        input_dim: str,
+        output_dim: str,
+        filename: str,
+        scale_data: bool = False,
     ):
 
         self.scale_data = scale_data
@@ -134,25 +154,95 @@ class PyTorchModel(BaseModel):
         search_algorithm: str = "bayesian",
         num_trials: int = 3,
         scoring_func: str = "r2",
+        early_stopping: bool = False,
+        results_csv_path: str = "outputs/results.csv",
+        splitting_criteria: str = "timeseries",
+        num_splits: int = 5,
     ):
 
-        from tune_sklearn import TuneGridSearchCV, TuneSearchCV
+        start_dir = str(pathlib.Path(os.getcwd()).parent)
+        module_dir = str(pathlib.Path(__file__).parent)
+        # temporarily change directory to file directory and then reset
+        os.chdir(module_dir)
+
+        if self.scale_data:
+            X, y = self.scalar(X, y)
 
         X, y = (
             torch.tensor(X).float().to(device=self.device),
             torch.tensor(y).float().to(device=self.device),
         )
-        tune_search = TuneSearchCV(
-            self.model,
-            params,
-            search_optimization=search_algorithm,
-            n_trials=num_trials,
-            early_stopping=True,
-            scoring=scoring_func,
-        )
-        tune_search.fit(X, y)
 
-        return tune_search
+        if splitting_criteria.lower() == "cv":
+            cv = None
+        elif splitting_criteria.lower() == "timeseries":
+            cv = TimeSeriesSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "grouped":
+            cv = GroupShuffleSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "fixed":
+            if type(test_indices) != list:
+                raise ValueError("fixed split used but no test-indices provided...")
+            cv = PredefinedSplit(test_fold=test_indices)
+        else:
+            raise ValueError(
+                "Unknowing splitting criteria provided: {splitting_criteria}, should be one of [cv, timeseries, grouped]"
+            )
+
+        if search_algorithm.lower() == "bohb":
+            early_stopping = True
+
+        if any(
+            [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
+        ):
+            search = TuneSearchCV(
+                self.model,
+                params,
+                search_optimization=search_algorithm,
+                n_trials=num_trials,
+                early_stopping=early_stopping,
+                scoring=scoring_func,
+            )
+        elif search_algorithm == "grid":
+            search = GridSearchCV(
+                self.model,
+                param_grid=params,
+                refit=True,
+                cv=num_trials,
+                scoring=scoring_func,
+            )
+        elif search_algorithm == "random":
+            search = RandomizedSearchCV(
+                self.model,
+                param_distributions=params,
+                refit=True,
+                cv=num_trials,
+                scoring=scoring_func,
+            )
+        else:
+            raise NotImplementedError(
+                "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
+            )
+        with mlflow.start_run() as run:
+            search.fit(X, y)
+        self.model = search.best_estimator_
+
+        # set path back to initial
+        os.chdir(start_dir)
+
+        results_df = pd.DataFrame(search.cv_results_)
+        logger.info(f"Best hyperparams: {search.best_params_}")
+
+        if not pathlib.Path(results_csv_path).parent.exists():
+            pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Saving sweeping results to {results_csv_path}")
+        logger.info(f"Best score: {search.best_score_}")
+        results_df.to_csv(results_csv_path)
+        cols_keep = [col for col in results_df if "param_" in col]
+        cols_keep += ["mean_test_score"]
+
+        results_df = results_df[cols_keep]
+
+        return results_df
 
 
 if __name__ == "__main__":
@@ -166,7 +256,9 @@ if __name__ == "__main__":
     pytorch_model.build_model()
     pytorch_model.fit(X, y)
     # tune tests
-    # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
+    # from tune_sklearn import TuneSearchCV, TuneGridSearchCV
+
+    # params = {"lr": [0.01, 0.02], "modu
     # gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
     # gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
 

@@ -17,4 +17,3 @@ available_models = {
     "xgboost": GBoostModel,
     "lightgbm": GBoostModel,
 }
-

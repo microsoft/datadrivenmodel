@@ -1,11 +1,11 @@
 import abc
+import copy
 import logging
 import os
 import pathlib
 import pickle
-import sys
-from typing import List, Tuple, Union
-import copy
+from collections import OrderedDict
+from typing import Dict, List, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,20 +13,21 @@ import numpy as np
 import pandas as pd
 from natsort import natsorted
 from sklearn.metrics import auc, roc_curve
+from sklearn.model_selection import (
+    GridSearchCV,
+    GroupShuffleSplit,
+    RandomizedSearchCV,
+    TimeSeriesSplit,
+    PredefinedSplit,
+)
 from sklearn.preprocessing import StandardScaler
-
-from collections import OrderedDict
+from tune_sklearn import TuneSearchCV
 
 from loaders import CsvReader
+import mlflow
 
+logger = logging.getLogger(__name__)
 matplotlib.rcParams["figure.figsize"] = [12, 10]
-
-# Add stdout handler, with level INFO
-console = logging.StreamHandler(sys.stdout)
-console.setLevel(logging.DEBUG)
-formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
-console.setFormatter(formater)
-logging.getLogger("datamodeler").addHandler(console)
 
 
 class BaseModel(abc.ABC):
@@ -72,7 +73,7 @@ class BaseModel(abc.ABC):
         -------
         Tuple[np.array, np.array]
             Features and labels for modeling
-            
+
 
         Raises
         ------
@@ -145,7 +146,7 @@ class BaseModel(abc.ABC):
                 "delta states enabled, calculating differential between input and output values"
             )
             y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
-        
+
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]
 
@@ -240,7 +241,11 @@ class BaseModel(abc.ABC):
             feat_dict = OrderedDict(zip(feats, list(X[0])))
             if not self.diff_state:
                 pred_dict = dict(
-                    [(k, v) for (k, v) in feat_dict.items() if k in preds_that_are_feats]
+                    [
+                        (k, v)
+                        for (k, v) in feat_dict.items()
+                        if k in preds_that_are_feats
+                    ]
                 )
             else:
                 pred_dict = dict(
@@ -276,7 +281,7 @@ class BaseModel(abc.ABC):
         X,
         label_col_names: List[str] = None,
         it_per_episode: int = None,
-        episode_ids: Union[np.ndarray, list, None] = None
+        episode_ids: Union[np.ndarray, list, None] = None,
     ):
 
         if not self.model:
@@ -295,38 +300,45 @@ class BaseModel(abc.ABC):
 
             # group data into episodes
             if episode_ids is not None:
-                assert len(X) == len(episode_ids), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
-            X_grouped,_ = self.group_per_episode(X, episode_ids = episode_ids)
+                assert len(X) == len(
+                    episode_ids
+                ), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+            X_grouped, _ = self.group_per_episode(X, episode_ids=episode_ids)
 
             # initialize predictions
             preds = []
 
             if not it_per_episode:
-                # when grouped, X has shape {episode_count, iteration_count, feature_count} 
+                # when grouped, X has shape {episode_count, iteration_count, feature_count}
                 it_per_episode = np.inf
-                
+
             num_of_episodes = int(np.shape(X_grouped)[0])
 
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
-                    
+
                 n_iterations = len(X_grouped[i])
                 if it_per_episode >= n_iterations:
-                    preds_aux = self.predict_sequentially_all(X_grouped[i], label_col_names)
-                    
+                    preds_aux = self.predict_sequentially_all(
+                        X_grouped[i], label_col_names
+                    )
+
                 else:
                     # split episodes into subepisodes when it_per_episode < episode length
-                    n_subepisodes = int(np.ceil(n_iterations/it_per_episode))
+                    n_subepisodes = int(np.ceil(n_iterations / it_per_episode))
                     preds_aux_array = []
                     for j in range(n_subepisodes):
-                        preds_aux = self.predict_sequentially_all(X_grouped[i][j*it_per_episode:(j+1)*it_per_episode], label_col_names)
+                        preds_aux = self.predict_sequentially_all(
+                            X_grouped[i][j * it_per_episode : (j + 1) * it_per_episode],
+                            label_col_names,
+                        )
                         preds_aux_array.append(copy.deepcopy(preds_aux))
 
                     preds_aux = np.concatenate(preds_aux_array, axis=0)
-                    
+
                 # append to predictions before getting into next episode
                 preds.extend(copy.deepcopy(preds_aux))
-            
+
             preds = np.array(preds)
 
             # preds_df = pd.DataFrame(preds)
@@ -512,15 +524,17 @@ class BaseModel(abc.ABC):
         plt.title("ROC for Recycle Predictions")
         plt.legend(loc="lower right")
 
-    def group_per_episode(self, X, y = None, episode_ids = None):
-        """ groups the X, y data into independent episodes using episode_ids as reference,
-            an array of same length than X/y with a unique id per independent episode
+    def group_per_episode(self, X, y=None, episode_ids=None):
+        """groups the X, y data into independent episodes using episode_ids as reference,
+        an array of same length than X/y with a unique id per independent episode
         """
-        
+
         if not episode_ids:
             episode_ids = self.episode_ids
 
-        assert np.shape(X)[0] == np.shape(episode_ids)[0], f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+        assert (
+            np.shape(X)[0] == np.shape(episode_ids)[0]
+        ), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
 
         if len(episode_ids) < 1:
             return X, y
@@ -530,19 +544,135 @@ class BaseModel(abc.ABC):
         X_grouped = []
         y_grouped = []
         prev_ep_index = 0
-        for i,ep_id in enumerate(episode_ids[1:]):
+        for i, ep_id in enumerate(episode_ids[1:]):
             if ep_id != episode_ids[i]:
-                X_grouped.append(X[prev_ep_index:i+1])
+                X_grouped.append(X[prev_ep_index : i + 1])
                 if y is not None:
-                    y_grouped.append(y[prev_ep_index:i+1])
-                prev_ep_index = i+1
+                    y_grouped.append(y[prev_ep_index : i + 1])
+                prev_ep_index = i + 1
 
         # add last episode to array
         X_grouped.append(X[prev_ep_index:])
         if y is not None:
             y_grouped.append(y[prev_ep_index:])
-            
+
         return X_grouped, y_grouped
+
+    def sweep(
+        self,
+        params: Dict,
+        X,
+        y,
+        search_algorithm: str = "bayesian",
+        num_trials: int = 3,
+        scoring_func: str = "r2",
+        early_stopping: bool = False,
+        results_csv_path: str = "outputs/results.csv",
+        splitting_criteria: str = "CV",
+        test_indices: Union[None, List[int]] = None,
+        num_splits: int = 5,
+    ) -> pd.DataFrame:
+
+        if self.scale_data:
+            X, y = self.scalar(X, y)
+
+        if splitting_criteria.lower() == "cv":
+            cv = None
+        elif splitting_criteria.lower() == "timeseries":
+            cv = TimeSeriesSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "grouped":
+            cv = GroupShuffleSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "fixed":
+            if type(test_indices) != list:
+                raise ValueError("fixed split used but no test-indices provided...")
+            cv = PredefinedSplit(test_fold=test_indices)
+        else:
+            raise ValueError(
+                "Unknowing splitting criteria provided: {splitting_criteria}, should be one of [cv, timeseries, grouped]"
+            )
+
+        # early stopping only supported for learners that have a
+        # `partial_fit` method
+
+        # start mlflow auto-logging
+        mlflow.sklearn.autolog()
+
+        if search_algorithm.lower() == "bohb":
+            early_stopping = True
+
+        if any(
+            [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
+        ):
+            search = TuneSearchCV(
+                self.model,
+                params,
+                search_optimization=search_algorithm,
+                cv=cv,
+                n_trials=num_trials,
+                early_stopping=early_stopping,
+                scoring=scoring_func,
+                loggers=["csv", "tensorboard"],
+            )
+        elif search_algorithm == "grid":
+            search = GridSearchCV(
+                self.model,
+                param_grid=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
+            )
+        elif search_algorithm == "random":
+            search = RandomizedSearchCV(
+                self.model,
+                param_distributions=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
+            )
+        else:
+            raise NotImplementedError(
+                "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
+            )
+
+        with mlflow.start_run() as run:
+            search.fit(X, y)
+        self.model = search.best_estimator_
+        results_df = pd.DataFrame(search.cv_results_)
+        if not pathlib.Path(results_csv_path).parent.exists():
+            pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Saving sweeping results to {results_csv_path}")
+        results_df.to_csv(results_csv_path)
+        logger.info(f"Best hyperparams: {search.best_params_}")
+        logger.info(f"Best score: {search.best_score_}")
+
+        return results_df
+
+
+def plot_parallel_coords(results_df: pd.DataFrame):
+
+    import plotly.express as px
+
+    cols_keep = [col for col in results_df if "param_" in col]
+    cols_keep += ["mean_test_score"]
+
+    results_df = results_df[cols_keep]
+    # want to convert object columns to type float
+    results_df = results_df.apply(pd.to_numeric, errors="ignore", downcast="float")
+
+    fig = px.parallel_coordinates(
+        results_df,
+        color="mean_test_score",
+        labels=dict(
+            zip(
+                list(results_df.columns),
+                list(["_".join(i.split("_")[1:]) for i in results_df.columns]),
+            )
+        ),
+        color_continuous_scale=px.colors.diverging.Earth,
+        # color_continuous_midpoint=27,
+    )
+
+    fig.show()
 
 
 if __name__ == "__main__":

@@ -48,4 +48,3 @@ def test_xgb_train():
     yhat = xgm2.predict(X)
 
     assert np.array_equal(yhat, yhat0)
-
