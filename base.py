@@ -615,11 +615,7 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model,
-                param_grid=params,
-                refit=True,
-                cv=cv,
-                scoring=scoring_func,
+                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
@@ -643,6 +639,7 @@ class BaseModel(abc.ABC):
         logger.info(f"Saving sweeping results to {results_csv_path}")
         results_df.to_csv(results_csv_path)
         logger.info(f"Best hyperparams: {search.best_params_}")
+        logger.info(f"Best score: {search.best_score_}")
 
         return results_df
 

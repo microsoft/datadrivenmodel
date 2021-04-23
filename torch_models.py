@@ -10,23 +10,20 @@ from skorch import NeuralNetRegressor
 from skorch.callbacks import LRScheduler
 from torch.optim.lr_scheduler import CyclicLR
 from tune_sklearn import TuneSearchCV
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import (
+    GridSearchCV,
+    GroupShuffleSplit,
+    RandomizedSearchCV,
+    TimeSeriesSplit,
+    PredefinedSplit,
+)
 
 from base import BaseModel
 import logging
 from rich.logging import RichHandler
-
-FORMAT = "%(message)s"
-
-logging.basicConfig(
-    level="INFO",
-    format=FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler(markup=True)],
-)
+import mlflow
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class MVRegressor(nn.Module):
@@ -124,11 +121,7 @@ class PyTorchModel(BaseModel):
         self.model.fit(X, y, **fit_params)
 
     def load_model(
-        self,
-        input_dim: str,
-        output_dim: str,
-        filename: str,
-        scale_data: bool = False,
+        self, input_dim: str, output_dim: str, filename: str, scale_data: bool = False,
     ):
 
         self.scale_data = scale_data
@@ -159,6 +152,8 @@ class PyTorchModel(BaseModel):
         scoring_func: str = "r2",
         early_stopping: bool = False,
         results_csv_path: str = "outputs/results.csv",
+        splitting_criteria: str = "timeseries",
+        num_splits: int = 5,
     ):
 
         start_dir = str(pathlib.Path(os.getcwd()).parent)
@@ -173,6 +168,21 @@ class PyTorchModel(BaseModel):
             torch.tensor(X).float().to(device=self.device),
             torch.tensor(y).float().to(device=self.device),
         )
+
+        if splitting_criteria.lower() == "cv":
+            cv = None
+        elif splitting_criteria.lower() == "timeseries":
+            cv = TimeSeriesSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "grouped":
+            cv = GroupShuffleSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "fixed":
+            if type(test_indices) != list:
+                raise ValueError("fixed split used but no test-indices provided...")
+            cv = PredefinedSplit(test_fold=test_indices)
+        else:
+            raise ValueError(
+                "Unknowing splitting criteria provided: {splitting_criteria}, should be one of [cv, timeseries, grouped]"
+            )
 
         if search_algorithm.lower() == "bohb":
             early_stopping = True
@@ -208,7 +218,8 @@ class PyTorchModel(BaseModel):
             raise NotImplementedError(
                 "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
             )
-        search.fit(X, y)
+        with mlflow.start_run() as run:
+            search.fit(X, y)
         self.model = search.best_estimator_
 
         # set path back to initial
@@ -220,6 +231,7 @@ class PyTorchModel(BaseModel):
         if not pathlib.Path(results_csv_path).parent.exists():
             pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving sweeping results to {results_csv_path}")
+        logger.info(f"Best score: {search.best_score_}")
         results_df.to_csv(results_csv_path)
         cols_keep = [col for col in results_df if "param_" in col]
         cols_keep += ["mean_test_score"]
