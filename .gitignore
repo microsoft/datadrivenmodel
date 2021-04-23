@@ -74,6 +74,7 @@ tmp/
 # hydra outputs
 outputs/
 multirun/
+mlruns/
 
 # pytest reports
 .coverage

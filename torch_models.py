@@ -1,15 +1,26 @@
+import os
+import pathlib
 from typing import Dict
 import pickle
+import pandas as pd
 import torch
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetRegressor
 from skorch.callbacks import LRScheduler
 from torch.optim.lr_scheduler import CyclicLR
+from tune_sklearn import TuneSearchCV
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from base import BaseModel
 import logging
+from rich.logging import RichHandler
+
+FORMAT = "%(message)s"
+
+logging.basicConfig(
+    level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler(markup=True)],
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -139,9 +150,14 @@ class PyTorchModel(BaseModel):
         search_algorithm: str = "bayesian",
         num_trials: int = 3,
         scoring_func: str = "r2",
+        early_stopping: bool = False,
+        results_csv_path: str = "outputs/results.csv",
     ):
 
-        from tune_sklearn import TuneSearchCV
+        start_dir = str(pathlib.Path(os.getcwd()).parent)
+        module_dir = str(pathlib.Path(__file__).parent)
+        # temporarily change directory to file directory and then reset
+        os.chdir(module_dir)
 
         if self.scale_data:
             X, y = self.scalar(X, y)
@@ -151,13 +167,18 @@ class PyTorchModel(BaseModel):
             torch.tensor(y).float().to(device=self.device),
         )
 
-        if search_algorithm == "bayesian" or search_algorithm == "hyperopt":
+        if search_algorithm.lower() == "bohb":
+            early_stopping = True
+
+        if any(
+            [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
+        ):
             search = TuneSearchCV(
                 self.model,
                 params,
                 search_optimization=search_algorithm,
                 n_trials=num_trials,
-                early_stopping=True,
+                early_stopping=early_stopping,
                 scoring=scoring_func,
             )
         elif search_algorithm == "grid":
@@ -178,13 +199,27 @@ class PyTorchModel(BaseModel):
             )
         else:
             raise NotImplementedError(
-                "Search algorithm should be one of gridsearch, hyperopt, bayesian, or randomsearch"
+                "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
             )
         search.fit(X, y)
         self.model = search.best_estimator_
+
+        # set path back to initial
+        os.chdir(start_dir)
+
+        results_df = pd.DataFrame(search.cv_results_)
         logger.info(f"Best hyperparams: {search.best_params_}")
 
-        return search
+        if not pathlib.Path(results_csv_path).parent.exists():
+            pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Saving sweeping results to {results_csv_path}")
+        results_df.to_csv(results_csv_path)
+        cols_keep = [col for col in results_df if "param_" in col]
+        cols_keep += ["mean_test_score"]
+
+        results_df = results_df[cols_keep]
+
+        return results_df
 
 
 if __name__ == "__main__":
@@ -198,7 +233,9 @@ if __name__ == "__main__":
     pytorch_model.build_model()
     pytorch_model.fit(X, y)
     # tune tests
-    # params = {"lr": [0.01, 0.02], "module__num_units": [10, 50]}
+    # from tune_sklearn import TuneSearchCV, TuneGridSearchCV
+
+    # params = {"lr": [0.01, 0.02], "modu
     # gs = TuneGridSearchCV(pytorch_model.model, params, scoring="neg_mean_squared_error")
     # gs.fit(torch.tensor(X).float(), torch.tensor(y).float())
 

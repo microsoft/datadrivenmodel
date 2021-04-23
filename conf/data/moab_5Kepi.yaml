@@ -10,3 +10,4 @@ data:
   max_rows: 230000 # 251000 used in LNN to generate 232432 samples of which 200K is trained
   scale_data: True
   diff_state: True
+  test_perc: 0.25

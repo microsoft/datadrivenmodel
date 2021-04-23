@@ -1,38 +1,20 @@
+import copy
+import logging
 import os
 import pathlib
 import pickle
-from typing import Dict, Tuple
 
 import numpy as np
-import copy
-
-from sklearn.metrics import mean_squared_error
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.multioutput import MultiOutputRegressor
 from sklearn import linear_model
-from sklearn.preprocessing import StandardScaler
-from natsort import natsorted
-
-from tune_sklearn import TuneSearchCV
-from tune_sklearn import TuneGridSearchCV
-from sklearn.datasets import load_digits
-from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC
-from sklearn.decomposition import PCA, NMF
-from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.linear_model import SGDRegressor
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn.svm import SVR
-from sklearn.pipeline import make_pipeline
-
-from ray.tune.sklearn import TuneGridSearchCV, TuneSearchCV
 
 from base import BaseModel
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# param_grid = {"learning_rate": (0.01, 0.1), "n_estimators": (25, 250), "subsample": [False, True]}
 
 
 class SKModel(BaseModel):
@@ -44,37 +26,25 @@ class SKModel(BaseModel):
     ):
         self.scale_data = scale_data
         self.model_type = model_type
-        self.fit_separate = fit_separate
+        self.separate_models = fit_separate
         if model_type == "linear_model":
             self.model = linear_model.LinearRegression()
         elif model_type == "SVR":
             self.model = SVR(C=1.0, epsilon=0.2)
         elif model_type == "GradientBoostingRegressor":
             self.model = GradientBoostingRegressor()
+        elif model_type.lower() == "sgdregressor":
+            self.model = SGDRegressor()
         else:
             raise NotImplementedError("unknown model selected")
+        if not self.separate_models:
+            self.single_model = self.model
+            self.model = MultiOutputRegressor(self.single_model)
 
     def fit(self, X, y):
 
         if self.scale_data:
             X, y = self.scalar(X, y)
-
-        if (
-            self.model_type == "GradientBoostingRegressor"
-            and self.fit_separate == False
-        ):
-            fit_separate = True
-            logger.warn(
-                "Note: fit_separate must be set toTrue for GradientBoostingRegressor, but False was provided. Changing to True"
-            )
-
-        if self.model_type == "SVR" and self.fit_separate == False:
-            fit_separate = True
-            logger.warn(
-                "Note: fit_separate must be set to True for SVR, but False was provided. Changing to True"
-            )
-
-        self.separate_models = self.fit_separate
 
         if self.separate_models:
             self.models = []
@@ -87,9 +57,7 @@ class SKModel(BaseModel):
             try:
                 self.model.fit(X, y)
             except ValueError:
-                logger.info(
-                    f"fit separate should be True for model type of {self.model_type}"
-                )
+                logger.info(f"Unable to fit model of type {type(self.model)}")
 
     def predict(self, X):
 
@@ -168,22 +136,6 @@ class SKModel(BaseModel):
 
     #     self.scale_data = scale_data
 
-    def sweep(self, X, y, params: Dict = None):
-        if not params:
-            raise NotImplementedError
-
-        tune_search = TuneSearchCV(
-            self.model,
-            param_distributions=params,
-            n_trials=3,
-            # early_stopping=True,
-            # use_gpu=True
-        )
-
-        tune_search.fit(X, y)
-
-        return tune_search
-
 
 if __name__ == "__main__":
 
@@ -202,7 +154,7 @@ if __name__ == "__main__":
     )
 
     skm.build_model(model_type="linear_model")
-    skm.fit(X, y, fit_separate=False)
+    skm.fit(X, y)
     logger.info(X)
     yhat = skm.predict(X)
 
@@ -216,14 +168,14 @@ if __name__ == "__main__":
     )
 
     skm.build_model(model_type="SVR")
-    skm.fit(X, y, fit_separate=False)
+    skm.fit(X, y)
     logger.info(X)
     yhat = skm.predict(X)
 
     skm.save_model(dir_path="models/lsvc_pole_multi.pkl")
 
     skm.build_model(model_type="GradientBoostingRegressor")
-    skm.fit(X, y, fit_separate=False)
+    skm.fit(X, y)
     logger.info(X)
     yhat = skm.predict(X)
 

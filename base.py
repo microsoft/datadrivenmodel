@@ -1,11 +1,11 @@
 import abc
+import copy
 import logging
 import os
 import pathlib
 import pickle
-import sys
-from typing import List, Tuple, Union
-import copy
+from collections import OrderedDict
+from typing import Dict, List, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,20 +13,21 @@ import numpy as np
 import pandas as pd
 from natsort import natsorted
 from sklearn.metrics import auc, roc_curve
+from sklearn.model_selection import (
+    GridSearchCV,
+    GroupShuffleSplit,
+    RandomizedSearchCV,
+    TimeSeriesSplit,
+    PredefinedSplit,
+)
 from sklearn.preprocessing import StandardScaler
-
-from collections import OrderedDict
+from tune_sklearn import TuneSearchCV
 
 from loaders import CsvReader
+import mlflow
 
+logger = logging.getLogger(__name__)
 matplotlib.rcParams["figure.figsize"] = [12, 10]
-
-# Add stdout handler, with level INFO
-console = logging.StreamHandler(sys.stdout)
-console.setLevel(logging.DEBUG)
-formater = logging.Formatter("%(name)-13s: %(levelname)-8s %(message)s")
-console.setFormatter(formater)
-logging.getLogger("datamodeler").addHandler(console)
 
 
 class BaseModel(abc.ABC):
@@ -556,6 +557,117 @@ class BaseModel(abc.ABC):
             y_grouped.append(y[prev_ep_index:])
 
         return X_grouped, y_grouped
+
+    def sweep(
+        self,
+        params: Dict,
+        X,
+        y,
+        search_algorithm: str = "bayesian",
+        num_trials: int = 3,
+        scoring_func: str = "r2",
+        early_stopping: bool = False,
+        results_csv_path: str = "outputs/results.csv",
+        splitting_criteria: str = "CV",
+        test_indices: Union[None, List[int]] = None,
+        num_splits: int = 5,
+    ) -> pd.DataFrame:
+
+        if self.scale_data:
+            X, y = self.scalar(X, y)
+
+        if splitting_criteria.lower() == "cv":
+            cv = None
+        elif splitting_criteria.lower() == "timeseries":
+            cv = TimeSeriesSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "grouped":
+            cv = GroupShuffleSplit(n_splits=num_splits)
+        elif splitting_criteria.lower() == "fixed":
+            if type(test_indices) != list:
+                raise ValueError("fixed split used but no test-indices provided...")
+            cv = PredefinedSplit(test_fold=test_indices)
+        else:
+            raise ValueError(
+                "Unknowing splitting criteria provided: {splitting_criteria}, should be one of [cv, timeseries, grouped]"
+            )
+
+        # early stopping only supported for learners that have a
+        # `partial_fit` method
+
+        # start mlflow auto-logging
+        mlflow.sklearn.autolog()
+
+        if search_algorithm.lower() == "bohb":
+            early_stopping = True
+
+        if any(
+            [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
+        ):
+            search = TuneSearchCV(
+                self.model,
+                params,
+                search_optimization=search_algorithm,
+                cv=cv,
+                n_trials=num_trials,
+                early_stopping=early_stopping,
+                scoring=scoring_func,
+                loggers=["csv", "tensorboard"],
+            )
+        elif search_algorithm == "grid":
+            search = GridSearchCV(
+                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
+            )
+        elif search_algorithm == "random":
+            search = RandomizedSearchCV(
+                self.model,
+                param_distributions=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
+            )
+        else:
+            raise NotImplementedError(
+                "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
+            )
+
+        with mlflow.start_run() as run:
+            search.fit(X, y)
+        self.model = search.best_estimator_
+        results_df = pd.DataFrame(search.cv_results_)
+        if not pathlib.Path(results_csv_path).parent.exists():
+            pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Saving sweeping results to {results_csv_path}")
+        results_df.to_csv(results_csv_path)
+        logger.info(f"Best hyperparams: {search.best_params_}")
+
+        return results_df
+
+
+def plot_parallel_coords(results_df: pd.DataFrame):
+
+    import plotly.express as px
+
+    cols_keep = [col for col in results_df if "param_" in col]
+    cols_keep += ["mean_test_score"]
+
+    results_df = results_df[cols_keep]
+    # want to convert object columns to type float
+    results_df = results_df.apply(pd.to_numeric, errors="ignore", downcast="float")
+
+    fig = px.parallel_coordinates(
+        results_df,
+        color="mean_test_score",
+        labels=dict(
+            zip(
+                list(results_df.columns),
+                list(["_".join(i.split("_")[1:]) for i in results_df.columns]),
+            )
+        ),
+        color_continuous_scale=px.colors.diverging.Earth,
+        # color_continuous_midpoint=27,
+    )
+
+    fig.show()
 
 
 if __name__ == "__main__":
