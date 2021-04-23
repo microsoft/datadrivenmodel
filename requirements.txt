@@ -16,3 +16,4 @@ skorch==0.9.0
 hyperopt==0.2.5
 optuna==2.6.0
 mlflow==1.15.0
+scikit-optimize==0.8.1
