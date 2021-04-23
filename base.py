@@ -73,7 +73,7 @@ class BaseModel(abc.ABC):
         -------
         Tuple[np.array, np.array]
             Features and labels for modeling
-            
+
 
         Raises
         ------
@@ -525,8 +525,8 @@ class BaseModel(abc.ABC):
         plt.legend(loc="lower right")
 
     def group_per_episode(self, X, y=None, episode_ids=None):
-        """ groups the X, y data into independent episodes using episode_ids as reference,
-            an array of same length than X/y with a unique id per independent episode
+        """groups the X, y data into independent episodes using episode_ids as reference,
+        an array of same length than X/y with a unique id per independent episode
         """
 
         if not episode_ids:
@@ -615,7 +615,11 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
+                self.model,
+                param_grid=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
