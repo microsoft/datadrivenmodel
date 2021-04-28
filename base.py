@@ -152,10 +152,10 @@ class BaseModel(abc.ABC):
 
         return X, y
 
-    def load_numpy(self, dataset_path: str) -> Tuple:
+    def load_numpy(self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy") -> Tuple:
 
-        X = np.load(os.path.join(dataset_path, "x_set.npy"))
-        y = np.load(os.path.join(dataset_path, "y_set.npy"))
+        X = np.load(os.path.join(dataset_path, X_path))
+        y = np.load(os.path.join(dataset_path, y_path))
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]
 

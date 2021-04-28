@@ -20,7 +20,6 @@ from sklearn.model_selection import (
 
 from base import BaseModel
 import logging
-from rich.logging import RichHandler
 import mlflow
 
 logger = logging.getLogger(__name__)
@@ -121,11 +120,7 @@ class PyTorchModel(BaseModel):
         self.model.fit(X, y, **fit_params)
 
     def load_model(
-        self,
-        input_dim: str,
-        output_dim: str,
-        filename: str,
-        scale_data: bool = False,
+        self, input_dim: str, output_dim: str, filename: str, scale_data: bool = False,
     ):
 
         self.scale_data = scale_data
