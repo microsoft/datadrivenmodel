@@ -7,12 +7,13 @@ X, y = skmodel.load_csv(
     dataset_path="csv_data/cartpole-log.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
+    train_split=0.85,
 )
 
 
 def test_shape():
 
-    assert X.shape[0] == 980 == y.shape[0]
+    assert X.shape[0] == 833 == y.shape[0]
     assert X.shape[1] == skmodel.input_dim
     assert y.shape[1] == skmodel.output_dim
 

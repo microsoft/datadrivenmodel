@@ -159,7 +159,7 @@ def test_concatenate_states_3(dataclass_obj):
         iteration_order=-1
     )
     
-    assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert X.shape[0] == 799 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
     assert X.shape[1] == 21 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
     assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
     
@@ -173,7 +173,7 @@ def test_concatenate_states_3(dataclass_obj):
     )
     
     assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 21 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert X.shape[1] == 28 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
     assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
     
     return

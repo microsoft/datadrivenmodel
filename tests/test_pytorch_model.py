@@ -10,12 +10,13 @@ X, y = torch_model.load_csv(
     augm_cols=["action_command", "config_length", "config_masspole"],
     dataset_path="csv_data/cartpole-log.csv",
     max_rows=1000,
+    train_split=0.85,
 )
 
 
 def test_shape():
 
-    assert X.shape[0] == 980 == y.shape[0]
+    assert X.shape[0] == 833 == y.shape[0]
     assert X.shape[1] == torch_model.input_dim
     assert y.shape[1] == torch_model.output_dim
 
