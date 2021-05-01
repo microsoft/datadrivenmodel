@@ -24,6 +24,8 @@ from sklearn.preprocessing import StandardScaler
 from tune_sklearn import TuneSearchCV
 
 from loaders import CsvReader
+from dataclass import DataClass
+
 import mlflow
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ class BaseModel(abc.ABC):
         self.logs_dir = log_dirs
         self.model = model
         self.halt_model = None
+        self.dataclass_obj = DataClass()
 
     def load_csv(
         self,
@@ -48,7 +51,10 @@ class BaseModel(abc.ABC):
         iteration_col: str = "iteration",
         drop_nulls: bool = True,
         max_rows: Union[int, None] = None,
+        train_split = 0.85,
         diff_state: bool = False,
+        concatenated_steps: int = 1,
+        concatenated_zero_padding: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -68,10 +74,15 @@ class BaseModel(abc.ABC):
             max rows to read for a large dataset, by default None
         diff_state : bool, default False
             If enabled, calculate differential between current output_cols and past output_cols
+        concatenated_steps : int, optional
+            number of steps to concatenate as input to ddm (per inference run)
+        concatenated_zero_padding : bool, optional
+            true: initial state padding made with zeroes
+            false: initial state padding made copying initial sample 'concatenated_steps' times
 
         Returns
         -------
-        Tuple[np.array, np.array]
+        Tuple[np.ndarray, np.ndarray]
             Features and labels for modeling
 
 
@@ -81,74 +92,36 @@ class BaseModel(abc.ABC):
             Data not found
         """
 
-        csv_reader = CsvReader()
-        if not os.path.exists(dataset_path):
-            raise ValueError(f"No data found at {dataset_path}")
-        else:
-            if max_rows < 0:
-                max_rows = None
-            df = pd.read_csv(dataset_path, nrows=max_rows)
-            if drop_nulls:
-                df = df[~df.isnull().any(axis=1)]
-            if type(input_cols) == str:
-                base_features = [str(col) for col in df if col.startswith(input_cols)]
-            elif type(input_cols) == list:
-                base_features = input_cols
-            else:
-                raise TypeError(
-                    f"input_cols expected type List[str] or str but received type {type(input_cols)}"
-                )
-            if not augm_cols:
-                logging.debug(f"No augmented columns...")
-            elif type(augm_cols) == str:
-                augm_features = [str(col) for col in df if col.startswith(augm_cols)]
-            elif type(augm_cols) == list:
-                augm_features = augm_cols
-            else:
-                raise TypeError(
-                    f"augm_cols expected type List[str] or str but received type {type(augm_cols)}"
-                )
+        X, y = self.dataclass_obj.load_csv(
+            dataset_path=dataset_path,
+            input_cols=input_cols,
+            augm_cols=augm_cols,
+            output_cols=output_cols,
+            iteration_order=iteration_order,
+            episode_col=episode_col,
+            iteration_col=iteration_col,
+            drop_nulls=drop_nulls,
+            max_rows=max_rows,
+            train_split=train_split,
+            diff_state=diff_state,
+            concatenated_steps=concatenated_steps,
+            concatenated_zero_padding=concatenated_zero_padding,
+        )
 
-            if augm_cols:
-                features = base_features + augm_features
-            else:
-                features = base_features
-            self.features = features
-            logging.info(f"Using {features} as the features for modeling DDM")
+        # Transferring key features in between classes for easier access
+        self.features = self.dataclass_obj.features
+        self.labels = self.dataclass_obj.labels
 
-            if type(output_cols) == str:
-                labels = [col for col in df if col.startswith(output_cols)]
-            elif type(output_cols) == list:
-                labels = output_cols
-            else:
-                raise TypeError(
-                    f"output_cols expected type List[str] but received type {type(output_cols)}"
-                )
-            self.labels = labels
-            logging.info(f"Using {labels} as the labels for modeling DDM")
+        self.feature_cols = self.dataclass_obj.feature_cols
+        self.label_cols = self.dataclass_obj.label_cols
 
-            df = csv_reader.read(
-                df,
-                iteration_order=iteration_order,
-                feature_cols=features,
-                label_cols=labels,
-                episode_col=episode_col,
-                iteration_col=iteration_col,
-            )
-            X = df[csv_reader.feature_cols].values
-            y = df[csv_reader.label_cols].values
-            # store episode_id to group_per_episode
-            self.episode_ids = df[episode_col].values
+        self.input_dim = self.dataclass_obj.input_dim
+        self.output_dim = self.dataclass_obj.output_dim
 
-        self.diff_state = diff_state
-        if diff_state == True:
-            logging.info(
-                "delta states enabled, calculating differential between input and output values"
-            )
-            y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
-
-        self.input_dim = X.shape[1]
-        self.output_dim = y.shape[1]
+        if hasattr(self, "original_features"):
+            self.original_features = self.dataclass_obj.original_features
+        if hasattr(self, "original_labels"):
+            self.original_labels = self.dataclass_obj.original_labels
 
         return X, y
 
@@ -216,97 +189,109 @@ class BaseModel(abc.ABC):
 
             return preds_df
 
-    def predict_sequentially_all(self, X, label_col_names: List[str] = None):
+    def predict_sequentially_all(
+        self,
+        X: Union[None, np.ndarray] = None,
+        ):
+        """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
+
+        Parameters
+        ----------
+        X : np.ndarray
+            Array of input values to the DDM for sequential prediction
+
+        Returns
+        -------
+        np.ndarray
+            Array of predicted values
+
+
+        Raises
+        ------
+        ValueError
+            Model or Data not found
+        """
 
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
+
+            if X is None:
+                X, y_test = self.get_test_set(grouped_per_episode = False)
+
+            assert len(X) > 0, "Predict sequentially requires at least one iteration provided, but none where given."
+
             # scaling is performed within "predict" (self.scale_data)
 
-            if label_col_names is None:
-                label_col_names = self.labels
-                if label_col_names is None:
-                    # If None provided, and None stored in self.labels, we ask user to provide as input
-                    # - Currently needed to match outputs to inputs when running the model forward -
-                    raise ValueError(
-                        "Please provide a list of predicted output labels ('label_col_names')"
-                    )
-
-            # prepare features & a list of predictions that are feats too (often all)
-            feats = self.features
-            preds_that_are_feats = [
-                f_name for f_name in feats if f_name in label_col_names
-            ]
-            # initialize feat_dict to first row & pred_dict to match first row too
-            feat_dict = OrderedDict(zip(feats, list(X[0])))
-            if not self.diff_state:
-                pred_dict = dict(
-                    [
-                        (k, v)
-                        for (k, v) in feat_dict.items()
-                        if k in preds_that_are_feats
-                    ]
-                )
-            else:
-                pred_dict = dict(
-                    [(k, 0) for k in feat_dict.keys() if k in preds_that_are_feats]
-                )
+            #print(f"X (predict_sequentially_all) ---> {np.shape(X)}")
+            self.dataclass_obj.sequential_inference_initialize(ini_X=X[0])
 
             # sequentially iterate retriving next prediction based on previous prediction
-            preds = []
+            next_X = X[0]
+            preds_array = []
             for i in range(len(X)):
-                for (f_name, x_value) in zip(feats, list(X[i])):
-                    if f_name in preds_that_are_feats:
-                        if not self.diff_state:
-                            feat_dict[f_name] = pred_dict[f_name]
-                        else:
-                            feat_dict[f_name] += pred_dict[f_name]
-                    else:
-                        feat_dict[f_name] = x_value
                 # get next prediction
-                pred = self.predict(np.array([list(feat_dict.values())]))
-                preds.append(pred[0])
+                preds = self.predict(np.array(next_X))
+                preds_array.append(preds[0])
                 # update prediction dictionary (for next iteration)
-                pred_dict = OrderedDict(list(zip(label_col_names, list(pred[0]))))
+                next_X = self.dataclass_obj.sequential_inference(new_y=preds[0])
 
-            preds = np.array(preds)  # .transpose()
+            preds_array = np.array(preds_array)  # .transpose()
 
             # preds_df = pd.DataFrame(preds)
             # preds_df.columns = label_col_names
 
-            return preds  # preds_df
+            return preds_array  # preds_df
 
     def predict_sequentially(
         self,
-        X,
-        label_col_names: List[str] = None,
-        it_per_episode: int = None,
-        episode_ids: Union[np.ndarray, list, None] = None,
+        X_grouped: Union[None, List[np.ndarray]] = None,
+        y_grouped: Union[None, List[np.ndarray]] = None,
+        it_per_episode: Union[None, int] = None,
     ):
+        """Make predictions sequentially for provided episodes. Each episode is compound of the iterations to be run sequentially.
+
+        Parameters
+        ----------
+        X_test_grouped: List[np.ndarray]
+            List of numpy arrays with input DDM features to be used for sequential prediction. Iterations grouped per episode.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+        y_test_grouped: List[np.ndarray]
+            List of numpy arrays with output labels to be used to assess sequential prediction. Iterations grouped per episode.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+            - Note, we provide the labels here to ensure we can keep track of any skipped iterations.
+        it_per_episode: int
+            Number os iterations to cut episodes on. Disregarded if it_per_episode > len(X_grouped[i]).
+
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            Array of predicted values and provided labels.
+
+
+        Raises
+        ------
+        ValueError
+            Model not instanced.
+        Assert
+            X_grouped is empty.
+            y_grouped has different episode length than X_grouped.
+        """
 
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
             # note, scaling is performed in inner function "predict_sequentially_all" > "predict" (self.scale_data)
 
-            if label_col_names is None:
-                label_col_names = self.labels
-                if label_col_names is None:
-                    # If None provided, and None stored in self.labels, we ask user to provide as input
-                    # - Currently needed to match outputs to inputs when running the model forward -
-                    raise ValueError(
-                        "Please provide a list of predicted output labels ('label_col_names')"
-                    )
-
-            # group data into episodes
-            if episode_ids is not None:
-                assert len(X) == len(
-                    episode_ids
-                ), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
-            X_grouped, _ = self.group_per_episode(X, episode_ids=episode_ids)
+            if X_grouped is None:
+                X_grouped, y_grouped = self.get_test_set(grouped_per_episode = True)
 
             # initialize predictions
             preds = []
+            labels = []
+
+            print(f"X (predict_sequentially) ---> {np.shape(X_grouped)}")
 
             if not it_per_episode:
                 # when grouped, X has shape {episode_count, iteration_count, feature_count}
@@ -319,14 +304,15 @@ class BaseModel(abc.ABC):
 
                 n_iterations = len(X_grouped[i])
                 if it_per_episode >= n_iterations:
-                    preds_aux = self.predict_sequentially_all(
-                        X_grouped[i], label_col_names
-                    )
+                    preds_aux = self.predict_sequentially_all(X_grouped[i])
+                    if y_grouped is not None:
+                        labels_aux = y_grouped[i]
 
                 else:
                     # split episodes into subepisodes when it_per_episode < episode length
                     n_subepisodes = int(np.ceil(n_iterations / it_per_episode))
                     preds_aux_array = []
+                    labels_aux_array = []
                     for j in range(n_subepisodes):
                         preds_aux = self.predict_sequentially_all(
                             X_grouped[i][j * it_per_episode : (j + 1) * it_per_episode],
@@ -334,28 +320,40 @@ class BaseModel(abc.ABC):
                         )
                         preds_aux_array.append(copy.deepcopy(preds_aux))
 
+                        if y_grouped is not None:
+                            labels_aux = y_grouped[i][j * it_per_episode : (j + 1) * it_per_episode]
+                            labels_aux_array.append(copy.deepcopy(labels_aux))
+                            
                     preds_aux = np.concatenate(preds_aux_array, axis=0)
+                    if y_grouped is not None:
+                        labels_aux = np.concatenate(labels_aux_array, axis=0)
 
                 # append to predictions before getting into next episode
                 preds.extend(copy.deepcopy(preds_aux))
+                if y_grouped is not None:
+                    labels.extend(copy.deepcopy(labels_aux))
 
             preds = np.array(preds)
+            labels = np.array(labels)
 
             # preds_df = pd.DataFrame(preds)
             # preds_df.columns = label_col_names
 
-            return preds  # preds_df
+            return preds, labels  # preds_df
 
-    def predict_halt_classifier(self, X):
+
+    def predict_halt_classifier(self, X: np.ndarray):
 
         if not self.halt_model:
             raise ValueError("Please build or load the model first")
         else:
+
             if self.scale_data:
                 X = self.xscalar.transform(X)
             halts = self.halt_model.predict(X)
 
         return halts
+
 
     def save_model(self, filename):
 
@@ -375,12 +373,14 @@ class BaseModel(abc.ABC):
 
         pickle.dump(self.model, open(filename, "wb"))
 
+
     def save_halt_model(self, dir_path: str = "models"):
 
         filename = os.path.join(dir_path, "halted_classifier.pkl")
         if not pathlib.Path(filename).parent.exists():
             pathlib.Path(filename).parent.mkdir(parents=True)
         pickle.dump(self.halt_model, open(filename, "wb"))
+
 
     def load_model(
         self, filename: str, scale_data: bool = False, separate_models: bool = False
@@ -407,6 +407,7 @@ class BaseModel(abc.ABC):
                 filename += ".pkl"
             self.model = pickle.load(open(filename, "rb"))
 
+
     def _load_multimodels(self, filename: str, scale_data: bool):
 
         all_models = os.listdir(filename)
@@ -421,76 +422,193 @@ class BaseModel(abc.ABC):
             )
         self.models = models
 
+
     def load_halt_classifier(self, filename: str):
 
         self.halt_model = pickle.load(open(filename, "rb"))
 
+
     def evaluate(
-        self, X_test: np.ndarray, y_test: np.ndarray, metric, marginal: bool = False
+        self,
+        metric,
+        X_test: Union[None, np.ndarray] = None,
+        y_test: Union[None, np.ndarray] = None,
+        marginal: bool = False
     ):
 
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
+
+            if X_test is None:
+                X_test, y_test = self.get_test_set(grouped_per_episode = False)
+
+            assert len(X_test) > 0, "Predict sequentially requires at least one iteration provided, but none where given."
+
+            if y_test is not None:
+                assert len(X_test) == len(y_test), \
+                    f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
+
             if not marginal:
                 y_hat = self.predict(X_test)
                 return metric(y_test, y_hat)
             else:
-                results_df = self.evaluate_margins(X_test, y_test, metric, False)
+                results_df = self.evaluate_margins(metric, X_test, y_test, False)
                 return results_df
+
 
     def evaluate_sequentially(
         self,
-        X_test: np.ndarray,
-        y_test: np.ndarray,
         metric,
+        X_grouped: Union[None, List[np.ndarray]] = None,
+        y_grouped: Union[None, List[np.ndarray]] = None,
         marginal: bool = False,
         it_per_episode=100,
     ):
+        """Evaluate sequential prediction for provided episodes.
+
+        Parameters
+        ----------
+        metric: function
+            Retrieves the desired metric to be used to compare and assess difference between predictions and test labels.
+        X_grouped: List[np.ndarray]
+            List of numpy arrays with input DDM features to be used for sequential prediction and evaluation. Iterations grouped per episode.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+        y_grouped: List[np.ndarray]
+            List of numpy arrays with output labels to be used to assess sequential prediction and evaluation. Iterations grouped per episode.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+            - Note, we provide the y_test here to ensure we can keep track of any skipped iterations.
+        marginal: bool
+            Retrieve per var computed error honoring "metric" function.
+        it_per_episode: int
+            Number os iterations to subdivide episodes on. Disregarded if it_per_episode > len(X_test_grouped[i]).
+
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            Array of predicted values and provided labels.
+
+
+        Raises
+        ------
+        ValueError
+            Model or Data not found.
+        """
 
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
 
+            if X_grouped is None:
+                X_grouped, y_grouped = self.get_test_set(grouped_per_episode = True)
+
             if not marginal:
-                y_hat = self.predict_sequentially(X_test, it_per_episode=it_per_episode)
-                y_hat_len = np.shape(y_hat)[0]
-                y_test = y_test[:y_hat_len]
+                y_hat, y_test = self.predict_sequentially(X_grouped, y_grouped, it_per_episode=it_per_episode)
                 return metric(y_test, y_hat)
             else:
                 results_df = self.evaluate_margins_sequentially(
-                    X_test, y_test, metric, False, it_per_episode=it_per_episode
+                    metric, X_grouped, y_grouped, False, it_per_episode=it_per_episode
                 )
                 return results_df
 
-    def evaluate_margins(
-        self, X_test: np.ndarray, y_test: np.ndarray, metric, verbose: bool = False
-    ):
 
-        y_pred = self.predict(X_test)
-        idx = 0
-        results = {}
-        for var in self.labels:
-            scores = metric(y_test[:, idx], y_pred[:, idx])
-            if verbose:
-                print(f"Score for var {var}: {scores}")
-            results[var] = scores
-            idx += 1
-        return pd.DataFrame(results.items(), columns=["var", "score"])
+    def evaluate_margins(
+        self,
+        metric,
+        X_test: Union[None, np.ndarray] = None,
+        y_test: Union[None, np.ndarray] = None,
+        verbose: bool = False
+    ):
+        """Evaluate predictions for each var separately.
+
+        Parameters
+        ----------
+        metric: function
+            Retrieves the desired metric to be used to compare and assess difference between predictions and test labels.
+        X_test: np.ndarray
+            Numpy arrays with input DDM features to be used for per-iteration prediction and evaluation.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+        y_test: np.ndarray
+            Numpy arrays with output labels to be used to assess per-iteration prediction and evaluation.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+
+
+        Returns
+        -------
+        Pandas Dataframe
+            Dataframe with scores per label
+
+
+        Raises
+        ------
+        ValueError
+            Model or Data not found.
+        """
+
+        if not self.model:
+            raise Exception("No model found, please run fit first")
+        else:
+
+            if X_test is None:
+                X_test, y_test = self.get_test_set(grouped_per_episode = False)
+
+            y_pred = self.predict(X_test)
+            idx = 0
+            results = {}
+            for var in self.labels:
+                scores = metric(y_test[:, idx], y_pred[:, idx])
+                if verbose:
+                    print(f"Score for var {var}: {scores}")
+                results[var] = scores
+                idx += 1
+            return pd.DataFrame(results.items(), columns=["var", "score"])
+
 
     def evaluate_margins_sequentially(
         self,
-        X_test: np.ndarray,
-        y_test: np.ndarray,
         metric,
+        X_grouped: Union[None, np.ndarray] = None,
+        y_grouped: Union[None, np.ndarray] = None,
         verbose: bool = False,
         it_per_episode: int = 100,
     ):
+        """Evaluate sequential prediction for provided episodes. Splitting prediction results per label variable.
+
+        Parameters
+        ----------
+        metric: function
+            Retrieves the desired metric to be used to compare and assess difference between predictions and test labels.
+        X_grouped: List[np.ndarray]
+            List of numpy arrays with input DDM features to be used for sequential prediction and evaluation. Iterations grouped per episode.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+        y_grouped: List[np.ndarray]
+            List of numpy arrays with output labels to be used to assess sequential prediction and evaluation. Iterations grouped per episode.
+            - If None is given, default test sets are used (generated when calling load_csv method).
+            - Note, we provide the y_test here to ensure we can keep track of any skipped iterations.
+        marginal: bool
+            Retrieve per var computed error honoring "metric" function.
+        it_per_episode: int
+            Number os iterations to subdivide episodes on. Disregarded if it_per_episode > len(X_test_grouped[i]).
+
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            Array of predicted values and provided labels.
+
+
+        Raises
+        ------
+        ValueError
+            Model or Data not found.
+        """
+
+        if X_grouped is None:
+            X_grouped, y_grouped = self.get_test_set(grouped_per_episode = True)
 
         # Extract prediction and remove any tail reminder from int(len(X_test)/it_per_episode)
-        y_pred = self.predict_sequentially(X_test, it_per_episode=it_per_episode)
-        y_pred_len = np.shape(y_pred)[0]
-        y_test = y_test[:y_pred_len]
+        y_pred, y_test = self.predict_sequentially(X_grouped, y_grouped, it_per_episode=it_per_episode)
 
         idx = 0
         results = {}
@@ -501,6 +619,7 @@ class BaseModel(abc.ABC):
             results[var] = scores
             idx += 1
         return pd.DataFrame(results.items(), columns=["var", "score"])
+
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
 
@@ -524,39 +643,56 @@ class BaseModel(abc.ABC):
         plt.title("ROC for Recycle Predictions")
         plt.legend(loc="lower right")
 
-    def group_per_episode(self, X, y=None, episode_ids=None):
-        """groups the X, y data into independent episodes using episode_ids as reference,
-        an array of same length than X/y with a unique id per independent episode
+
+    def get_test_set(self, grouped_per_episode = False):
+        """Extracts test sets from dataclass_obj
         """
 
-        if not episode_ids:
-            episode_ids = self.episode_ids
+        if grouped_per_episode:
+            X_test_grouped, y_test_grouped = self.dataclass_obj.get_test_set_per_episode()
 
-        assert (
-            np.shape(X)[0] == np.shape(episode_ids)[0]
-        ), f"X length ({len(X)}) is different than episode_ids ({len(episode_ids)}) length, when it should be the same"
+            assert len(X_test_grouped) > 0, "Predict sequentially requires at least one episode provided, but none where given."
 
-        if len(episode_ids) < 1:
-            return X, y
+            assert len(X_test_grouped) == len(y_test_grouped), \
+                f"number of episodes for predictions ({len(X_test_grouped)}) and labels ({len(y_test_grouped)}) do not match."
 
-        # [TODO] validate if episode_ids are consecutive, and have required length
-        #  (possibly best at loaders.py? to also check if iterations are consecutive)
-        X_grouped = []
-        y_grouped = []
-        prev_ep_index = 0
-        for i, ep_id in enumerate(episode_ids[1:]):
-            if ep_id != episode_ids[i]:
-                X_grouped.append(X[prev_ep_index : i + 1])
-                if y is not None:
-                    y_grouped.append(y[prev_ep_index : i + 1])
-                prev_ep_index = i + 1
+            return X_test_grouped, y_test_grouped
 
-        # add last episode to array
-        X_grouped.append(X[prev_ep_index:])
-        if y is not None:
-            y_grouped.append(y[prev_ep_index:])
+        else:
+            X_test, y_test = self.dataclass_obj.get_test_set()
 
-        return X_grouped, y_grouped
+            assert len(X_test) > 0, "At least one iteration must be provided, but none where extracted."
+
+            assert len(X_test) == len(y_test), \
+                f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
+
+            return X_test, y_test
+
+
+    def get_train_set(self, grouped_per_episode = False):
+        """Extracts training sets from dataclass_obj
+        """
+
+        if grouped_per_episode:
+            X_train_grouped, y_train_grouped = self.dataclass_obj.get_train_set_per_episode()
+
+            assert len(X_train_grouped) > 0, "Predict sequentially requires at least one episode provided, but none where given."
+
+            assert len(X_train_grouped) == len(y_train_grouped), \
+                f"number of episodes for predictions ({len(X_train_grouped)}) and labels ({len(y_train_grouped)}) do not match."
+
+            return X_train_grouped, y_train_grouped
+
+        else:
+            X_train, y_train = self.dataclass_obj.get_train_set()
+
+            assert len(X_train) > 0, "At least one iteration must be provided, but none where extracted."
+
+            assert len(X_train) == len(y_train), \
+                f"number of iterations for predictions ({len(X_train)}) and labels ({len(y_train)}) do not match."
+
+            return X_train, y_train
+
 
     def sweep(
         self,
