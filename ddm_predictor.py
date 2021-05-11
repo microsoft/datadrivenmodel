@@ -21,6 +21,10 @@ from base import BaseModel
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
+for name in logging.Logger.manager.loggerDict.keys():
+    if "azure" in name:
+        logging.getLogger(name).setLevel(logging.WARNING)
+        logging.propagate = True
 logger = logging.getLogger("datamodeler")
 
 import hydra
