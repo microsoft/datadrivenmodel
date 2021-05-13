@@ -12,7 +12,7 @@ model:
     scale_data: True
     max_bin: 256
   saver:
-    filename: models/boost/moab/xgboost_model
+    filename: models
   sweep:
     run: False
     search_algorithm: bayesian

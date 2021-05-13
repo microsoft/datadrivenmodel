@@ -18,5 +18,5 @@ simulator:
   configs: 
     [
     ]
-  policy: random
+  policy: bonsai
   logging: enable

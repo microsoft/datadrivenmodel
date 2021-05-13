@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 import logging
 
 logger = logging.getLogger("data_loaders")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 class CsvReader(object):
