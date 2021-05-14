@@ -141,7 +141,9 @@ class Simulator(BaseModel):
         else:
             pass
         self.log_file = log_file
-        self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
+        # self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
+        self.state = {"initial_x":np.random.uniform(Dmin,Dmax),"initial_y":np.random.uniform(Dmin,Dmax),"initial_vel_x":np.random.uniform(Vmin,Vmax), 
+        "initial_vel_y":np.random.uniform(Vmin,Vmax),"initial_roll": np.random.uniform(-1,1), "initial_pitch": np.random.uniform(-1,1)}
         
 
     def episode_start(self, config: Dict[str, Any] = None):

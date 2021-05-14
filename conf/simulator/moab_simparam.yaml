@@ -19,4 +19,4 @@ simulator:
     [
     ]
   policy: bonsai
-  logging: enable
+  logging: none
