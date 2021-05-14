@@ -1,9 +1,14 @@
 microsoft-bonsai-api==0.1.2
 python-dotenv==0.13.0
 numpy==1.19.4
+scipy
+sphinx>=1.8
+ipykernel
+nbsphinx
 pandas==1.2.3
 matplotlib==3.4.1
-scikit-learn==0.23.2 # xgboost==1.2.1
+scikit-learn==0.23.2
+xgboost==1.2.1
 lightgbm==3.1.0
 ray==1.0.0
 tune-sklearn==0.1.0
@@ -17,4 +22,5 @@ torch==1.7.1+cpu
 cryptography==3.1.1
 torchdyn==0.2.2.1
 torchdiffeq==0.2.1
-git+https://github.com/google-research/torchsde.git
+git+git://github.com/google-research/torchsde.git#egg=torchsde
+# git+https://github.com/google-research/torchsde.git

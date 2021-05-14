@@ -26,7 +26,7 @@ from base import BaseModel
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from hydra.experimental import initialize, compose
-from model_loader import available_models
+# from model_loader import available_models
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,15 +64,19 @@ import hydra
 from hydra.experimental import initialize, compose
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from model_loader import available_models
-
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
 
 log_path = "logs"
+DefaultTimeDelta = 0.045
 R = 0.1125
 max_vel = 2
-default_config = {"initial_x":np.random.uniform(-R,R),"initial_y":np.random.uniform(-R,R),"initial_vel_x":np.random.uniform(-1,1), 
+MaxDistancePerStep = DefaultTimeDelta * max_vel
+Dmin = -MaxDistancePerStep-R
+Dmax = MaxDistancePerStep + R
+Vmin = - max_vel
+Vmax = max_vel
+default_config = {"initial_x":np.random.uniform(Dmin,Dmax),"initial_y":np.random.uniform(Dmin,Dmax),"initial_vel_x":np.random.uniform(-1,1), 
         "initial_vel_y":np.random.uniform(-1,1),"initial_roll": np.random.uniform(-1,1), "initial_pitch": np.random.uniform(-1,1)}
 env_name = "DDM"
 
@@ -147,8 +151,6 @@ class Simulator(BaseModel):
         #     # configs randomized here. Need to decide a single place for configs
         #     # range either in main.py or in simulator configs
         #     self.config = {j: np.random.uniform(-1, 1) for j in self.config_keys}
-        print("config")
-        print(config)
         if self.sim_orig:
             # Assign same state as would be used by simulator
             self.sim_orig.episode_start(config)
@@ -177,16 +179,14 @@ class Simulator(BaseModel):
             # Assuming linearity in scaling transforms need to revisit:
             self.y_out1 = yscalar.inverse_transform(s_t)+y_it
             self.yinp = s_t+ypred1[0]['y_pred']
-            self.state = {"ball_x": min(1.0, max(-1.0,float(self.y_out1[0][2].item()))),
-                        "ball_y": min(1.0,max(-1.0,float(self.y_out1[0][3].item()))),
-                        "ball_vel_x": min(1.0,max(-1.0,float(self.y_out1[0][6].item()))),
-                        "ball_vel_y": min(1.0,max(-1.0,float(self.y_out1[0][7].item())))}
+            self.state = {"ball_x": min(Dmax, max(Dmin,float(self.y_out1[0][2].item()))),
+                        "ball_y": min(Dmax,max(Dmin,float(self.y_out1[0][3].item()))),
+                        "ball_vel_x": min(Vmax,max(Vmin,float(self.y_out1[0][6].item()))),
+                        "ball_vel_y": min(Vmax,max(Vmin,float(self.y_out1[0][7].item())))}
             self.action = {j: a_tn[0][i] for i in range(len(a_t)) for j in self.action_keys}
 
 
     def episode_step(self, action: Dict[str, int]):
-        print("Episode Step action")
-        print(action)
 
         Xact = np.array(list(action.values())).reshape(1, -1)
         X = np.concatenate((self.y_out1,Xact),axis=1)
@@ -213,12 +213,10 @@ class Simulator(BaseModel):
             self.yinp = ypred1[0]['y_pred']
             # preds = self.dd_model.predict(X) # absolute prediction
         simstates = dict(zip(self.features, self.y_out1.reshape(self.y_out1.shape[1]).tolist()))
-        print("self.y_out1.reshape(self.y_out1.shape[1]).tolist()")
-        print(self.y_out1.reshape(self.y_out1.shape[1]).tolist())
-        self.state= {"ball_x": min(1.0,max(-1.0, float(simstates['state_ball_x']))),
-                    "ball_y": min(1.0,max(-1.0, float(simstates['state_ball_y']))),
-                    "ball_vel_x": min(1.0,max(-1.0, float(simstates['state_ball_vel_x']))),
-                    "ball_vel_y": min(1.0,max(-1.0, float(simstates['state_ball_vel_y'])))}
+        self.state= {"ball_x": min(Dmax,max(Dmin, float(simstates['state_ball_x']))),
+                    "ball_y": min(Dmax,max(Dmin, float(simstates['state_ball_y']))),
+                    "ball_vel_x": min(Vmax,max(Vmin, float(simstates['state_ball_vel_x']))),
+                    "ball_vel_y": min(Vmax,max(Vmin, float(simstates['state_ball_vel_y'])))}
         return self.state
 
     def get_state(self):
@@ -372,7 +370,6 @@ class Learner(pl.LightningModule):
         return  {'test_loss' : loss }
 
     def predict(self, batch, batch_idx: int , dataloader_idx: int = None):
-        print("BATCH")
         x, y = batch
         
         y_hat = self.model.defunc(0, x)
@@ -453,7 +450,8 @@ def main(cfg: DictConfig):
     # model = ddModel()
     # order_data(config=cfg)
     # model = BaseModel()
-    logger.info(f'Model type: {available_models[cfg["model"]["name"]]}')
+    # logger.info(f'Model type: {available_models[cfg["model"]["name"]]}')
+    logger.info(f'Model type: {"LNN"}')
     # Extract features from yaml file
     input_cols = cfg['data']['inputs']
     output_cols = cfg['data']['outputs']
@@ -669,7 +667,8 @@ def test_sim(cfg: DictConfig):
     # model = ddModel()
     # order_data(config=cfg)
     # model = BaseModel()
-    logger.info(f'Model type: {available_models[cfg["model"]["name"]]}')
+    # logger.info(f'Model type: {available_models[cfg["model"]["name"]]}')
+    logger.info(f'Model type: {"LNN"}')
     # Extract features from yaml file
     input_cols = cfg['data']['inputs']
     output_cols = cfg['data']['outputs']
