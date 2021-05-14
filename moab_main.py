@@ -170,7 +170,7 @@ class Simulator(BaseModel):
             #             "ball_y": float(np.random.uniform(-0.1, 0.1)),
             #             "ball_vel_x": float(np.random.uniform(-0.1, 0.1)),
             #             "ball_vel_y": float(np.random.uniform(-0.1, 0.1))}
-            a_tn = np.array([[0.01,0.01]])
+            a_tn = np.array([[config['initial_roll'],config['initial_pitch']]])
             a_t = torch.from_numpy(a_tn.astype(np.float32))
             # s_np = np.array([[np.random.uniform(-1,1) for i in range(8)]])
             s_np = np.array([[config['initial_roll'],config['initial_pitch'],config['initial_x'],config['initial_y'],0.0,0.0,config['initial_vel_x'],config['initial_vel_y']]])
