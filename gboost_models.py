@@ -44,7 +44,7 @@ class GBoostModel(BaseModel):
                 max_depth=max_depth,
                 learning_rate=learning_rate,
                 n_estimators=n_estimators,
-                num_leaves=10,
+                num_leaves=num_leaves,
             )
         else:
             raise NotImplementedError("Unknown model selected")
