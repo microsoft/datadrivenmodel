@@ -6,6 +6,7 @@ import pathlib
 import pickle
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
+from omegaconf.listconfig import ListConfig
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -92,7 +93,7 @@ class BaseModel(abc.ABC):
                 df = df[~df.isnull().any(axis=1)]
             if type(input_cols) == str:
                 base_features = [str(col) for col in df if col.startswith(input_cols)]
-            elif type(input_cols) == list:
+            elif isinstance(input_cols, (list, ListConfig)):
                 base_features = input_cols
             else:
                 raise TypeError(
@@ -102,7 +103,7 @@ class BaseModel(abc.ABC):
                 logging.debug(f"No augmented columns...")
             elif type(augm_cols) == str:
                 augm_features = [str(col) for col in df if col.startswith(augm_cols)]
-            elif type(augm_cols) == list:
+            elif isinstance(augm_cols, (list, ListConfig)):
                 augm_features = augm_cols
             else:
                 raise TypeError(
@@ -118,7 +119,7 @@ class BaseModel(abc.ABC):
 
             if type(output_cols) == str:
                 labels = [col for col in df if col.startswith(output_cols)]
-            elif type(output_cols) == list:
+            elif isinstance(output_cols, (list, ListConfig)):
                 labels = output_cols
             else:
                 raise TypeError(
@@ -152,7 +153,9 @@ class BaseModel(abc.ABC):
 
         return X, y
 
-    def load_numpy(self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy") -> Tuple:
+    def load_numpy(
+        self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy"
+    ) -> Tuple:
 
         X = np.load(os.path.join(dataset_path, X_path))
         y = np.load(os.path.join(dataset_path, y_path))
@@ -615,11 +618,7 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model,
-                param_grid=params,
-                refit=True,
-                cv=cv,
-                scoring=scoring_func,
+                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
