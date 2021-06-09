@@ -10,3 +10,4 @@ simulator:
   configs: ["config_length", "config_masspole"]
   policy: bonsai
   logging: enable
+  env_setup: True

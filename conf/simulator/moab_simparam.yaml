@@ -10,13 +10,8 @@ simulator:
       "state_ball_vel_x",
       "state_ball_vel_y",
     ]
-  actions: 
-    [
-      "action_input_roll",
-      "action_input_pitch",
-    ]
-  configs: 
-    [
-    ]
+  actions: ["action_input_roll", "action_input_pitch"]
+  configs: []
   policy: random
   logging: enable
+  env_setup: True

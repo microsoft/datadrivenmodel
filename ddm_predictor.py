@@ -168,6 +168,7 @@ def main(cfg: DictConfig):
     # logging not yet implemented
     scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
+    env_setup = cfg["simulator"]["env_setup"]
 
     logger.info(f"Training with a new {policy} policy")
 
@@ -191,8 +192,10 @@ def main(cfg: DictConfig):
     if policy == "random":
         test_random_policy(1000, 250, sim)
     elif policy == "bonsai":
-        env_setup()
-        load_dotenv(verbose=True, override=True)
+        if env_setup:
+            logger.info(f"Loading workspace information form .env")
+            env_setup()
+            load_dotenv(verbose=True, override=True)
         # Configure client to interact with Bonsai service
         config_client = BonsaiClientConfig()
         client = BonsaiClient(config_client)
