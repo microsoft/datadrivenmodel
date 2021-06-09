@@ -6,8 +6,6 @@ import numpy as np
 from math import floor
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from model_loader import available_models
-
 logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -37,6 +35,11 @@ def main(cfg: DictConfig) -> None:
     run_sweep = cfg["model"]["sweep"]["run"]
     split_strategy = cfg["model"]["sweep"]["split_strategy"]
     results_csv_path = cfg["model"]["sweep"]["results_csv_path"]
+
+    if model_name.lower() == "torch":
+        from all_models import available_models
+    else:
+        from model_loader import available_models
 
     Model = available_models[model_name]
 

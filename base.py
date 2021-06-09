@@ -22,10 +22,8 @@ from sklearn.model_selection import (
     PredefinedSplit,
 )
 from sklearn.preprocessing import StandardScaler
-from tune_sklearn import TuneSearchCV
 
 from loaders import CsvReader
-import mlflow
 
 logger = logging.getLogger(__name__)
 matplotlib.rcParams["figure.figsize"] = [12, 10]
@@ -596,6 +594,8 @@ class BaseModel(abc.ABC):
 
         # early stopping only supported for learners that have a
         # `partial_fit` method
+        from tune_sklearn import TuneSearchCV
+        import mlflow
 
         # start mlflow auto-logging
         mlflow.sklearn.autolog()

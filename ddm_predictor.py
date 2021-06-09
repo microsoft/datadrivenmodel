@@ -28,9 +28,7 @@ for name in logging.Logger.manager.loggerDict.keys():
 logger = logging.getLogger("datamodeler")
 
 import hydra
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
-from model_loader import available_models
+from omegaconf import DictConfig
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
@@ -172,6 +170,11 @@ def main(cfg: DictConfig):
     diff_state = cfg["data"]["diff_state"]
 
     logger.info(f"Training with a new {policy} policy")
+
+    if model_name.lower() == "torch":
+        from all_models import available_models
+    else:
+        from model_loader import available_models
 
     Model = available_models[model_name]
     model = Model()
