@@ -1,7 +1,7 @@
 simulator:
   states:
     ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
-  actions: [command"]
+  actions: ["command"]
   configs: ["pole_length", "pole_mass", "cart_mass"]
   # estimate these during training
   # e.g.,:
