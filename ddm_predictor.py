@@ -46,7 +46,7 @@ class Simulator(BaseModel):
     ):
 
         self.model = model
-        self.features = states + actions + configs
+        self.features = states + configs + actions
         self.labels = states
         self.config_keys = configs
         self.episode_inits = episode_inits
@@ -54,6 +54,9 @@ class Simulator(BaseModel):
         self.action_keys = actions
         self.diff_state = diff_state
         # TODO: Add logging
+
+        logger.info(f"DDM features: {self.features}")
+        logger.info(f"DDM outputs: {self.labels}")
 
     def episode_start(self, config: Dict[str, Any] = None):
 
@@ -65,6 +68,7 @@ class Simulator(BaseModel):
             logger.info(
                 f"No episode initializations provided, using initializations in yaml `episode_inits`"
             )
+            logger.info(f"Episode config: {self.episode_inits}")
             self.config = self.episode_inits
         else:
             logger.warn(
@@ -116,16 +120,17 @@ def env_setup():
     workspace = os.getenv("SIM_WORKSPACE")
     access_key = os.getenv("SIM_ACCESS_KEY")
 
-    env_file_exists = os.path.exists(".env")
+    env_file_path = os.path.join(dir_path, ".env")
+    env_file_exists = os.path.exists(env_file_path)
     if not env_file_exists:
-        open(".env", "a").close()
+        open(env_file_path, "a").close()
 
     if not all([env_file_exists, workspace]):
         workspace = input("Please enter your workspace id: ")
-        set_key(".env", "SIM_WORKSPACE", workspace)
+        set_key(env_file_path, "SIM_WORKSPACE", workspace)
     if not all([env_file_exists, access_key]):
         access_key = input("Please enter your access key: ")
-        set_key(".env", "SIM_ACCESS_KEY", access_key)
+        set_key(env_file_path, "SIM_ACCESS_KEY", access_key)
 
     load_dotenv(verbose=True, override=True)
     workspace = os.getenv("SIM_WORKSPACE")
