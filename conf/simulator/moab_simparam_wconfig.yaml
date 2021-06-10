@@ -18,6 +18,7 @@ simulator:
       "config_initial_pitch",
       "config_initial_roll",
     ]
+  episode_inits:
   policy: random
   logging: enable
-  env_setup: True
+  workspace_setup: True
