@@ -2,8 +2,8 @@ import logging
 import os
 import random
 import time
-from distutils.util import strtobool
 from typing import Any, Dict, List
+from omegaconf import ListConfig
 
 import numpy as np
 
@@ -41,13 +41,17 @@ class Simulator(BaseModel):
         states: List[str],
         actions: List[str],
         configs: List[str],
+        inputs: List[str],
+        outputs: List[str],
         episode_inits: Dict[str, float],
         diff_state: bool = False,
     ):
 
         self.model = model
-        self.features = states + configs + actions
-        self.labels = states
+        # self.features = states + configs + actions
+        # self.labels = states
+        self.features = inputs
+        self.labels = outputs
         self.config_keys = configs
         self.episode_inits = episode_inits
         self.state_keys = states
@@ -61,6 +65,7 @@ class Simulator(BaseModel):
     def episode_start(self, config: Dict[str, Any] = None):
 
         initial_state = {k: random.random() for k in self.state_keys}
+        initial_action = {k: random.random() for k in self.action_keys}
         if config:
             logger.info(f"Initializing episode with provided config: {config}")
             self.config = config
@@ -77,16 +82,31 @@ class Simulator(BaseModel):
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
         self.state = initial_state
+        self.action = initial_action
+        # capture all data
+        self.all_data = {**self.state, **self.action, **self.config}
 
     def episode_step(self, action: Dict[str, int]):
 
-        input_list = [
-            list(self.state.values()),
-            list(self.config.values()),
-            list(action.values()),
-        ]
+        # load design matrix for self.model.predict
+        # should match the shape of conf.data.inputs
+        # make dict of D={states, actions, configs}
+        # ddm_inputs = filter D \ (conf.data.inputs+conf.data.augmented_cols)
+        # ddm_outputs = filter D \ conf.data.outputs
+        # update(ddm_state) =
 
-        input_array = [item for subl in input_list for item in subl]
+        self.all_data.update(action)
+
+        ddm_input = {k: self.all_data[k] for k in self.features}
+
+        # input_list = [
+        #     list(self.state.values()),
+        #     list(self.config.values()),
+        #     list(action.values()),
+        # ]
+
+        # input_array = [item for subl in input_list for item in subl]
+        input_array = list(ddm_input.values())
         X = np.array(input_array).reshape(1, -1)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.model.predict(
@@ -95,7 +115,10 @@ class Simulator(BaseModel):
             # preds = np.array(list(simstate))+self.dd_model.predict(X) # if doing per iteration prediction of delta state st+1-st
         else:
             preds = self.model.predict(X)  # absolute prediction
-        self.state = dict(zip(self.features, preds.reshape(preds.shape[1]).tolist()))
+        ddm_output = dict(zip(self.labels, preds.reshape(preds.shape[1]).tolist()))
+        self.all_data.update(ddm_output)
+        self.state = {k: self.all_data[k] for k in self.state_keys}
+        # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
         return self.state
 
     def get_state(self):
@@ -188,8 +211,19 @@ def main(cfg: DictConfig):
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
 
-    logger.info(f"Training with a new {policy} policy")
+    input_cols = cfg["data"]["inputs"]
+    output_cols = cfg["data"]["outputs"]
+    augmented_cols = cfg["data"]["augmented_cols"]
+    if type(input_cols) == ListConfig:
+        input_cols = list(input_cols)
+    if type(output_cols) == ListConfig:
+        output_cols = list(output_cols)
+    if type(augmented_cols) == ListConfig:
+        augmented_cols = list(augmented_cols)
 
+    input_cols = input_cols + augmented_cols
+
+    logger.info(f"Training with a new {policy} policy")
     if model_name.lower() == "torch":
         from all_models import available_models
     else:
@@ -202,7 +236,16 @@ def main(cfg: DictConfig):
     # model.build_model(**cfg["model"]["build_params"])
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, episode_inits, diff_state)
+    sim = Simulator(
+        model,
+        states,
+        actions,
+        configs,
+        input_cols,
+        output_cols,
+        episode_inits,
+        diff_state,
+    )
 
     # do a random action to get initial state
     sim.episode_start()

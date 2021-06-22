@@ -11,6 +11,8 @@ available_models = {
     "linear_model": SKModel,
     "SVR": SKModel,
     "GradientBoostingRegressor": SKModel,
+    "sklearn": SKModel,
+    "SGDRegressor": SKModel,
     "gboost": GBoostModel,
     "xgboost": GBoostModel,
     "lightgbm": GBoostModel,
