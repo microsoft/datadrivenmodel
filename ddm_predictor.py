@@ -185,8 +185,8 @@ def test_random_policy(
             action = random_action()
             sim.episode_step(action)
             sim_state = sim.get_state()
-            print(f"Running iteration #{iteration} for episode #{episode}")
-            print(f"Observations: {sim_state}")
+            logger.info(f"Running iteration #{iteration} for episode #{episode}")
+            logger.info(f"Observations: {sim_state}")
             iteration += 1
             terminal = iteration >= num_iterations
 
