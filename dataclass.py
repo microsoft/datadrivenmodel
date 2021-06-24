@@ -16,9 +16,9 @@ class DataClass(object):
     def __init__(self):
         # Required fields that need to be filled every time we call load_csv as well.
 
-        # feature df orignal col naming, saved when renaming is performed --> concatenation
+        # feature df original col naming, saved when renaming is performed --> concatenation
         self.original_features = None
-        # label df orignal col naming, saved when renaming is performed --> diff
+        # label df original col naming, saved when renaming is performed --> diff
         self.original_labels = None
 
         # training variables - df

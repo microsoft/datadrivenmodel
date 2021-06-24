@@ -28,11 +28,14 @@ def main(cfg: DictConfig) -> None:
     dataset_path = cfg["data"]["path"]
     max_rows = cfg["data"]["max_rows"]
     test_perc = cfg["data"]["test_perc"]
+    scale_data = cfg["data"]["scale_data"]
+    delta_state = cfg["data"]["diff_state"]
+    concatenated_steps = cfg["data"]["concatenated_steps"]
+    concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
 
     # common model args
     save_path = cfg["model"]["saver"]["filename"]
     model_name = cfg["model"]["name"]
-    delta_state = cfg["data"]["diff_state"]
     run_sweep = cfg["model"]["sweep"]["run"]
     split_strategy = cfg["model"]["sweep"]["split_strategy"]
     results_csv_path = cfg["model"]["sweep"]["results_csv_path"]
@@ -61,7 +64,10 @@ def main(cfg: DictConfig) -> None:
         episode_col=episode_col,
         iteration_col=iteration_col,
         max_rows=max_rows,
+        train_split=1 - test_perc,
         diff_state=delta_state,
+        concatenated_steps=concatenated_steps,
+        concatenated_zero_padding=concatenated_zero_padding,
     )
 
     logger.info(
@@ -69,20 +75,12 @@ def main(cfg: DictConfig) -> None:
     )
     train_id_end = floor(X.shape[0] * (1 - test_perc))
     X_train, y_train = (
-        X[
-            :train_id_end,
-        ],
-        y[
-            :train_id_end,
-        ],
+        X[:train_id_end,],
+        y[:train_id_end,],
     )
     X_test, y_test = (
-        X[
-            train_id_end:,
-        ],
-        y[
-            train_id_end:,
-        ],
+        X[train_id_end:,],
+        y[train_id_end:,],
     )
 
     # save training and test sets
