@@ -8,5 +8,10 @@ simulator:
     ]
   actions: ["action_command"]
   configs: ["config_length", "config_masspole"]
+  # estiamte these during training
+  # e.g.,:
+  # episode_inits: { "config_length": 0.5, "config_masspole": 0.1 }
+  episode_inits:
   policy: bonsai
   logging: enable
+  workspace_setup: True

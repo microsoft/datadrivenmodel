@@ -10,13 +10,9 @@ simulator:
       "state_ball_vel_x",
       "state_ball_vel_y",
     ]
-  actions: 
-    [
-      "action_input_roll",
-      "action_input_pitch",
-    ]
-  configs: 
-    [
-    ]
+  actions: ["action_input_roll", "action_input_pitch"]
+  configs: []
+  episode_inits:
   policy: random
   logging: enable
+  workspace_setup: True

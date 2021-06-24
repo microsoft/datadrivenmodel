@@ -10,7 +10,7 @@ model:
     scale_data: True
     max_depth: 6
   saver:
-    filename: models/boost/moab/xgboost_model
+    filename: models/xgboost_models/updated-cartpole
   sweep:
     run: False
     split_strategy: timeseries

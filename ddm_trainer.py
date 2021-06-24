@@ -6,8 +6,6 @@ import numpy as np
 from math import floor
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from model_loader import available_models
-
 logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -22,6 +20,7 @@ def main(cfg: DictConfig) -> None:
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
+
     iteration_order = cfg["data"]["iteration_order"]
     episode_col = cfg["data"]["episode_col"]
     iteration_col = cfg["data"]["iteration_col"]
@@ -36,6 +35,11 @@ def main(cfg: DictConfig) -> None:
     run_sweep = cfg["model"]["sweep"]["run"]
     split_strategy = cfg["model"]["sweep"]["split_strategy"]
     results_csv_path = cfg["model"]["sweep"]["results_csv_path"]
+
+    if model_name.lower() == "torch":
+        from all_models import available_models
+    else:
+        from model_loader import available_models
 
     Model = available_models[model_name]
 
@@ -69,20 +73,12 @@ def main(cfg: DictConfig) -> None:
     )
     train_id_end = floor(X.shape[0] * (1 - test_perc))
     X_train, y_train = (
-        X[
-            :train_id_end,
-        ],
-        y[
-            :train_id_end,
-        ],
+        X[:train_id_end,],
+        y[:train_id_end,],
     )
     X_test, y_test = (
-        X[
-            train_id_end:,
-        ],
-        y[
-            train_id_end:,
-        ],
+        X[train_id_end:,],
+        y[train_id_end:,],
     )
 
     # save training and test sets

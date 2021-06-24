@@ -17,4 +17,4 @@ COPY . /src
 RUN pip3 install -r requirements.txt
 
 # # This will be the command to run the simulator
-CMD ["python3", "sim_predictor.py"]
+CMD ["python3", "ddm_predictor.py", "simulator.workspace_setup=False"]
