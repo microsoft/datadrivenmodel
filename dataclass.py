@@ -208,7 +208,7 @@ class DataClass(object):
         iteration_col: str = "iteration",
         drop_nulls: bool = True,
         max_rows: Union[int, None] = None,
-        train_split: float = 0.85,
+        test_perc: float = 0.15,
         diff_state: bool = False,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
@@ -337,7 +337,7 @@ class DataClass(object):
                         self.df_per_episode.append(aux_df)
 
             # Splitting datasets
-            self.split_train_and_test_samples(split=train_split)
+            self.split_train_and_test_samples(test_perc=test_perc)
 
             return self.get_train_set()
 
@@ -376,7 +376,7 @@ class DataClass(object):
         return df_per_episode
 
     
-    def split_train_and_test_samples(self, split = 0.85):
+    def split_train_and_test_samples(self, test_perc = 0.15):
         """Takes care of splitting test and train sets. The dataset is split without breaking episodes, but making the split at an iteration level.
 
         Parameters
@@ -386,8 +386,8 @@ class DataClass(object):
 
         """
         
-        # ensure we do not divide by zero later
-        split = min(max(split, 0.01), 0.99)
+        # Get train split - but ensuring we do not divide by zero later
+        split = min(max(1-test_perc, 0.01), 0.99)
 
         episodes_len = []
         

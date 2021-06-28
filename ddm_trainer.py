@@ -56,32 +56,26 @@ def main(cfg: DictConfig) -> None:
 
     model = Model()
     X, y = model.load_csv(
-        input_cols=input_cols,
-        output_cols=output_cols,
-        augm_cols=augmented_cols,
         dataset_path=dataset_path,
+        input_cols=input_cols,
+        augm_cols=augmented_cols,
+        output_cols=output_cols,
         iteration_order=iteration_order,
         episode_col=episode_col,
         iteration_col=iteration_col,
+        #drop_nulls: bool = True,
         max_rows=max_rows,
-        train_split=1 - test_perc,
+        test_perc=test_perc,
         diff_state=delta_state,
         concatenated_steps=concatenated_steps,
         concatenated_zero_padding=concatenated_zero_padding,
     )
 
     logger.info(
-        f"Saving last {test_perc * 100}% for test, using first {(1 - test_perc) * 100}% for training/sweeping"
+        f"From the full dataset, {test_perc * 100}% will be used for test, while {(1 - test_perc) * 100}% for training/sweeping"
     )
-    train_id_end = floor(X.shape[0] * (1 - test_perc))
-    X_train, y_train = (
-        X[:train_id_end,],
-        y[:train_id_end,],
-    )
-    X_test, y_test = (
-        X[train_id_end:,],
-        y[train_id_end:,],
-    )
+    X_train, y_train = model.get_train_set(grouped_per_episode = False)
+    X_test, y_test = model.get_test_set(grouped_per_episode = False)
 
     # save training and test sets
     save_data_path = os.path.join(os.getcwd(), "data")
