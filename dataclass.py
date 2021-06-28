@@ -589,7 +589,7 @@ class DataClass(object):
         for feat in feats_list:
 
             if self.concatenated_steps > 1:
-                for i in range(1, concatenated_steps):
+                for i in range(1, self.concatenated_steps):
                     concat_feat = feat + f"_{i}"
                     next_concat_feat = feat + f"_{i+1}"
                     self.last_X_d[next_concat_feat] = self.last_X_d[concat_feat]
