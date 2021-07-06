@@ -30,9 +30,12 @@ from azure.core.exceptions import HttpResponseError
 import numpy as np
 import yaml
 from predictor import ModelPredictor
+from sim.render_qube import QubeRendererVpython
 
 class TemplateSimulatorSession():
-    def __init__(self):
+    def __init__(self, render=False):
+        self.render = render
+        self.count_view = False
         with open('config/config_model.yml') as cmfile:
             self.model_config = yaml.full_load(cmfile)
         
@@ -91,6 +94,7 @@ class TemplateSimulatorSession():
         SimConfig parameters for the current episode defined in Inkling
         """
         self.state = self.predictor.reset_state(config)
+        self.frequency = config['frequency']
 
         try:
             self.predictor.noise_percentage = config['noise_percentage']
@@ -104,15 +108,29 @@ class TemplateSimulatorSession():
         action : Dict[str, Any]
         BrainAction chosen from the Bonsai Service, prediction or exploration
         """
+        '''
         self.action = []
         for key, value in self.model_config['IO']['feature_name'].items():
             if value == 'action':
                 self.action.append(action[key])
+        '''
+
+        self.action = [np.array([-2.0, 35.0, -1.5, 3.0]).T.dot(self.state)]
 
         self.state = self.predictor.predict(
             state=self.state,
             action=self.action,
         )
+
+        if self.render:
+            if self.count_view == False:
+                self.viewer = QubeRendererVpython(
+                        self.state[0], 
+                        self.state[1],
+                        self.frequency
+                    )
+                self.count_view = True
+            self.viewer.render(self.state[0], self.state[1])
 
     def halted(self) -> bool:
         """ Should return True if the simulator cannot continue"""
@@ -124,9 +142,9 @@ class TemplateSimulatorSession():
 
         return False
 
-def main():
+def main(render=False):
     # Grab standardized way to interact with sim API
-    sim = TemplateSimulatorSession()
+    sim = TemplateSimulatorSession(render=render)
 
     # Configure client to interact with Bonsai service
     config_client = BonsaiClientConfig()
@@ -215,6 +233,7 @@ def main():
             session_id=registered_session.session_id
         )
         print("Unregistered simulator.")
+    '''
     except Exception as err:
         # Gracefully unregister for any other exceptions
         client.session.delete(
@@ -222,6 +241,14 @@ def main():
             session_id=registered_session.session_id
         )
         print("Unregistered simulator because: {}".format(err))
+    '''
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Bonsai and Simulator Integration...")
+    parser.add_argument(
+        "--render", action="store_true", default=False, help="Render training episodes",
+    )
+    args, _ = parser.parse_known_args()
+    main(args.render)
