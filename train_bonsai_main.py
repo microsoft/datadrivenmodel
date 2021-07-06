@@ -108,15 +108,11 @@ class TemplateSimulatorSession():
         action : Dict[str, Any]
         BrainAction chosen from the Bonsai Service, prediction or exploration
         """
-        '''
         self.action = []
         for key, value in self.model_config['IO']['feature_name'].items():
             if value == 'action':
                 self.action.append(action[key])
-        '''
-
-        self.action = [np.array([-2.0, 35.0, -1.5, 3.0]).T.dot(self.state)]
-
+        
         self.state = self.predictor.predict(
             state=self.state,
             action=self.action,
