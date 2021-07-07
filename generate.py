@@ -25,10 +25,10 @@ def get_config():
         "frequency": 80,
         
         # Initial Conditions
-        "initial_theta": random.randint(-80, 80) * 2 * np.pi / 360,
-        "initial_alpha": 0 + np.random.randn() * 0.05, # make sure pi if resetting downward
-        "initial_theta_dot": 0 + np.random.randn() * 0.05,
-        "initial_alpha_dot": 0 + np.random.randn() * 0.05,
+        "theta": random.randint(-80, 80) * 2 * np.pi / 360,
+        "alpha": 0 + np.random.randn() * 0.05, # make sure pi if resetting downward
+        "theta_dot": 0 + np.random.randn() * 0.05,
+        "alpha_dot": 0 + np.random.randn() * 0.05,
         
         "max_iterations": 640
     }

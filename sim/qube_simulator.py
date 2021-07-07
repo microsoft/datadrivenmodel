@@ -75,10 +75,10 @@ class QubeSimulator(object):
             self._dt = 1.0 / self.frequency
 
             self.state = np.array([
-                config.get("initial_theta", np.random.randn() * 0.05),
-                config.get("initial_alpha", np.pi + np.random.randn() * 0.05),
-                config.get("initial_theta_dot", np.random.randn() * 0.05),
-                config.get("initial_alpha_dot", np.random.randn() * 0.05),
+                config.get("theta", np.random.randn() * 0.05),
+                config.get("alpha", np.pi + np.random.randn() * 0.05),
+                config.get("theta_dot", np.random.randn() * 0.05),
+                config.get("alpha_dot", np.random.randn() * 0.05),
             ])
         return self.state
 
