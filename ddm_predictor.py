@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 from omegaconf import ListConfig
 
 import numpy as np
+from sim.quanser.sim.render_qube import QubeRendererVpython
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -45,6 +46,7 @@ class Simulator(BaseModel):
         outputs: List[str],
         episode_inits: Dict[str, float],
         diff_state: bool = False,
+        render=False,
     ):
 
         self.model = model
@@ -57,13 +59,18 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
+        self.render = render
+        self.count_view = False
         # TODO: Add logging
 
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
 
     def episode_start(self, config: Dict[str, Any] = None):
-
+        try: 
+            self.frequency = config['config_frequency']
+        except:
+            self.frequency = 80
         initial_state = {k: random.random() for k in self.state_keys}
         initial_action = {k: random.random() for k in self.action_keys}
         if config:
@@ -119,6 +126,16 @@ class Simulator(BaseModel):
         self.all_data.update(ddm_output)
         self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
+
+        if self.render:
+            if self.count_view == False:
+                self.viewer = QubeRendererVpython(
+                        self.state['state_theta'], 
+                        self.state['state_alpha'],
+                        self.frequency
+                    )
+                self.count_view = True
+            self.viewer.render(self.state['state_theta'], self.state['state_alpha'])
         return self.state
 
     def get_state(self):
@@ -204,6 +221,7 @@ def main(cfg: DictConfig):
     actions = cfg["simulator"]["actions"]
     configs = cfg["simulator"]["configs"]
     policy = cfg["simulator"]["policy"]
+    render = cfg["simulator"]["render"]
     logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
     scale_data = cfg["model"]["build_params"]["scale_data"]
@@ -245,6 +263,7 @@ def main(cfg: DictConfig):
         output_cols,
         episode_inits,
         diff_state,
+        render
     )
 
     # do a random action to get initial state
@@ -383,6 +402,7 @@ def main(cfg: DictConfig):
                 session_id=registered_session.session_id,
             )
             print("Unregistered simulator.")
+        '''
         except Exception as err:
             # Gracefully unregister for any other exceptions
             client.session.delete(
@@ -390,6 +410,7 @@ def main(cfg: DictConfig):
                 session_id=registered_session.session_id,
             )
             print("Unregistered simulator because: {}".format(err))
+        '''
 
 
 if __name__ == "__main__":

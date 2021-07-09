@@ -22,3 +22,4 @@ simulator:
   policy: bonsai
   logging: enable
   workspace_setup: True
+  render: True

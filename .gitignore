@@ -15,7 +15,7 @@ __pycache__/
 *.env
 
 # saved models
-models/
+#models/
 
 # data directories
 etc/
