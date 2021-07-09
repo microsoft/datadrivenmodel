@@ -17,7 +17,7 @@ data:
       "config_initial_theta_dot",
       "config_initial_alpha_dot",
     ]
-  iteration_order: -1
+  iteration_order: 1
   episode_col: episode
   iteration_col: iteration
   max_rows: -1
