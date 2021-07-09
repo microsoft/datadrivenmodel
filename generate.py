@@ -25,10 +25,10 @@ def get_config():
         "frequency": 80,
         
         # Initial Conditions
-        "theta": random.randint(-80, 80) * 2 * np.pi / 360,
-        "alpha": 0 + np.random.randn() * 0.05, # make sure pi if resetting downward
-        "theta_dot": 0 + np.random.randn() * 0.05,
-        "alpha_dot": 0 + np.random.randn() * 0.05,
+        "theta": np.random.uniform(-0.27, 0.27),
+        "alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
+        "theta_dot": np.random.uniform(-0.05, 0.05),
+        "alpha_dot": np.random.uniform(-0.05, 0.05),
         
         "max_iterations": 640
     }
@@ -63,17 +63,21 @@ def generate_data(total_sample=100000):
     config = get_config()
 
     n = 0
+    episode = 0
     while True:
         # All methods are based on how they are defined in model i.e. the simulator, QubeSimulator
         # reset 
+        episode += 1
         config = get_config()
         model.reset(config)
         s = get_state(model)
+        iteration = 0
         if n > total_sample-1:
             break
         else:
             pass 
         for t in range(config["max_iterations"]):
+            iteration += 1
             if n > total_sample-1:
                 break
                 print('maximum number of samples recoded from the environment')
@@ -84,6 +88,8 @@ def generate_data(total_sample=100000):
             # Concatenate states and actions
             sa = s.copy()
             sa.update(action)
+            sa.update({"episode": episode})
+            sa.update({"iteration": iteration})
             
             # Send to csv
             sample = pd.DataFrame(data=[sa])
