@@ -20,7 +20,7 @@ from model_loader import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
 ## Example: Moab from a Microsoft Bonsai
-## from sim.moab.moab_main import SimulatorSession,  env_setup
+from main import TemplateSimulatorSession, env_setup
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
@@ -182,7 +182,7 @@ class Simulator(BaseModel):
 
 def test_sim_model(
     num_episodes: int = 100,
-    num_iterations: int = 250,
+    num_iterations: int = 640,
     log_iterations: bool = True,
     sim: Simulator = None,
 ):
@@ -257,7 +257,7 @@ def main(cfg: DictConfig):
     # Grab standardized way to interact with sim API
     sim = Simulator(model, states, actions, configs, logflag, diff_state)
 
-    test_sim_model(2, 250, logflag, sim)
+    test_sim_model(2, 640, logflag, sim)
 
     return sim
 

@@ -13,12 +13,12 @@ simulator:
       "config_Dr",
       "config_Dp",
       "config_frequency",
-      "config_inital_theta",
+      "config_initial_theta",
       "config_initial_alpha",
       "config_initial_theta_dot",
       "config_initial_alpha_dot",
     ]
   episode_inits:
-  policy: random
+  policy: bonsai
   logging: enable
   workspace_setup: True
