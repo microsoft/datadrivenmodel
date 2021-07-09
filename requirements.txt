@@ -18,3 +18,4 @@ mlflow==1.15.0
 rich==9.13.0
 hydra-core==1.0.5
 natsort==7.1.0
+vpython==7.6.0
