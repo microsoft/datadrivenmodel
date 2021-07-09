@@ -181,7 +181,7 @@ class Simulator(BaseModel):
 
 
 def test_sim_model(
-    num_episodes: int = 100,
+    num_episodes: int = 2,
     num_iterations: int = 640,
     log_iterations: bool = True,
     sim: Simulator = None,
@@ -255,7 +255,7 @@ def main(cfg: DictConfig):
     model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state)
+    sim = Simulator(model, states, actions, configs, logflag, diff_state, TemplateSimulatorSession)
 
     test_sim_model(2, 640, logflag, sim)
 

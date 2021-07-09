@@ -34,11 +34,8 @@ from azure.core.exceptions import HttpResponseError
 import argparse
 from sim.quanser.sim.qube_simulator import QubeSimulator
 from sim.quanser.policies import random_policy, brain_policy
-#from sim.qube_simulator import QubeSimulator
-#from policies import random_policy, brain_policy
 
 LOG_PATH = "logs"
-
 
 def ensure_log_dir(log_full_path):
     """
