@@ -15,7 +15,7 @@ from .render_qube import QubeRendererVpython
 class QubeSimulator(object):
     """Simulation for the Quanser Qube Inverted Pendulum."""
 
-    def __init__(self, frequency=250):
+    def __init__(self, frequency=80):
         self.frequency = frequency
         self._dt = 1.0 / self.frequency
         self._max_voltage = 3.0
@@ -71,7 +71,7 @@ class QubeSimulator(object):
             self.Jp = self.mp * self.Lp ** 2 / 12  # Recalculate for new mp, Lp
             self.Jr = self.mr * self.Lr ** 2 / 12  # Recalculate for new mr, Lr
 
-            self.frequency = config.get("frequency", 250)
+            self.frequency = config.get("frequency", 80)
             self._dt = 1.0 / self.frequency
 
             self.state = np.array([

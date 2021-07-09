@@ -3,16 +3,6 @@ simulator:
   actions: ["action_Vm"]
   configs:
     [
-      "config_Lp",
-      "config_mp",
-      "config_Rm",
-      "config_kt",
-      "config_km",
-      "config_mr",
-      "config_Lr",
-      "config_Dr",
-      "config_Dp",
-      "config_frequency",
       "config_initial_theta",
       "config_initial_alpha",
       "config_initial_theta_dot",
