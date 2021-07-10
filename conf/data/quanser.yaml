@@ -6,12 +6,11 @@ data:
       "state_theta",
       "state_alpha",
       "state_theta_dot",
-      "state_alpha_dot",
-      "action_Vm",
+      "state_alpha_dot"
     ]
   outputs: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
   augmented_cols:
-    [
+    [ "Vm",
       "config_initial_theta",
       "config_initial_alpha",
       "config_initial_theta_dot",

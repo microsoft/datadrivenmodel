@@ -1,6 +1,6 @@
 simulator:
   states: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
-  actions: ["action_Vm"]
+  actions: ["Vm"]
   configs:
     [
       "config_initial_theta",

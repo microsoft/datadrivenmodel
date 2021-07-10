@@ -44,7 +44,7 @@ class Simulator(BaseModel):
         self.config_keys = configs
         self.state_keys = states
         self.action_keys = actions
-        self.sim_orig = sim_orig  # include simulator function if comparing to simulator
+        self.sim_orig = sim_orig()  # include simulator function if comparing to simulator
         self.diff_state = diff_state
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -210,6 +210,8 @@ def test_sim_model(
         while not terminal:
             action = sim.test_policies("random", action)
             # sim iteration
+            print("ACTIONS")
+            print(action)
             sim.episode_step(action)
             ddm_state = sim.get_state()
             if sim.sim_orig:
