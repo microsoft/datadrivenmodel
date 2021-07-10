@@ -22,6 +22,7 @@ from model_loader import available_models
 ## Example: Moab from a Microsoft Bonsai
 from main import TemplateSimulatorSession, env_setup
 import math
+from plot_diff import plot_diff
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
@@ -155,7 +156,7 @@ class Simulator(BaseModel):
         # TO DO: Add benchmark policy or other case specific scenarios
 
     def halted(self):
-        sim_state = self.get_state()
+        sim_state = self.get_sim_state()
 
         # If arm hits rails of physical limit +/- 90 degrees
         return abs(sim_state['state_theta']) >= math.pi / 2 or abs(sim_state['state_alpha']) >= math.pi / 2
@@ -240,9 +241,11 @@ def test_sim_model(
             # Add additional terminal conditions if required. Here only time-out is used.
             terminal = iteration >= num_iterations or sim.halted()
 
-        print("DDM files saved to: {}".format(str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file.replace('\\', '/')))
-        print("SIM files saved to: {}".format(str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file2.replace('\\', '/')))
-
+        ddm_log_loc = str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file.replace('\\', '/')
+        sim_log_loc = str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file2.replace('\\', '/')
+        col = ['state_theta', 'state_alpha', 'action_Vm']
+        plot_diff(ddm_log_loc, sim_log_loc, col)
+        
     return sim
 
 
