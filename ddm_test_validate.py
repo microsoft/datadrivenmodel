@@ -21,6 +21,7 @@ from model_loader import available_models
 ## Add a local simulator in a `sim` folder to validate data-driven model
 ## Example: Moab from a Microsoft Bonsai
 from main import TemplateSimulatorSession, env_setup
+import math
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
@@ -141,7 +142,7 @@ class Simulator(BaseModel):
         if not _init_actions:
             # If simulator is unavailable or does not have initial actions, assign
             # random actions, with range same as actuator limits. See TOAD from discovery
-            _init_actions = {j: np.random.uniform(-1, 1) for j in self.action_keys}
+            _init_actions = {j: np.random.uniform(-3, 3) for j in self.action_keys}
         return _init_actions
 
     def test_policies(self, policy, action):
@@ -154,7 +155,10 @@ class Simulator(BaseModel):
         # TO DO: Add benchmark policy or other case specific scenarios
 
     def halted(self):
-        pass
+        sim_state = self.get_state()
+
+        # If arm hits rails of physical limit +/- 90 degrees
+        return abs(sim_state['state_theta']) >= math.pi / 2 or abs(sim_state['state_alpha']) >= math.pi / 2
 
     def log_iterations(
         self, state, action, fname: str, episode: int = 0, iteration: int = 1
@@ -196,7 +200,13 @@ def test_sim_model(
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        sim.episode_start()
+        config = {
+            "config_initial_theta": np.random.uniform(-0.27, 0.27),
+            "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
+            "config_initial_theta_dot": np.random.uniform(-0.05, 0.05),
+            "config_initial_alpha_dot": np.random.uniform(-0.05, 0.05),
+        }
+        sim.episode_start(config)
         ddm_state = sim.get_state()
         sim_state = sim.get_sim_state()
         # it is important to know initial actions for evolution of the dynamics
@@ -228,7 +238,7 @@ def test_sim_model(
             print(f"Observations for Sim: {sim_state}")
             print(f"Observations for Data: {ddm_state}")
             # Add additional terminal conditions if required. Here only time-out is used.
-            terminal = iteration >= num_iterations
+            terminal = iteration >= num_iterations or sim.halted()
 
         print("DDM files saved to: {}".format(str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file.replace('\\', '/')))
         print("SIM files saved to: {}".format(str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file2.replace('\\', '/')))

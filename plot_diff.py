@@ -4,8 +4,8 @@ import numpy as np
 #import seaborn as sns
 #sns.set()
 
-fname_ddm = './outputs/2021-07-09/22-03-35/logs/2021-07-09-22-03-37_DDM_log.csv'
-fname_sim = './outputs/2021-07-09/22-03-35/logs/2021-07-09-22-03-37_SIMDATA_log.csv'
+fname_ddm = './outputs/2021-07-09/23-28-15/logs/2021-07-09-23-28-17_DDM_log.csv'
+fname_sim = './outputs/2021-07-09/23-28-15/logs/2021-07-09-23-28-17_SIMDATA_log.csv'
 col = ['state_theta', 'state_alpha', 'action_Vm']
 
 def plot_diff(fname_ddm, fname_sim, col):

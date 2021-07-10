@@ -205,7 +205,7 @@ def test_random_policy(
             logger.info(f"Running iteration #{iteration} for episode #{episode}")
             logger.info(f"Observations: {sim_state}")
             iteration += 1
-            terminal = iteration >= num_iterations
+            terminal = iteration >= num_iterations or sim.halted()
 
     return sim
 
