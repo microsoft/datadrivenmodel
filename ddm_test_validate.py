@@ -54,14 +54,14 @@ class Simulator(BaseModel):
             log_file2 = os.path.join(
                 log_path, current_time + "_" + "SIMDATA" + "_log.csv"
             )
-            logs_directory = pathlib.Path(log_file).parent.absolute()
-            if not pathlib.Path(logs_directory).exists():
+            self.logs_directory = pathlib.Path(log_file).parent.absolute()
+            if not pathlib.Path(self.logs_directory).exists():
                 print(
                     "Directory does not exist at {0}, creating now...".format(
-                        str(logs_directory)
+                        str(self.logs_directory)
                     )
                 )
-                logs_directory.mkdir(parents=True, exist_ok=True)
+                self.logs_directory.mkdir(parents=True, exist_ok=True)
         else:
             log_file2 = None
         self.log_file = log_file
@@ -230,6 +230,9 @@ def test_sim_model(
             # Add additional terminal conditions if required. Here only time-out is used.
             terminal = iteration >= num_iterations
 
+        print("DDM files saved to: {}".format(str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file.replace('\\', '/')))
+        print("SIM files saved to: {}".format(str(sim.logs_directory).replace('logs', '').replace('\\', '/') + sim.log_file2.replace('\\', '/')))
+
     return sim
 
 
@@ -259,7 +262,7 @@ def main(cfg: DictConfig):
     # Grab standardized way to interact with sim API
     sim = Simulator(model, states, actions, configs, logflag, diff_state, TemplateSimulatorSession)
 
-    test_sim_model(2, 640, logflag, sim)
+    test_sim_model(1, 640, logflag, sim)
 
     return sim
 
