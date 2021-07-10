@@ -92,7 +92,7 @@ class TemplateSimulatorSession:
     def episode_step(self, action: Dict[str, Any]):
         """ Called for each step of the episode """
         ## Add simulator step api here using action from Bonsai platform
-        self.simulator.step(action["Vm"])
+        self.simulator.step(action["action_Vm"])
 
         if self.render:
             self.simulator.view()

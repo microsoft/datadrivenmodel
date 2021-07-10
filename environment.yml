@@ -1,4 +1,4 @@
-name: ddmqcube
+name: ddm
 channels:
   - pytorch
   - defaults
@@ -46,4 +46,4 @@ dependencies:
       - torchdiffeq==0.2.1
       - plotly==4.14.3
       - git+https://github.com/google-research/torchsde.git
-      - vpython
+      - vpython==7.6.0
