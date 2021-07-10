@@ -151,6 +151,11 @@ class Simulator(BaseModel):
             return {j: np.random.uniform(-1, 1) for j in self.action_keys}
         elif policy == "zeros":
             return {j: 0 for j in self.action_keys}
+        elif policy == "lqr":
+            state_dict = self.get_sim_state()
+            state = np.array([state_dict['state_theta'], state_dict['state_alpha'], state_dict['state_theta_dot'], state_dict['state_alpha_dot']])
+            action = np.array([-2.0, 35.0, -1.5, 3.0]).T.dot(state)
+            return {"action_Vm": action}
         else:  # coasting is default policy - no change in actions
             return action
         # TO DO: Add benchmark policy or other case specific scenarios
@@ -190,6 +195,7 @@ def test_sim_model(
     num_iterations: int = 640,
     log_iterations: bool = True,
     sim: Simulator = None,
+    policy: str = "random"
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -219,7 +225,7 @@ def test_sim_model(
             if sim.sim_orig:
                 sim.log_iterations(sim_state, action, sim.log_file2, episode, iteration)
         while not terminal:
-            action = sim.test_policies("random", action)
+            action = sim.test_policies(policy, action)
             # sim iteration
             print("ACTIONS")
             print(action)
@@ -275,7 +281,7 @@ def main(cfg: DictConfig):
     # Grab standardized way to interact with sim API
     sim = Simulator(model, states, actions, configs, logflag, diff_state, TemplateSimulatorSession)
 
-    test_sim_model(1, 640, logflag, sim)
+    test_sim_model(1, 640, logflag, sim, policy)
 
     return sim
 

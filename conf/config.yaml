@@ -1,4 +1,4 @@
 defaults:
   - data: quanser.yaml
-  - model: xgboost.yaml
+  - model: lightgbm.yaml
   - simulator: quanser-log.yaml
