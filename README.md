@@ -141,9 +141,21 @@ from sim.quanser.policies import random_policy, brain_policy
 
 3. Ensure the config in `conf/simulator` does NOT have the default policy as bonsai. You'll want to use "random" or create your own expert policy.
 
-> NOTE: You can override your policy from the CLI, will be shown in the next step
+> NOTE: You can override your policy from the CLI, will be shown in the final step
 
-4. Run `ddm_test_validate.py`
+4. Provide a scenario config in `ddm_test_validate.py` to ensure you start with initial configurations that are better than just random.
+
+```python
+        '''
+       TODO: Add episode_start(config) so sim works properly and not initializing
+        with unrealistic initial conditions.
+        '''
+        sim.episode_start()
+        ddm_state = sim.get_state()
+        sim_state = sim.get_sim_state()
+```
+
+5. Run `ddm_test_validate.py`
 
 ```python
 python ddm_test_validate.py simulator.policy=random

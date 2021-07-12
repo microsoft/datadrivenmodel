@@ -25,8 +25,8 @@ from all_models import available_models
 ├───main.py
 ├───sim
 │   ├───quanser
-│   │   ├───logs
 │   │   ├───sim
+│   │   |    ├───qube_simulator.py
 '''
 # TODO: from main import TemplateSimulatorSession, env_setup
 
