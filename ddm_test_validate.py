@@ -16,11 +16,19 @@ logger = logging.getLogger("datamodeler")
 import hydra
 from omegaconf import DictConfig
 
-from model_loader import available_models
+from all_models import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
-## Example: Moab from a Microsoft Bonsai
-## from sim.moab.moab_main import SimulatorSession,  env_setup
+## Example: Quanser from a Microsoft Bonsai
+'''
+├───ddm_test_validate.py
+├───main.py
+├───sim
+│   ├───quanser
+│   │   ├───logs
+│   │   ├───sim
+'''
+# TODO: from main import TemplateSimulatorSession, env_setup
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
@@ -44,7 +52,7 @@ class Simulator(BaseModel):
         self.config_keys = configs
         self.state_keys = states
         self.action_keys = actions
-        self.sim_orig = sim_orig  # include simulator function if comparing to simulator
+        self.sim_orig = sim_orig()  # include simulator function if comparing to simulator
         self.diff_state = diff_state
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -154,6 +162,7 @@ class Simulator(BaseModel):
         # TO DO: Add benchmark policy or other case specific scenarios
 
     def halted(self):
+        # Recommend implementing, be sure to use self.get_sim_state() not self.get_state()
         pass
 
     def log_iterations(
@@ -196,6 +205,10 @@ def test_sim_model(
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
+        '''
+        TODO: Add episode_start(config) so sim works properly and not initializing
+        with unrealistic initial conditions.
+        '''
         sim.episode_start()
         ddm_state = sim.get_state()
         sim_state = sim.get_sim_state()
@@ -226,7 +239,7 @@ def test_sim_model(
             print(f"Observations for Sim: {sim_state}")
             print(f"Observations for Data: {ddm_state}")
             # Add additional terminal conditions if required. Here only time-out is used.
-            terminal = iteration >= num_iterations
+            terminal = iteration >= num_iterations or sim.halted()
 
     return sim
 
@@ -234,7 +247,7 @@ def test_sim_model(
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig):
 
-    save_path = cfg["model"]["saver"][0]["filename"]
+    save_path = cfg["model"]["saver"]["filename"]
     if cfg["data"]["full_or_relative"] == "relative":
         save_path = os.path.join(dir_path, save_path)
     model_name = cfg["model"]["name"]
@@ -243,21 +256,36 @@ def main(cfg: DictConfig):
     configs = cfg["simulator"]["configs"]
     policy = cfg["simulator"]["policy"]
     logflag = cfg["simulator"]["logging"]
-    scale_data = cfg["model"]["build_params"][7]["scale_data"]
+    scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
 
     logger.info(f"Training with a new {policy} policy")
 
+    input_cols = cfg["data"]["inputs"]
+    output_cols = cfg["data"]["outputs"]
+    augmented_cols = cfg["data"]["augmented_cols"]
+
+    input_cols = input_cols + augmented_cols
+
+
     ddModel = available_models[model_name]
     model = ddModel()
 
-    model.build_model(**cfg["model"]["build_params"])
-    model.load_model(filename=save_path, scale_data=scale_data)
+    #model.build_model(**cfg["model"]["build_params"])
+    if model_name.lower() == "pytorch":
+        model.load_model(
+            input_dim=len(input_cols),
+            output_dim=len(output_cols),
+            filename=save_path,
+            scale_data=scale_data
+        )
+    else:
+        model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
     sim = Simulator(model, states, actions, configs, logflag, diff_state)
 
-    test_sim_model(2, 250, logflag, sim)
+    test_sim_model(1, 250, logflag, sim)
 
     return sim
 
