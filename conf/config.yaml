@@ -1,4 +1,4 @@
 defaults:
   - data: quanser.yaml
-  - model: lightgbm.yaml
+  - model: torch_full.yaml
   - simulator: quanser-log.yaml

@@ -4,6 +4,7 @@ import random
 import time
 from typing import Any, Dict, List
 from omegaconf import ListConfig
+import pdb
 
 import numpy as np
 from sim.quanser.sim.render_qube import QubeRendererVpython
@@ -242,7 +243,7 @@ def main(cfg: DictConfig):
     input_cols = input_cols + augmented_cols
 
     logger.info(f"Training with a new {policy} policy")
-    if model_name.lower() == "torch":
+    if model_name.lower() == "pytorch":
         from all_models import available_models
     else:
         from model_loader import available_models
@@ -250,7 +251,15 @@ def main(cfg: DictConfig):
     Model = available_models[model_name]
     model = Model()
 
-    model.load_model(filename=save_path, scale_data=scale_data)
+    if model_name.lower() == "pytorch":
+        model.load_model(
+            input_dim=len(input_cols),
+            output_dim=len(output_cols),
+            filename=save_path,
+            scale_data=scale_data
+        )
+    else:
+        model.load_model(filename=save_path, scale_data=scale_data)
     # model.build_model(**cfg["model"]["build_params"])
 
     # Grab standardized way to interact with sim API

@@ -19,7 +19,7 @@ model:
   saver:
     filename: models/torch_model
   sweep:
-    run: True
+    run: False
     search_algorithm: bayesian
     split_strategy: timeseries
     num_trials: 50

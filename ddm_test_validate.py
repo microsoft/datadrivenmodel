@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from typing import Any, Dict, List
 import time
+import pdb
 
 from base import BaseModel
 
@@ -16,7 +17,7 @@ logger = logging.getLogger("datamodeler")
 import hydra
 from omegaconf import DictConfig
 
-from model_loader import available_models
+from all_models import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
 ## Example: Moab from a Microsoft Bonsai
@@ -271,12 +272,26 @@ def main(cfg: DictConfig):
     diff_state = cfg["data"]["diff_state"]
 
     logger.info(f"Training with a new {policy} policy")
+    
+    input_cols = cfg["data"]["inputs"]
+    output_cols = cfg["data"]["outputs"]
+    augmented_cols = cfg["data"]["augmented_cols"]
+
+    input_cols = input_cols + augmented_cols
 
     ddModel = available_models[model_name]
     model = ddModel()
 
-    model.build_model(**cfg["model"]["build_params"])
-    model.load_model(filename=save_path, scale_data=scale_data)
+    #model.build_model(**cfg["model"]["build_params"])
+    if model_name.lower() == "pytorch":
+        model.load_model(
+            input_dim=len(input_cols),
+            output_dim=len(output_cols),
+            filename=save_path,
+            scale_data=scale_data
+        )
+    else:
+        model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
     sim = Simulator(model, states, actions, configs, logflag, diff_state, TemplateSimulatorSession)
