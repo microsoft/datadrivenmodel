@@ -33,7 +33,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
 from azure.core.exceptions import HttpResponseError
 import argparse
 from sim.qube_simulator import QubeSimulator
-from policies import random_policy, brain_policy
+from policies import random_policy, brain_policy, data_policy
 
 LOG_PATH = "logs"
 
@@ -205,14 +205,23 @@ def test_policy(
         sim_state = sim.episode_start(config=scenario_configs[episode-1])
         sim_state = sim.get_state()
         if log_iterations:
-            action = policy(sim_state)
-            for key, value in action.items():
-                action[key] = None
-            sim.log_iterations(sim_state, action, episode, iteration)
+            try:
+                action = policy(sim_state)
+                for key, value in action.items():
+                    action[key] = None
+                sim.log_iterations(sim_state, action, episode, iteration)
+            except:
+                action = policy(sim_state, iteration-1)
+                action["Vm"] = None
+                sim.log_iterations(sim_state, action, episode, iteration)
+
         print(f"Running iteration #{iteration} for episode #{episode}")
         iteration += 1
         while not terminal:
-            action = policy(sim_state)
+            try:
+                action = policy(sim_state)
+            except:
+                action = policy(sim_state, iteration-1)
             sim.episode_step(action)
             sim_state = sim.get_state()
             if log_iterations:
@@ -475,6 +484,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Run simulator locally with a random policy, without connecting to platform",
     )
+    group.add_argument(
+        "--test-data",
+        action="store_true",
+        help="Run simulator locally with a random policy, without connecting to platform",
+    )
 
     group.add_argument(
         "--test-exported",
@@ -509,6 +523,10 @@ if __name__ == "__main__":
     if args.test_random:
         test_policy(
             render=args.render, log_iterations=args.log_iterations, policy=random_policy
+        )
+    elif args.test_data:
+        test_policy(
+            render=args.render, log_iterations=args.log_iterations, policy=data_policy
         )
     elif args.test_exported:
         port = args.test_exported
