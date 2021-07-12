@@ -20,14 +20,14 @@ from all_models import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
 ## Example: Quanser from a Microsoft Bonsai
-'''
+"""
 ├───ddm_test_validate.py
 ├───main.py
 ├───sim
 │   ├───quanser
 │   │   ├───sim
 │   │   |    ├───qube_simulator.py
-'''
+"""
 # TODO: from main import TemplateSimulatorSession, env_setup
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +52,9 @@ class Simulator(BaseModel):
         self.config_keys = configs
         self.state_keys = states
         self.action_keys = actions
-        self.sim_orig = sim_orig()  # include simulator function if comparing to simulator
+        self.sim_orig = (
+            sim_orig()
+        )  # include simulator function if comparing to simulator
         self.diff_state = diff_state
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -205,10 +207,10 @@ def test_sim_model(
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        '''
+        """
         TODO: Add episode_start(config) so sim works properly and not initializing
         with unrealistic initial conditions.
-        '''
+        """
         sim.episode_start()
         ddm_state = sim.get_state()
         sim_state = sim.get_sim_state()
@@ -267,17 +269,16 @@ def main(cfg: DictConfig):
 
     input_cols = input_cols + augmented_cols
 
-
     ddModel = available_models[model_name]
     model = ddModel()
 
-    #model.build_model(**cfg["model"]["build_params"])
+    # model.build_model(**cfg["model"]["build_params"])
     if model_name.lower() == "pytorch":
         model.load_model(
             input_dim=len(input_cols),
             output_dim=len(output_cols),
             filename=save_path,
-            scale_data=scale_data
+            scale_data=scale_data,
         )
     else:
         model.load_model(filename=save_path, scale_data=scale_data)
