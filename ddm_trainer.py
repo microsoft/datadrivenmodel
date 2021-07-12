@@ -36,7 +36,7 @@ def main(cfg: DictConfig) -> None:
     split_strategy = cfg["model"]["sweep"]["split_strategy"]
     results_csv_path = cfg["model"]["sweep"]["results_csv_path"]
 
-    if model_name.lower() == "torch":
+    if model_name.lower() == "pytorch":
         from all_models import available_models
     else:
         from model_loader import available_models
