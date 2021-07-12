@@ -1,8 +1,7 @@
 model:
   name: pytorch
   build_params:
-    _target_: main.build
-    network_class: MVRegressor
+    # network_class: MVRegressor
     num_units: 50
     dropout: 0.5
     num_layers: 10
@@ -15,5 +14,8 @@ model:
   sweep:
     run: False
     search_algorithm: bayesian
+    split_strategy: timeseries
     num_trials: 3
     scoring_func: r2
+    early_stopping: False
+    results_csv_path: torch/search_results.csv
