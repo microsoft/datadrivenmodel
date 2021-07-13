@@ -1,25 +1,26 @@
 data:
-  path: csv_data/data.csv
+  path: csv_data/quanser-config-40.csv
   full_or_relative: relative
   inputs:
     [
       "state_theta",
       "state_alpha",
       "state_theta_dot",
-      "state_alpha_dot"
+      "state_alpha_dot",
+      "action_Vm",
     ]
   outputs: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
   augmented_cols:
-    [ "action_Vm",
+    [
       "config_initial_theta",
       "config_initial_alpha",
       "config_initial_theta_dot",
       "config_initial_alpha_dot",
     ]
-  iteration_order: 1
+  iteration_order: -1
   episode_col: episode
   iteration_col: iteration
   max_rows: -1
   scale_data: True
   diff_state: True
-  test_perc: 0.25
+  test_perc: 0

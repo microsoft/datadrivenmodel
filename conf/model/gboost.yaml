@@ -1,0 +1,18 @@
+model:
+  name: GradientBoostingRegressor
+  build_params:
+    model_type: GradientBoostingRegressor
+    scale_data: True
+    fit_separate: False
+  saver:
+    filename: models/sklearn/gboost
+  sweep:
+    run: False
+    split_strategy: timeseries
+    search_algorithm: bayesian
+    num_trials: 30
+    scoring_func: r2
+    results_csv_path: sklearn/gboost/search_results.csv
+    params:
+      estimator__C: [1, 0.5, 1.5]
+      estimator__kernel: ["linear", "poly", "rbf"]

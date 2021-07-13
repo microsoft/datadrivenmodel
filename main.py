@@ -124,9 +124,10 @@ class TemplateSimulatorSession:
         def add_prefixes(d, prefix: str):
             return {f"{prefix}_{k}": v for k, v in d.items()}
 
-        state = add_prefixes(state, "state")
-        action = add_prefixes(action, "action")
-        config = add_prefixes(self.config, "config")
+        #state = add_prefixes(state, "state")
+        #action = add_prefixes(action, "action")
+        #config = add_prefixes(self.config, "config")
+        config = self.config
         data = {**state, **action, **config}
         data["episode"] = episode
         data["iteration"] = iteration
@@ -202,6 +203,7 @@ def test_policy(
             iteration = 1
             terminal = False
             config = {
+                #"frequency": np.random.randint(40, 80),
                 "config_initial_theta": np.random.uniform(-0.27, 0.27),
                 "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
                 "config_initial_theta_dot": np.random.uniform(-0.05, 0.05),

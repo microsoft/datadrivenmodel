@@ -28,9 +28,11 @@ def brain_policy(
 def mixed_policy(state):
     p = 0.5
     if np.random.uniform(0, 1) < p:
+        print('lqr!')
         K = np.array([-2.0, 35.0, -1.5, 3.0])
         state = np.array([state["state_theta"], state["state_alpha"], state["state_theta_dot"], state["state_alpha_dot"]])
         return {"action_Vm":  K.T.dot(state)}
     else:
+        print('random')
         action = {"action_Vm": random.uniform(-3, 3)}
         return action

@@ -163,9 +163,10 @@ class Simulator(BaseModel):
 
     def halted(self):
         sim_state = self.get_sim_state()
+        state = self.get_state()
 
         # If arm hits rails of physical limit +/- 90 degrees
-        return abs(sim_state['state_theta']) >= math.pi / 2 or abs(sim_state['state_alpha']) >= math.pi / 2
+        return abs(sim_state['state_theta']) >= math.pi / 2 or abs(sim_state['state_alpha']) >= math.pi / 2 or abs(state['state_theta']) >= math.pi / 2 or abs(state['state_alpha']) >= math.pi / 2
 
     def log_iterations(
         self, state, action, fname: str, episode: int = 0, iteration: int = 1
