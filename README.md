@@ -46,8 +46,6 @@ The scripts in this package leverage the configuration files saved in the [`conf
 
 The library comes with a default configuration set in [`conf/config.yaml`](conf/config.yaml).
 
-> NOTE: Be sure to add your actions to the `augmented_cols` instead of `inputs` in the data config file located at `conf/data`.
-
 ```bash
 python ddm_trainer.py
 ```
