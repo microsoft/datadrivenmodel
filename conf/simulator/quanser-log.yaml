@@ -9,7 +9,7 @@ simulator:
       "config_initial_alpha_dot",
     ]
   episode_inits:
-  policy: bonsai
+  policy: lqr
   logging: enable
   workspace_setup: True
   render: False
