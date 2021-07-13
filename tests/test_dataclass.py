@@ -58,6 +58,7 @@ def test_cartpole_at_st(dataclass_obj):
         == cp2_df["next_state_x_position"].values[0]
     )
 
+
 def test_diff_labels_1(dataclass_obj):
     # testing diff labels:
     # - iteration order = -1
@@ -67,19 +68,31 @@ def test_diff_labels_1(dataclass_obj):
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
         diff_state=True,
-        iteration_order=-1
+        iteration_order=-1,
     )
 
     X_2, y_2 = dataclass_obj.get_train_set()
-    
-    assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 7 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
-    
-    assert X_2.shape[0] == 833 == y_2.shape[0], f"X_2.shape[0] ({X_2.shape[0]}) -- y_2.shape[0] ({y_2.shape[0]})"
-    assert X_2.shape[1] == 7 == dataclass_obj.input_dim, f"X_2.shape[1] ({X_2.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y_2.shape[1] == 4 == dataclass_obj.output_dim, f"y_2.shape[1] ({y_2.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
-    
+
+    assert (
+        X.shape[0] == 833 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 7 == dataclass_obj.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+
+    assert (
+        X_2.shape[0] == 833 == y_2.shape[0]
+    ), f"X_2.shape[0] ({X_2.shape[0]}) -- y_2.shape[0] ({y_2.shape[0]})"
+    assert (
+        X_2.shape[1] == 7 == dataclass_obj.input_dim
+    ), f"X_2.shape[1] ({X_2.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y_2.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y_2.shape[1] ({y_2.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+
     return
 
 
@@ -92,12 +105,18 @@ def test_diff_labels_2(dataclass_obj):
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
         diff_state=True,
-        iteration_order=1
+        iteration_order=1,
     )
 
-    assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 7 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+    assert (
+        X.shape[0] == 833 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 7 == dataclass_obj.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
 
     return
 
@@ -114,13 +133,19 @@ def test_concatenate_states_1(dataclass_obj):
         augm_cols=["action_command", "config_length", "config_masspole"],
         concatenated_steps=3,
         concatenated_zero_padding=False,
-        iteration_order=-1
+        iteration_order=-1,
     )
-    
+
     ## 833 training rows - 24 dropped rows --> 799 rows
-    assert X.shape[0] == 799 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 21 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+    assert (
+        X.shape[0] == 799 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 21 == dataclass_obj.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
 
     return
 
@@ -137,12 +162,18 @@ def test_concatenate_states_2(dataclass_obj):
         augm_cols=["action_command", "config_length", "config_masspole"],
         concatenated_steps=4,
         concatenated_zero_padding=True,
-        iteration_order=1
+        iteration_order=1,
     )
-    
-    assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 28 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+
+    assert (
+        X.shape[0] == 833 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 28 == dataclass_obj.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
 
     return
 
@@ -156,24 +187,36 @@ def test_concatenate_states_3(dataclass_obj):
         augm_cols=["action_command", "config_length", "config_masspole"],
         concatenated_steps=3,
         concatenated_zero_padding=False,
-        iteration_order=-1
+        iteration_order=-1,
     )
-    
-    assert X.shape[0] == 799 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 21 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
-    
+
+    assert (
+        X.shape[0] == 799 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 21 == dataclass_obj.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+
     X, y = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
         concatenated_steps=4,
         concatenated_zero_padding=True,
-        iteration_order=1
+        iteration_order=1,
     )
-    
-    assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 28 == dataclass_obj.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
-    assert y.shape[1] == 4 == dataclass_obj.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
-    
+
+    assert (
+        X.shape[0] == 833 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 28 == dataclass_obj.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({dataclass_obj.input_dim})"
+    assert (
+        y.shape[1] == 4 == dataclass_obj.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
+
     return

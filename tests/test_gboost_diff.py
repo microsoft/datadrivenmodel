@@ -17,16 +17,28 @@ X_test, y_test = xgboost_model.get_test_set(grouped_per_episode=False)
 
 
 def test_shape():
-    
+
     # TRAIN SET
-    assert X.shape[0] == 833 == y.shape[0], f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
-    assert X.shape[1] == 7 == xgboost_model.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({xgboost_model.input_dim})"
-    assert y.shape[1] == 4 == xgboost_model.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({xgboost_model.output_dim})"
-    
+    assert (
+        X.shape[0] == 833 == y.shape[0]
+    ), f"X.shape[0] ({X.shape[0]}) -- y.shape[0] ({y.shape[0]})"
+    assert (
+        X.shape[1] == 7 == xgboost_model.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({xgboost_model.input_dim})"
+    assert (
+        y.shape[1] == 4 == xgboost_model.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({xgboost_model.output_dim})"
+
     # TEST SET
-    assert X_test.shape[0] == 147 == y_test.shape[0], f"X_test.shape[0] ({X_test.shape[0]}) -- y_test.shape[0] ({y_test.shape[0]})"
-    assert X_test.shape[1] == 7 == xgboost_model.input_dim, f"X.shape[1] ({X.shape[1]}) -- input_dim ({xgboost_model.input_dim})"
-    assert y_test.shape[1] == 4 == xgboost_model.output_dim, f"y.shape[1] ({y.shape[1]}) -- output_dim ({xgboost_model.output_dim})"
+    assert (
+        X_test.shape[0] == 147 == y_test.shape[0]
+    ), f"X_test.shape[0] ({X_test.shape[0]}) -- y_test.shape[0] ({y_test.shape[0]})"
+    assert (
+        X_test.shape[1] == 7 == xgboost_model.input_dim
+    ), f"X.shape[1] ({X.shape[1]}) -- input_dim ({xgboost_model.input_dim})"
+    assert (
+        y_test.shape[1] == 4 == xgboost_model.output_dim
+    ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({xgboost_model.output_dim})"
 
 
 def test_lgm_train():
