@@ -84,6 +84,8 @@ class Simulator(BaseModel):
         self.state = initial_state
         self.action = initial_action
         # capture all data
+        # TODO: check if we can pick a subset of data yaml, i.e., what happens if
+        # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
 
     def episode_step(self, action: Dict[str, int]):
@@ -186,6 +188,7 @@ def test_random_policy(
             sim.episode_step(action)
             sim_state = sim.get_state()
             logger.info(f"Running iteration #{iteration} for episode #{episode}")
+            logger.info(f"Action: {action}")
             logger.info(f"Observations: {sim_state}")
             iteration += 1
             terminal = iteration >= num_iterations
@@ -224,7 +227,7 @@ def main(cfg: DictConfig):
     input_cols = input_cols + augmented_cols
 
     logger.info(f"Training with a new {policy} policy")
-    if model_name.lower() == "torch":
+    if model_name.lower() == "pytorch":
         from all_models import available_models
     else:
         from model_loader import available_models
