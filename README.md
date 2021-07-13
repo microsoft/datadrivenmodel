@@ -108,7 +108,7 @@ python ddm_predictor.py simulator=$YOUR_SIM_CONFIG simulator.policy=random
 If you're having trouble running locally, chances are you need to set up your workspace and access key configs. You can do this by using environment variables or the following command
 
 ```bash
-python ddm_predictor.py --workspace-setup=True
+python ddm_predictor.py simulator.workspace_setup=True
 ```
 
 ## Generate Logs for Comparing DDM and Original Sim
