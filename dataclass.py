@@ -12,7 +12,6 @@ logger.setLevel(logging.INFO)
 
 
 class DataClass(object):
-
     def __init__(self):
         # Required fields that need to be filled every time we call load_csv as well.
 
@@ -29,7 +28,7 @@ class DataClass(object):
         # training variables - List[numpy.array]
         self._X_train_seq = None
         self._y_train_seq = None
-        
+
         # testing variables - df
         self.test_df_array = None
         # testing variables - numpy.array
@@ -42,7 +41,6 @@ class DataClass(object):
         # sequential inference
         self.last_X_d = None
         self.new_y_d = None
-
 
     def split(
         self,
@@ -126,7 +124,7 @@ class DataClass(object):
 
         Parameters
         ----------
-        df : pdf.DataFrame 
+        df : pdf.DataFrame
             [description]
         iteration_order : int, optional
             [description], by default -1
@@ -196,7 +194,6 @@ class DataClass(object):
         else:
             return df
 
-
     def load_csv(
         self,
         dataset_path: str,
@@ -241,7 +238,7 @@ class DataClass(object):
         -------
         Tuple[np.ndarray, np.ndarray]
             Features and labels for modeling
-            
+
 
         Raises
         ------
@@ -324,7 +321,7 @@ class DataClass(object):
                     aux_df = self.df_diff_predictions(df)
                     if aux_df is not None:
                         self.df_per_episode.append(aux_df)
-            
+
             # Input-state concatenation
             self.concatenated_steps = concatenated_steps
             self.concatenated_zero_padding = concatenated_zero_padding
@@ -343,7 +340,6 @@ class DataClass(object):
 
         return None, None
 
-
     def trim_episodes(self, df):
         """Split the array into episodes using iteration/episode provided in dataframe.
 
@@ -351,7 +347,7 @@ class DataClass(object):
         ----------
         df: pd.Dataframe
             Takes the set of dataframes and splits into a list of DFs per episode.
-            
+
 
         Returns
         -------
@@ -366,7 +362,7 @@ class DataClass(object):
         df_per_episode = df.groupby(by=self.episode_col, as_index=False)
         # Remove indexer, and get only df list
         df_per_episode = list(map(lambda x: x[1], df_per_episode))
-        
+
         self.df_per_episode = df_per_episode
 
         logger.info(
@@ -375,8 +371,7 @@ class DataClass(object):
 
         return df_per_episode
 
-    
-    def split_train_and_test_samples(self, test_perc = 0.15):
+    def split_train_and_test_samples(self, test_perc=0.15):
         """Takes care of splitting test and train sets. The dataset is split without breaking episodes, but making the split at an iteration level.
 
         Parameters
@@ -385,12 +380,12 @@ class DataClass(object):
             Percentage of samples to keep for training.
 
         """
-        
+
         # Get train split - but ensuring we do not divide by zero later
-        split = min(max(1-test_perc, 0.01), 0.99)
+        split = min(max(1 - test_perc, 0.01), 0.99)
 
         episodes_len = []
-        
+
         self.test_len = 0
         self.train_len = 0
         self.test_df_array = []
@@ -399,13 +394,13 @@ class DataClass(object):
             ep_len = len(df)
             episodes_len.append(ep_len)
 
-            if self.train_len/split <= self.test_len/(1-split):
+            if self.train_len / split <= self.test_len / (1 - split):
                 self.train_len += ep_len
                 self.train_df_array.append(df)
             else:
                 self.test_len += ep_len
                 self.test_df_array.append(df)
-            
+
         # shuffle training and testing data
         random.shuffle(self.train_df_array)
         random.shuffle(self.test_df_array)
@@ -417,9 +412,8 @@ class DataClass(object):
             f"divided train & test set with ({self.train_len}) and ({self.test_len}) iterations, respectively. Chosen split == {split*100}%.\
             \n   >> Average episode length: ({self.mean_episode_len}). Average std dev: ({self.std_episode_len})"
         )
-        
-        return
 
+        return
 
     @property
     def X(self):
@@ -428,14 +422,12 @@ class DataClass(object):
         # return value extracted on previous run
         return self._X
 
-
     @property
     def y(self):
         if self._y is None:
             self.get_train_set()
         # return value extracted on previous run
         return self._y
-
 
     def get_train_set(self):
         # Prepares X and y training dataset, and retrieves after aggregation
@@ -445,7 +437,7 @@ class DataClass(object):
             for df in self.train_df_array:
                 self._X.extend(df[self.feature_cols].values)
                 self._y.extend(df[self.label_cols].values)
-        
+
             self._X = np.array(self._X)
             self._y = np.array(self._y)
 
@@ -453,7 +445,6 @@ class DataClass(object):
             self.output_dim = self._y.shape[1]
 
         return self._X, self._y
-
 
     def get_train_set_per_episode(self):
         # Prepares X and y training dataset, and retrieves after aggregation
@@ -465,14 +456,15 @@ class DataClass(object):
                 y_episode = np.array(df[self.label_cols].values)
                 self._X_train_seq.append(X_episode)
                 self._y_train_seq.append(y_episode)
-                
-            assert self.input_dim == self._X_train_seq[0].shape[1], \
-                "input dimension has changed between train ({self.input_dim}) and current train grouped-per-episode set ({self._X_train_seq[0].shape[1]})."
-            assert self.output_dim == self._y_train_seq[0].shape[1], \
-                "output dimension has changed between train ({self.output_dim}) and current train grouped-per-episode set ({self._y_train_seq[0].shape[1]})."
+
+            assert (
+                self.input_dim == self._X_train_seq[0].shape[1]
+            ), "input dimension has changed between train ({self.input_dim}) and current train grouped-per-episode set ({self._X_train_seq[0].shape[1]})."
+            assert (
+                self.output_dim == self._y_train_seq[0].shape[1]
+            ), "output dimension has changed between train ({self.output_dim}) and current train grouped-per-episode set ({self._y_train_seq[0].shape[1]})."
 
         return self._X_train_seq, self._y_train_seq
-
 
     @property
     def X_test(self):
@@ -481,14 +473,12 @@ class DataClass(object):
         # return value extracted on previous run
         return self._X_test
 
-
     @property
     def y_test(self):
         if self._y_test is None:
             self.get_test_set()
         # return value extracted on previous run
         return self._y_test
-
 
     def get_test_set(self):
         # Prepares X and y training dataset, and retrieves after aggregation
@@ -498,17 +488,18 @@ class DataClass(object):
             for df in self.test_df_array:
                 self._X_test.extend(df[self.feature_cols].values)
                 self._y_test.extend(df[self.label_cols].values)
-        
+
             self._X_test = np.array(self._X_test)
             self._y_test = np.array(self._y_test)
 
-            assert self.input_dim == self._X_test.shape[1], \
-                "input dimension has changed between train ({self.input_dim}) and current test set ({self._X_test.shape[1]})."
-            assert self.output_dim == self._y_test.shape[1], \
-                "output dimension has changed between train ({self.output_dim}) and current test set ({self._y_test.shape[1]})."
+            assert (
+                self.input_dim == self._X_test.shape[1]
+            ), "input dimension has changed between train ({self.input_dim}) and current test set ({self._X_test.shape[1]})."
+            assert (
+                self.output_dim == self._y_test.shape[1]
+            ), "output dimension has changed between train ({self.output_dim}) and current test set ({self._y_test.shape[1]})."
 
         return self._X_test, self._y_test
-
 
     def get_test_set_per_episode(self):
         # Prepares X and y training dataset, and retrieves after aggregation
@@ -521,18 +512,16 @@ class DataClass(object):
                 self._X_test_seq.append(X_episode)
                 self._y_test_seq.append(y_episode)
 
-            assert self.input_dim == self._X_test_seq[0].shape[1], \
-                "input dimension has changed between train ({self.input_dim}) and current test set ({self._X_test_seq[0].shape[1]})."
-            assert self.output_dim == self._y_test_seq[0].shape[1], \
-                "output dimension has changed between train ({self.output_dim}) and current test set ({self._y_test_seq[0].shape[1]})."
+            assert (
+                self.input_dim == self._X_test_seq[0].shape[1]
+            ), "input dimension has changed between train ({self.input_dim}) and current test set ({self._X_test_seq[0].shape[1]})."
+            assert (
+                self.output_dim == self._y_test_seq[0].shape[1]
+            ), "output dimension has changed between train ({self.output_dim}) and current test set ({self._y_test_seq[0].shape[1]})."
 
         return self._X_test_seq, self._y_test_seq
 
-
-    def sequential_inference_initialize(
-        self,
-        ini_X: np.ndarray
-        ):
+    def sequential_inference_initialize(self, ini_X: np.ndarray):
         """Takes care of initializing the features to the model for sequential prediction.
 
         Parameters
@@ -545,11 +534,7 @@ class DataClass(object):
         self.last_X_d = OrderedDict(zip(self.feature_cols, list(ini_X)))
         return None
 
-
-    def sequential_inference(
-        self,
-        new_y: np.ndarray
-        ):
+    def sequential_inference(self, new_y: np.ndarray):
         """Takes care of processing the predicted outputs, and insert them on top of the previous step for sequential prediction.
         At the moment we keep the input features static in between runs, only overwritting the labels that the model predicts sequentially.
         - Note, "sequential_inference_initialize" needs to be called first.
@@ -573,13 +558,17 @@ class DataClass(object):
         """
 
         if self.last_X_d is None:
-            raise Exception("Method 'sequential_inference_initialize' must be called prior to sequential prediction.")
-        
-        assert len(self.label_cols) == len(new_y), "new_y should have same length than labels provided during load_csv method."
+            raise Exception(
+                "Method 'sequential_inference_initialize' must be called prior to sequential prediction."
+            )
+
+        assert len(self.label_cols) == len(
+            new_y
+        ), "new_y should have same length than labels provided during load_csv method."
 
         self.new_y_d = OrderedDict(zip(self.label_cols, list(new_y)))
 
-        #if new_state is not None:
+        # if new_state is not None:
 
         if self.concatenated_steps > 1:
             feats_list = self.original_features
@@ -597,7 +586,7 @@ class DataClass(object):
                 target_feat = feat + "_1"
             else:
                 target_feat = feat
-            
+
             target_label = None
             for label in self.label_cols:
                 if self.iteration_order > 0:
@@ -609,7 +598,9 @@ class DataClass(object):
                         target_label = label
                         break
                 else:
-                    raise Exception("iteration_order == 0 has not been configured for sequential inference.")
+                    raise Exception(
+                        "iteration_order == 0 has not been configured for sequential inference."
+                    )
 
             if target_label is None:
                 continue
@@ -622,7 +613,6 @@ class DataClass(object):
 
         return np.array(list(self.last_X_d.values()))
 
-    
     def df_diff_predictions(self, df):
         """Take the dataframe and modify labels to be differential states.
 
@@ -667,7 +657,7 @@ class DataClass(object):
                     if label[5:] in feat:
                         diff_values = df[label].values - df[feat].values
                         break
-            
+
             if diff_values is None:
 
                 if len(df) < 2:
@@ -688,15 +678,14 @@ class DataClass(object):
             )
         else:
             # drop last zeroed row
-            df.drop(df.head(1).index, axis=0, inplace = True)
+            df.drop(df.head(1).index, axis=0, inplace=True)
             logger.info(
                 "delta states enabled, calculating differential between input and output values. note, first row has been lost."
             )
-            
-        #y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
+
+        # y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
         return df
 
-    
     def df_concatenate_inputs(self, df):
         """Take the dataframe and concatenate as many steps as defined.
         Uses 'self.concatenated_steps' and 'self.concatenated_zero_padding', parsed during 'load_csv' method.
@@ -723,22 +712,26 @@ class DataClass(object):
         if not self.original_features:
             self.original_features = copy.deepcopy(self.feature_cols)
             # Note, naming convention needs to honor the way it is done in the subsequent loop
-            self.feature_cols = [feat + f"_{i}" for i in range(1, concatenated_steps+1) for feat in self.original_features]
+            self.feature_cols = [
+                feat + f"_{i}"
+                for i in range(1, concatenated_steps + 1)
+                for feat in self.original_features
+            ]
 
         if not hasattr(self, "aux_concat_index"):
             self.aux_concat_index = 0
         self.aux_concat_index += 1
 
         for feat in self.original_features:
-            for i in range(1, concatenated_steps+1):
+            for i in range(1, concatenated_steps + 1):
                 concat_feat = feat + f"_{i}"
-                
+
                 if i == 1:
                     feat_array = df[feat].values
                 else:
-                    feat_array = df[feat].values[:-i+1]
+                    feat_array = df[feat].values[: -i + 1]
                     # pad with zeros by default (remove later if undesired)
-                    feat_array = np.array(list(np.zeros(i-1)) + list(feat_array))
+                    feat_array = np.array(list(np.zeros(i - 1)) + list(feat_array))
                 df[concat_feat] = feat_array
 
         if zero_padding:
@@ -753,14 +746,12 @@ class DataClass(object):
                 )
                 return None
             else:
-                df.drop(df.head(concatenated_steps-1).index, axis=0, inplace = True)
+                df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
                 logger.info(
                     f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
                 )
-        
-        
-        return df
 
+        return df
 
 
 if __name__ == "__main__":

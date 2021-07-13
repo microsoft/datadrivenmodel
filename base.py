@@ -189,7 +189,8 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self, X: Union[None, np.ndarray] = None,
+        self,
+        X: Union[None, np.ndarray] = None,
     ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 
@@ -642,8 +643,7 @@ class BaseModel(abc.ABC):
         plt.legend(loc="lower right")
 
     def get_test_set(self, grouped_per_episode=False):
-        """Extracts test sets from dataclass_obj
-        """
+        """Extracts test sets from dataclass_obj"""
 
         if grouped_per_episode:
             (
@@ -675,8 +675,7 @@ class BaseModel(abc.ABC):
             return X_test, y_test
 
     def get_train_set(self, grouped_per_episode=False):
-        """Extracts training sets from dataclass_obj
-        """
+        """Extracts training sets from dataclass_obj"""
 
         if grouped_per_episode:
             (
@@ -766,7 +765,11 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
+                self.model,
+                param_grid=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
