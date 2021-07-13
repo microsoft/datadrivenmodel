@@ -63,7 +63,7 @@ def main(cfg: DictConfig) -> None:
         iteration_order=iteration_order,
         episode_col=episode_col,
         iteration_col=iteration_col,
-        #drop_nulls: bool = True,
+        # drop_nulls: bool = True,
         max_rows=max_rows,
         test_perc=test_perc,
         diff_state=delta_state,
@@ -74,8 +74,8 @@ def main(cfg: DictConfig) -> None:
     logger.info(
         f"From the full dataset, {test_perc * 100}% will be used for test, while {(1 - test_perc) * 100}% for training/sweeping"
     )
-    X_train, y_train = model.get_train_set(grouped_per_episode = False)
-    X_test, y_test = model.get_test_set(grouped_per_episode = False)
+    X_train, y_train = model.get_train_set(grouped_per_episode=False)
+    X_test, y_test = model.get_test_set(grouped_per_episode=False)
 
     # save training and test sets
     save_data_path = os.path.join(os.getcwd(), "data")

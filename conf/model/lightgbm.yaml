@@ -17,7 +17,7 @@ model:
     # can be any of bayesian, bohb, hyperopt, optuna, grid or random
     search_algorithm: bayesian
     split_strategy: timeseries
-    num_trials: 50
+    num_trials: 5
     scoring_func: r2
     early_stopping: False
     results_csv_path: lightgbm/search_results.csv
