@@ -12,7 +12,7 @@ def random_policy(state):
     """
     Ignore the state, move randomly.
     """
-    action = {"Vm": random.uniform(-3, 3)}
+    action = {"action_Vm": random.uniform(-3, 3)}
     return action
 
 

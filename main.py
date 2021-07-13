@@ -77,10 +77,10 @@ class TemplateSimulatorSession:
         """Called to retreive the current state of the simulator. """
         return {
             ## Add simulator state as dictionary
-            "theta": float(self.simulator.state[0]),
-            "alpha": float(self.simulator.state[1]),
-            "theta_dot": float(self.simulator.state[2]),
-            "alpha_dot": float(self.simulator.state[3]),
+            "state_theta": float(self.simulator.state[0]),
+            "state_alpha": float(self.simulator.state[1]),
+            "state_theta_dot": float(self.simulator.state[2]),
+            "state_alpha_dot": float(self.simulator.state[3]),
         }
 
     def episode_start(self, config: Dict[str, Any]):
@@ -211,6 +211,7 @@ def test_policy(
         print(f"Running iteration #{iteration} for episode #{episode}")
         iteration += 1
         while not terminal:
+            print(sim_state)
             action = policy(sim_state)
             sim.episode_step(action)
             sim_state = sim.get_state()
