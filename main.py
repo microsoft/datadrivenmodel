@@ -32,8 +32,10 @@ from microsoft_bonsai_api.simulator.generated.models import (
 )
 from azure.core.exceptions import HttpResponseError
 import argparse
+import numpy as np
+from numpy.lib.arraysetops import ediff1d
 from sim.quanser.sim.qube_simulator import QubeSimulator
-from sim.quanser.policies import random_policy, brain_policy
+from sim.quanser.policies import random_policy, brain_policy, mixed_policy
 
 LOG_PATH = "logs"
 
@@ -178,6 +180,7 @@ def test_policy(
     policy=random_policy,
     policy_name: str = "random",
     scenario_file: str="assess_config.json",
+    total_iterations_max=None
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -186,41 +189,81 @@ def test_policy(
     render : bool, optional
         Flag to turn visualization on
     """
-    
-    # Use custom assessment scenario configs
-    with open(scenario_file) as fname:
-        assess_info = json.load(fname)
-    scenario_configs = assess_info['episodeConfigurations']
-    num_episodes = len(scenario_configs)+1
-
-    current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    log_file_name = current_time + "_" + policy_name + "_log.csv"
-    sim = TemplateSimulatorSession(
-        render=render, log_data=log_iterations, log_file_name=log_file_name
-    )
-    for episode in range(1, num_episodes):
-        iteration = 1
-        terminal = False
-        sim_state = sim.episode_start(config=scenario_configs[episode-1])
-        sim_state = sim.get_state()
-        if log_iterations:
-            action = policy(sim_state)
-            for key, value in action.items():
-                action[key] = None
-            sim.log_iterations(sim_state, action, episode, iteration)
-        print(f"Running iteration #{iteration} for episode #{episode}")
-        iteration += 1
-        while not terminal:
-            print(sim_state)
-            action = policy(sim_state)
-            sim.episode_step(action)
+    if total_iterations_max:
+        episode = 0
+        total_iterations = 0
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        log_file_name = current_time + "_" + policy_name + "_log.csv"
+        sim = TemplateSimulatorSession(
+            render=render, log_data=log_iterations, log_file_name=log_file_name
+        )
+        while total_iterations < total_iterations_max:
+            episode += 1
+            iteration = 1
+            terminal = False
+            config = {
+                "config_initial_theta": np.random.uniform(-0.27, 0.27),
+                "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
+                "config_initial_theta_dot": np.random.uniform(-0.05, 0.05),
+                "config_initial_alpha_dot": np.random.uniform(-0.05, 0.05),
+            }
+            sim_state = sim.episode_start(config=config)
             sim_state = sim.get_state()
             if log_iterations:
+                action = policy(sim_state)
+                for key, value in action.items():
+                    action[key] = None
                 sim.log_iterations(sim_state, action, episode, iteration)
             print(f"Running iteration #{iteration} for episode #{episode}")
-            print(f"Observations: {sim_state}")
             iteration += 1
-            terminal = iteration >= num_iterations+2 or sim.halted()
+            while not terminal:
+                print(sim_state)
+                action = policy(sim_state)
+                sim.episode_step(action)
+                sim_state = sim.get_state()
+                if log_iterations:
+                    sim.log_iterations(sim_state, action, episode, iteration)
+                print(f"Running iteration #{iteration} for episode #{episode}")
+                print(f"Observations: {sim_state}")
+                iteration += 1
+                total_iterations += 1
+                terminal = iteration >= num_iterations+2 or sim.halted()
+
+    else:
+        # Use custom assessment scenario configs
+        with open(scenario_file) as fname:
+            assess_info = json.load(fname)
+        scenario_configs = assess_info['episodeConfigurations']
+        num_episodes = len(scenario_configs)+1
+
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        log_file_name = current_time + "_" + policy_name + "_log.csv"
+        sim = TemplateSimulatorSession(
+            render=render, log_data=log_iterations, log_file_name=log_file_name
+        )
+        for episode in range(1, num_episodes):
+            iteration = 1
+            terminal = False
+            sim_state = sim.episode_start(config=scenario_configs[episode-1])
+            sim_state = sim.get_state()
+            if log_iterations:
+                action = policy(sim_state)
+                for key, value in action.items():
+                    action[key] = None
+                sim.log_iterations(sim_state, action, episode, iteration)
+            print(f"Running iteration #{iteration} for episode #{episode}")
+            iteration += 1
+            while not terminal:
+                print(sim_state)
+                action = policy(sim_state)
+                sim.episode_step(action)
+                sim_state = sim.get_state()
+                if log_iterations:
+                    sim.log_iterations(sim_state, action, episode, iteration)
+                print(f"Running iteration #{iteration} for episode #{episode}")
+                print(f"Observations: {sim_state}")
+                iteration += 1
+                terminal = iteration >= num_iterations+2 or sim.halted()
 
     return sim
 
@@ -468,6 +511,13 @@ if __name__ == "__main__":
         help="your bonsai workspace access key",
         default=None,
     )
+    
+    parser.add_argument(
+        "--total-iterations-max",
+        type=int,
+        help="number of iterations to run test for",
+        default=None
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -484,7 +534,13 @@ if __name__ == "__main__":
         metavar="PORT",
         help="Run simulator with an exported brain running on localhost:PORT (default 5000)",
     )
-
+    
+    group.add_argument(
+        "--test-mixed-policy",
+        action="store_true",
+        help="Run simulator with an exported brain running on localhost:PORT (default 5000)",
+    )
+    
     parser.add_argument(
         "--iteration-limit",
         type=int,
@@ -510,6 +566,8 @@ if __name__ == "__main__":
         test_policy(
             render=args.render, log_iterations=args.log_iterations, policy=random_policy
         )
+    elif args.test_mixed_policy:
+        test_policy(render=args.render, log_iterations=args.log_iterations, policy=mixed_policy, total_iterations_max=args.total_iterations_max)
     elif args.test_exported:
         port = args.test_exported
         url = f"http://localhost:{port}"
@@ -522,6 +580,7 @@ if __name__ == "__main__":
             policy_name="exported",
             num_iterations=args.iteration_limit,
             scenario_file=scenario_file,
+            ignore_assess_config=args.ignore_assess_config
         )
     else:
         main(
