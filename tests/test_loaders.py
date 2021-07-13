@@ -64,7 +64,7 @@ def test_base_reader():
         dataset_path=os.path.join(data_dir, "cartpole-log.csv"),
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
-        train_split=0.85,
+        test_perc=0.15,
     )
 
     assert X.shape[0] == 833 == y.shape[0]
@@ -77,16 +77,11 @@ def test_diff_names():
     base_model = BaseModel()
     X, y = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "off_names.csv"),
-        input_cols=[
-            "x_position",
-            "x_velocity",
-            "angle_position",
-            "angle_velocity",
-        ],
+        input_cols=["x_position", "x_velocity", "angle_position", "angle_velocity",],
         output_cols=["angle_position", "angle_velocity"],
         augm_cols=["command", "length", "masspole"],
         max_rows=1000,
-        train_split=0.85,
+        test_perc=0.15,
     )
 
     assert X.shape[0] == 833 == y.shape[0]

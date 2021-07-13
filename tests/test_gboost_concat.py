@@ -9,7 +9,7 @@ X, y = xgboost_model.load_csv(
     dataset_path="csv_data/cartpole-log.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
-    train_split=0.85,
+    test_perc=0.15,
     concatenated_steps=6,
     concatenated_zero_padding=True,
 )
