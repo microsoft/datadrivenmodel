@@ -1,0 +1,15 @@
+data:
+  path: csv_data/cartpole-mixed-brain-rand-term.csv
+  full_or_relative: relative
+  inputs:
+    ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+  outputs:
+    ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+  augmented_cols: ["pole_length", "pole_mass", "cart_mass", "command"]
+  iteration_order: -1
+  episode_col: episode
+  iteration_col: iteration
+  max_rows: -1
+  scale_data: True
+  diff_state: False
+  test_perc: 0.25

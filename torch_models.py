@@ -20,7 +20,6 @@ from sklearn.model_selection import (
 
 from base import BaseModel
 import logging
-from rich.logging import RichHandler
 import mlflow
 
 logger = logging.getLogger(__name__)

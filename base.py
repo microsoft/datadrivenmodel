@@ -6,6 +6,7 @@ import pathlib
 import pickle
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
+from omegaconf.listconfig import ListConfig
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -21,12 +22,8 @@ from sklearn.model_selection import (
     PredefinedSplit,
 )
 from sklearn.preprocessing import StandardScaler
-from tune_sklearn import TuneSearchCV
 
-from loaders import CsvReader
 from dataclass import DataClass
-
-import mlflow
 
 logger = logging.getLogger(__name__)
 matplotlib.rcParams["figure.figsize"] = [12, 10]
@@ -125,10 +122,12 @@ class BaseModel(abc.ABC):
 
         return X, y
 
-    def load_numpy(self, dataset_path: str) -> Tuple:
+    def load_numpy(
+        self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy"
+    ) -> Tuple:
 
-        X = np.load(os.path.join(dataset_path, "x_set.npy"))
-        y = np.load(os.path.join(dataset_path, "y_set.npy"))
+        X = np.load(os.path.join(dataset_path, X_path))
+        y = np.load(os.path.join(dataset_path, y_path))
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1]
 
@@ -190,9 +189,8 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self,
-        X: Union[None, np.ndarray] = None,
-        ):
+        self, X: Union[None, np.ndarray] = None,
+    ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 
         Parameters
@@ -217,13 +215,15 @@ class BaseModel(abc.ABC):
         else:
 
             if X is None:
-                X, y_test = self.get_test_set(grouped_per_episode = False)
+                X, y_test = self.get_test_set(grouped_per_episode=False)
 
-            assert len(X) > 0, "Predict sequentially requires at least one iteration provided, but none where given."
+            assert (
+                len(X) > 0
+            ), "Predict sequentially requires at least one iteration provided, but none where given."
 
             # scaling is performed within "predict" (self.scale_data)
 
-            #print(f"X (predict_sequentially_all) ---> {np.shape(X)}")
+            # print(f"X (predict_sequentially_all) ---> {np.shape(X)}")
             self.dataclass_obj.sequential_inference_initialize(ini_X=X[0])
 
             # sequentially iterate retriving next prediction based on previous prediction
@@ -285,7 +285,7 @@ class BaseModel(abc.ABC):
             # note, scaling is performed in inner function "predict_sequentially_all" > "predict" (self.scale_data)
 
             if X_grouped is None:
-                X_grouped, y_grouped = self.get_test_set(grouped_per_episode = True)
+                X_grouped, y_grouped = self.get_test_set(grouped_per_episode=True)
 
             # initialize predictions
             preds = []
@@ -321,9 +321,11 @@ class BaseModel(abc.ABC):
                         preds_aux_array.append(copy.deepcopy(preds_aux))
 
                         if y_grouped is not None:
-                            labels_aux = y_grouped[i][j * it_per_episode : (j + 1) * it_per_episode]
+                            labels_aux = y_grouped[i][
+                                j * it_per_episode : (j + 1) * it_per_episode
+                            ]
                             labels_aux_array.append(copy.deepcopy(labels_aux))
-                            
+
                     preds_aux = np.concatenate(preds_aux_array, axis=0)
                     if y_grouped is not None:
                         labels_aux = np.concatenate(labels_aux_array, axis=0)
@@ -341,7 +343,6 @@ class BaseModel(abc.ABC):
 
             return preds, labels  # preds_df
 
-
     def predict_halt_classifier(self, X: np.ndarray):
 
         if not self.halt_model:
@@ -353,7 +354,6 @@ class BaseModel(abc.ABC):
             halts = self.halt_model.predict(X)
 
         return halts
-
 
     def save_model(self, filename):
 
@@ -373,14 +373,12 @@ class BaseModel(abc.ABC):
 
         pickle.dump(self.model, open(filename, "wb"))
 
-
     def save_halt_model(self, dir_path: str = "models"):
 
         filename = os.path.join(dir_path, "halted_classifier.pkl")
         if not pathlib.Path(filename).parent.exists():
             pathlib.Path(filename).parent.mkdir(parents=True)
         pickle.dump(self.halt_model, open(filename, "wb"))
-
 
     def load_model(
         self, filename: str, scale_data: bool = False, separate_models: bool = False
@@ -407,7 +405,6 @@ class BaseModel(abc.ABC):
                 filename += ".pkl"
             self.model = pickle.load(open(filename, "rb"))
 
-
     def _load_multimodels(self, filename: str, scale_data: bool):
 
         all_models = os.listdir(filename)
@@ -422,18 +419,16 @@ class BaseModel(abc.ABC):
             )
         self.models = models
 
-
     def load_halt_classifier(self, filename: str):
 
         self.halt_model = pickle.load(open(filename, "rb"))
-
 
     def evaluate(
         self,
         metric,
         X_test: Union[None, np.ndarray] = None,
         y_test: Union[None, np.ndarray] = None,
-        marginal: bool = False
+        marginal: bool = False,
     ):
 
         if not self.model:
@@ -441,13 +436,16 @@ class BaseModel(abc.ABC):
         else:
 
             if X_test is None:
-                X_test, y_test = self.get_test_set(grouped_per_episode = False)
+                X_test, y_test = self.get_test_set(grouped_per_episode=False)
 
-            assert len(X_test) > 0, "Predict sequentially requires at least one iteration provided, but none where given."
+            assert (
+                len(X_test) > 0
+            ), "Predict sequentially requires at least one iteration provided, but none where given."
 
             if y_test is not None:
-                assert len(X_test) == len(y_test), \
-                    f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
+                assert len(X_test) == len(
+                    y_test
+                ), f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
 
             if not marginal:
                 y_hat = self.predict(X_test)
@@ -455,7 +453,6 @@ class BaseModel(abc.ABC):
             else:
                 results_df = self.evaluate_margins(metric, X_test, y_test, False)
                 return results_df
-
 
     def evaluate_sequentially(
         self,
@@ -501,10 +498,12 @@ class BaseModel(abc.ABC):
         else:
 
             if X_grouped is None:
-                X_grouped, y_grouped = self.get_test_set(grouped_per_episode = True)
+                X_grouped, y_grouped = self.get_test_set(grouped_per_episode=True)
 
             if not marginal:
-                y_hat, y_test = self.predict_sequentially(X_grouped, y_grouped, it_per_episode=it_per_episode)
+                y_hat, y_test = self.predict_sequentially(
+                    X_grouped, y_grouped, it_per_episode=it_per_episode
+                )
                 return metric(y_test, y_hat)
             else:
                 results_df = self.evaluate_margins_sequentially(
@@ -512,13 +511,12 @@ class BaseModel(abc.ABC):
                 )
                 return results_df
 
-
     def evaluate_margins(
         self,
         metric,
         X_test: Union[None, np.ndarray] = None,
         y_test: Union[None, np.ndarray] = None,
-        verbose: bool = False
+        verbose: bool = False,
     ):
         """Evaluate predictions for each var separately.
 
@@ -551,7 +549,7 @@ class BaseModel(abc.ABC):
         else:
 
             if X_test is None:
-                X_test, y_test = self.get_test_set(grouped_per_episode = False)
+                X_test, y_test = self.get_test_set(grouped_per_episode=False)
 
             y_pred = self.predict(X_test)
             idx = 0
@@ -563,7 +561,6 @@ class BaseModel(abc.ABC):
                 results[var] = scores
                 idx += 1
             return pd.DataFrame(results.items(), columns=["var", "score"])
-
 
     def evaluate_margins_sequentially(
         self,
@@ -605,10 +602,12 @@ class BaseModel(abc.ABC):
         """
 
         if X_grouped is None:
-            X_grouped, y_grouped = self.get_test_set(grouped_per_episode = True)
+            X_grouped, y_grouped = self.get_test_set(grouped_per_episode=True)
 
         # Extract prediction and remove any tail reminder from int(len(X_test)/it_per_episode)
-        y_pred, y_test = self.predict_sequentially(X_grouped, y_grouped, it_per_episode=it_per_episode)
+        y_pred, y_test = self.predict_sequentially(
+            X_grouped, y_grouped, it_per_episode=it_per_episode
+        )
 
         idx = 0
         results = {}
@@ -619,7 +618,6 @@ class BaseModel(abc.ABC):
             results[var] = scores
             idx += 1
         return pd.DataFrame(results.items(), columns=["var", "score"])
-
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
 
@@ -643,56 +641,71 @@ class BaseModel(abc.ABC):
         plt.title("ROC for Recycle Predictions")
         plt.legend(loc="lower right")
 
-
-    def get_test_set(self, grouped_per_episode = False):
+    def get_test_set(self, grouped_per_episode=False):
         """Extracts test sets from dataclass_obj
         """
 
         if grouped_per_episode:
-            X_test_grouped, y_test_grouped = self.dataclass_obj.get_test_set_per_episode()
+            (
+                X_test_grouped,
+                y_test_grouped,
+            ) = self.dataclass_obj.get_test_set_per_episode()
 
-            assert len(X_test_grouped) > 0, "Predict sequentially requires at least one episode provided, but none where given."
+            assert (
+                len(X_test_grouped) > 0
+            ), "Predict sequentially requires at least one episode provided, but none where given."
 
-            assert len(X_test_grouped) == len(y_test_grouped), \
-                f"number of episodes for predictions ({len(X_test_grouped)}) and labels ({len(y_test_grouped)}) do not match."
+            assert len(X_test_grouped) == len(
+                y_test_grouped
+            ), f"number of episodes for predictions ({len(X_test_grouped)}) and labels ({len(y_test_grouped)}) do not match."
 
             return X_test_grouped, y_test_grouped
 
         else:
             X_test, y_test = self.dataclass_obj.get_test_set()
 
-            assert len(X_test) > 0, "At least one iteration must be provided, but none where extracted."
+            assert (
+                len(X_test) > 0
+            ), "At least one iteration must be provided, but none where extracted."
 
-            assert len(X_test) == len(y_test), \
-                f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
+            assert len(X_test) == len(
+                y_test
+            ), f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
 
             return X_test, y_test
 
-
-    def get_train_set(self, grouped_per_episode = False):
+    def get_train_set(self, grouped_per_episode=False):
         """Extracts training sets from dataclass_obj
         """
 
         if grouped_per_episode:
-            X_train_grouped, y_train_grouped = self.dataclass_obj.get_train_set_per_episode()
+            (
+                X_train_grouped,
+                y_train_grouped,
+            ) = self.dataclass_obj.get_train_set_per_episode()
 
-            assert len(X_train_grouped) > 0, "Predict sequentially requires at least one episode provided, but none where given."
+            assert (
+                len(X_train_grouped) > 0
+            ), "Predict sequentially requires at least one episode provided, but none where given."
 
-            assert len(X_train_grouped) == len(y_train_grouped), \
-                f"number of episodes for predictions ({len(X_train_grouped)}) and labels ({len(y_train_grouped)}) do not match."
+            assert len(X_train_grouped) == len(
+                y_train_grouped
+            ), f"number of episodes for predictions ({len(X_train_grouped)}) and labels ({len(y_train_grouped)}) do not match."
 
             return X_train_grouped, y_train_grouped
 
         else:
             X_train, y_train = self.dataclass_obj.get_train_set()
 
-            assert len(X_train) > 0, "At least one iteration must be provided, but none where extracted."
+            assert (
+                len(X_train) > 0
+            ), "At least one iteration must be provided, but none where extracted."
 
-            assert len(X_train) == len(y_train), \
-                f"number of iterations for predictions ({len(X_train)}) and labels ({len(y_train)}) do not match."
+            assert len(X_train) == len(
+                y_train
+            ), f"number of iterations for predictions ({len(X_train)}) and labels ({len(y_train)}) do not match."
 
             return X_train, y_train
-
 
     def sweep(
         self,
@@ -729,6 +742,8 @@ class BaseModel(abc.ABC):
 
         # early stopping only supported for learners that have a
         # `partial_fit` method
+        from tune_sklearn import TuneSearchCV
+        import mlflow
 
         # start mlflow auto-logging
         mlflow.sklearn.autolog()
@@ -751,11 +766,7 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model,
-                param_grid=params,
-                refit=True,
-                cv=cv,
-                scoring=scoring_func,
+                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(

@@ -1,0 +1,12 @@
+simulator:
+  states:
+    ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+  actions: ["command"]
+  configs: ["pole_length", "pole_mass", "cart_mass"]
+  # estimate these during training
+  # e.g.,:
+  episode_inits: { "pole_length": 0.4, "pole_mass": 0.055, "cart_mass": 0.31 }
+  # episode_inits:
+  policy: bonsai
+  logging: enable
+  workspace_setup: True
