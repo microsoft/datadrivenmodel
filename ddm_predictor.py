@@ -183,7 +183,10 @@ def env_setup():
 
 
 def test_random_policy(
-    num_episodes: int = 500, num_iterations: int = 250, sim: Simulator = None,
+    num_episodes: int = 5,
+    num_iterations: int = 5,
+    sim: Simulator = None,
+    config: Dict[str, float] = None,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -199,7 +202,7 @@ def test_random_policy(
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        sim.episode_start()
+        sim.episode_start(config)
         sim_state = sim.get_state()
         while not terminal:
             action = random_action()
@@ -226,7 +229,7 @@ def main(cfg: DictConfig):
     configs = cfg["simulator"]["configs"]
     initial_states = cfg["simulator"]["initial_states"]
     policy = cfg["simulator"]["policy"]
-    logflag = cfg["simulator"]["logging"]
+    # logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
     scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
@@ -280,7 +283,7 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(1000, 250, sim)
+        test_random_policy(1000, 250, sim, {**episode_inits, **initial_states})
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")
