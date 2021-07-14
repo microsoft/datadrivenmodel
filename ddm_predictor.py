@@ -96,6 +96,8 @@ class Simulator(BaseModel):
             logger.warn(
                 "No config provided, so using random Gaussians. This probably not what you want!"
             )
+            # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
+            # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
         self.state = initial_state
@@ -283,7 +285,7 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(1000, 250, sim, {**episode_inits, **initial_states})
+        test_random_policy(sim=sim, config={**episode_inits, **initial_states})
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")
