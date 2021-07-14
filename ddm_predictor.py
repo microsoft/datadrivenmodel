@@ -65,8 +65,8 @@ class Simulator(BaseModel):
         logger.info(f"DDM outputs: {self.labels}")
 
     def episode_start(self, config: Dict[str, Any] = None):
-        """Initial DDM with initial states. This could include initializations of configs
-        as well as initial values for actions
+        """Initialize DDM. This could include initializations of configs
+        as well as initial values for states.
 
         Parameters
         ----------
