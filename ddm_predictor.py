@@ -46,6 +46,7 @@ class Simulator(BaseModel):
         inputs: List[str],
         outputs: List[str],
         episode_inits: Dict[str, float],
+        initial_states: Dict[str, float],
         diff_state: bool = False,
         render=False,
     ):
@@ -60,6 +61,7 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
+        self.initial_states = initial_states
         self.render = render
         self.count_view = False
         # TODO: Add logging
@@ -72,7 +74,11 @@ class Simulator(BaseModel):
             self.frequency = config['config_frequency']
         except:
             self.frequency = 80
-        initial_state = {k: random.random() for k in self.state_keys}
+        initial_state = {}
+        if config:
+            initial_state.update(
+                {k: config[self.initial_states[k]] for k in self.initial_states.keys()}
+            )
         initial_action = {k: random.random() for k in self.action_keys}
         if config:
             logger.info(f"Initializing episode with provided config: {config}")
@@ -90,6 +96,7 @@ class Simulator(BaseModel):
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
         self.state = initial_state
+        logger.info(f"Initial states: {initial_state}")
         self.action = initial_action
         # capture all data
         self.all_data = {**self.state, **self.action, **self.config}
@@ -196,8 +203,14 @@ def test_random_policy(
 
     for episode in range(num_episodes):
         iteration = 0
-        terminal = False
-        sim.episode_start()
+        terminal = False 
+        config = {
+            "config_initial_theta": np.random.uniform(-0.27, 0.27),
+            "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
+            "config_initial_theta_dot": np.random.uniform(-0.05, 0.05),
+            "config_initial_alpha_dot": np.random.uniform(-0.05, 0.05),
+        }
+        sim.episode_start(config)
         sim_state = sim.get_state()
         while not terminal:
             action = random_action()
@@ -229,6 +242,7 @@ def main(cfg: DictConfig):
     diff_state = cfg["data"]["diff_state"]
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
+    initial_states = cfg["simulator"]["initial_states"]
 
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
@@ -262,6 +276,12 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
     # model.build_model(**cfg["model"]["build_params"])
 
+    if not initial_states:
+        logger.warn(
+            "No initial values provided, using randomly initialized states which is probably NOT what you want"
+        )
+        initial_states = {k: random.random() for k in states}
+
     # Grab standardized way to interact with sim API
     sim = Simulator(
         model,
@@ -271,6 +291,7 @@ def main(cfg: DictConfig):
         input_cols,
         output_cols,
         episode_inits,
+        initial_states,
         diff_state,
         render
     )

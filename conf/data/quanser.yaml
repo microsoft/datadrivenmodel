@@ -1,5 +1,5 @@
 data:
-  path: csv_data/quanser-config-40.csv
+  path: csv_data/quanser-mixed-05-200k.csv
   full_or_relative: relative
   inputs:
     [
@@ -23,4 +23,4 @@ data:
   max_rows: -1
   scale_data: True
   diff_state: True
-  test_perc: 0
+  test_perc: 0.1
