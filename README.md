@@ -53,7 +53,7 @@ python ddm_trainer.py
 You can change any configuration parameter by specifying the configuration file you would like to change and its new path, i.e.,
 
 ```bash
-python ddm_trainer.py data=cartpole_st_at simulator=gboost_cartpole.yaml
+python ddm_trainer.py data=cartpole_st_at simulator=gboost_cartpole
 ```
 
 which will use the configuration files in [`conf/data/cartpole_st_at.yaml`](./conf/data/cartpole_st_at.yaml) and [`conf/simulator/gboost_cartpole.yaml`](./conf/simulator/gboost_cartpole.yaml).
@@ -90,13 +90,73 @@ The sweeping function uses [`tune-sklearn`](https://github.com/ray-project/tune-
 The schema for your simulator resides in [`conf/simulator`](./conf/simulator). After defining your states, actions, and configs, you can run the simulator as follows:
 
 ```bash
-python ddm_predictor simulator=$YOUR_SIM_CONFIG.yaml
+python ddm_predictor.py simulator=$YOUR_SIM_CONFIG
 ```
+
+> NOTE: If wanting to train with bonsai, make sure `conf/simulator/policy` is set to "bonsai" instead of "random"
 
 If you would like to test your simulator before connecting to the platform, you can use a random policy:
 
 ```bash
-python ddm_predictor.py simulator=$YOUR_SIM_CONFIG.yaml simulator.policy=random
+python ddm_predictor.py simulator=$YOUR_SIM_CONFIG simulator.policy=random
+```
+
+> NOTE: The optional flags should NOT have .yml; it should just be the name of the config file
+
+If you're having trouble running locally, chances are you need to set up your workspace and access key configs. You can do this by using environment variables or the following command
+
+```bash
+python ddm_predictor.py simulator.workspace_setup=True
+```
+
+## Generate Logs for Comparing DDM and Original Sim
+
+Validating your ddm simulator against the original sim is heavily recommended, especially paying attention to error propagation in a sequential manner. `ddm_test_validate.py` is one way to generate two csv files in `outputs/<DATE>/<TIME>/logs`. 
+
+> NOTE: ddm_test_validate.py does NOT currently generate plots for generic models
+
+![](img/test_validate_csv.png)
+
+In order to use `ddm_test_validate.py`, a few steps will need to be followed:
+
+1. Place the original simulator's `main.py` at the same root level where `ddm_test_validate.py` is. Add simulator files into `sim/<FOLDER>/sim/`.
+
+```bash
+├───ddm_test_validate.py
+├───main.py
+├───sim
+│   ├───quanser
+│   │   ├───sim
+│   │   |   ├───qube_simulator.py
+```
+
+2. Modify imports so main.py can successfully run simulator in new location
+
+```python
+from sim.quanser.sim.qube_simulator import QubeSimulator
+from sim.quanser.policies import random_policy, brain_policy
+```
+
+3. Ensure the config in `conf/simulator` does NOT have the default policy as bonsai. You'll want to use "random" or create your own expert policy.
+
+> NOTE: You can override your policy from the CLI, will be shown in the final step
+
+4. Provide a scenario config in `ddm_test_validate.py` to ensure you start with initial configurations that are better than just random.
+
+```python
+        '''
+       TODO: Add episode_start(config) so sim works properly and not initializing
+        with unrealistic initial conditions.
+        '''
+        sim.episode_start()
+        ddm_state = sim.get_state()
+        sim_state = sim.get_sim_state()
+```
+
+5. Run `ddm_test_validate.py`
+
+```python
+python ddm_test_validate.py simulator.policy=random
 ```
 
 ## Build Simulator Package
@@ -104,21 +164,6 @@ python ddm_predictor.py simulator=$YOUR_SIM_CONFIG.yaml simulator.policy=random
 ```bash
 az acr build --image <IMAGE_NAME>:<IMAGE_VERSION> --file Dockerfile --registry <ACR_REGISTRY> .
 ```
-
-## Data Evaluation
-
-Use the release version of the jupyter notebook to assist you with qualifying your data for creation of a simulator using supervised learning. The notebook is split up into three parts. The notebook uses the `nbgrader` package, where the user should click the `Validate` button to determine if all tests have been passed. You will be responsible for loading the data, running cells to see if you successfully pass tests, and manipulating the data in Python if the notebook finds things like NaNs and outliers. It will ask for desired operating limits of the model you wish to create and compare that against what is available in your provided datasets. Asssuming you pass the tests for data relevance, your data will be exported to a single csv named `approved_data.csv` which is ready to be ingested by the `datadrivenmodel` tool.
-
-- Data Relevance
-- Sparsity
-- Data Distribution Confidence
-
-```bash
-jupyter notebook release/presales_evaluation/presales_evaluation.ipynb
-```
-![](img/presales_notebook.PNG)
-
-> Once you have successfuly qualified your data using the `Validate` button, it is recommended to export it as a PDF to share the results without requiring access to the data.
 
 ## Contribute Code
 This project welcomes contributions and suggestions. Most contributions require you to
