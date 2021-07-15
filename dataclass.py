@@ -661,7 +661,7 @@ class DataClass(object):
             if diff_values is None:
 
                 if len(df) < 2:
-                    logger.info(
+                    logger.warn(
                         "not enough rows to provide diff on (minimum 2), or at least a matching feature column. df is skipped"
                     )
                     return None
@@ -673,13 +673,13 @@ class DataClass(object):
             df[diff_label] = diff_values
 
         if labels_matched_to_feats:
-            logger.info(
+            logger.debug(
                 "delta states enabled, calculating differential between input and output values. note, no rows have been lost."
             )
         else:
             # drop last zeroed row
             df.drop(df.head(1).index, axis=0, inplace=True)
-            logger.info(
+            logger.debug(
                 "delta states enabled, calculating differential between input and output values. note, first row has been lost."
             )
 
@@ -735,7 +735,7 @@ class DataClass(object):
                 df[concat_feat] = feat_array
 
         if zero_padding:
-            logger.info(
+            logger.debug(
                 f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. no rows have been lost."
             )
         else:
@@ -747,7 +747,7 @@ class DataClass(object):
                 return None
             else:
                 df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
-                logger.info(
+                logger.debug(
                     f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
                 )
 

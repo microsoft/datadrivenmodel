@@ -13,7 +13,7 @@ model:
   saver:
     filename: models/boost/lightgbm
   sweep:
-    run: False
+    run: True
     # can be any of bayesian, bohb, hyperopt, optuna, grid or random
     search_algorithm: bayesian
     split_strategy: timeseries
