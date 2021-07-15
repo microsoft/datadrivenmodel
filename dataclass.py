@@ -706,6 +706,15 @@ class DataClass(object):
         concatenated_steps = self.concatenated_steps
         zero_padding = self.concatenated_zero_padding
 
+        # Drop episode if number of iterations is lower than number of desired concatenated steps.
+        # - Dropped no matter if zero_padding is enabled or disabled -
+        if len(df) < concatenated_steps:
+            logger.info(
+                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}.\
+                \n   >> We drop df, since df length ({len(df)}) is lower than number of steps to concatenate ({concatenated_steps})."
+            )
+            return None
+
         # Redefine input states to ensure input state names are unique
         # - Note, state names are used on predict_sequentially_all method (and possibly others)
 
@@ -726,6 +735,7 @@ class DataClass(object):
             for i in range(1, concatenated_steps + 1):
                 concat_feat = feat + f"_{i}"
 
+                # Concatenate steps >> i == 1: has the newest value; i == concatenated_steps: has the oldest value
                 if i == 1:
                     feat_array = df[feat].values
                 else:
@@ -734,22 +744,19 @@ class DataClass(object):
                     feat_array = np.array(list(np.zeros(i - 1)) + list(feat_array))
                 df[concat_feat] = feat_array
 
+        # Removing zero padded tows, if padding with zeros is disabled.
+        if not zero_padding:
+            df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
+        
+        # Store information on transformation performed on debugger.
         if zero_padding:
             logger.debug(
                 f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. no rows have been lost."
             )
         else:
-            if len(df) < concatenated_steps:
-                logger.info(
-                    f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}.\
-                    \n   >> We drop df, since df length ({len(df)}) is lower than number of steps to concatenate ({concatenated_steps})."
-                )
-                return None
-            else:
-                df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
-                logger.debug(
-                    f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
-                )
+            logger.debug(
+                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
+            )
 
         return df
 
