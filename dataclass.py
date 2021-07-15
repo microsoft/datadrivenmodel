@@ -747,7 +747,7 @@ class DataClass(object):
         # Removing zero padded tows, if padding with zeros is disabled.
         if not zero_padding:
             df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
-        
+
         # Store information on transformation performed on debugger.
         if zero_padding:
             logger.debug(
