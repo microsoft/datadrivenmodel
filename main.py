@@ -582,7 +582,7 @@ if __name__ == "__main__":
             policy_name="exported",
             num_iterations=args.iteration_limit,
             scenario_file=scenario_file,
-            ignore_assess_config=args.ignore_assess_config
+            total_iterations_max=args.total_iterations_max
         )
     else:
         main(
