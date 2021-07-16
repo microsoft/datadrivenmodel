@@ -19,6 +19,7 @@ simulator:
       "config_initial_alpha_dot",
     ]
   episode_inits:
+  initial_states:
   policy: random
   logging: enable
   workspace_setup: True
