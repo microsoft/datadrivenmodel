@@ -620,7 +620,11 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
+                self.model,
+                param_grid=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
