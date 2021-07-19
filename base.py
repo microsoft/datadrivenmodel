@@ -99,6 +99,7 @@ class BaseModel(abc.ABC):
                 )
             if not augm_cols:
                 logging.debug(f"No augmented columns...")
+                augm_features = []
             elif type(augm_cols) == str:
                 augm_features = [str(col) for col in df if col.startswith(augm_cols)]
             elif isinstance(augm_cols, (list, ListConfig)):
@@ -133,6 +134,7 @@ class BaseModel(abc.ABC):
                 label_cols=labels,
                 episode_col=episode_col,
                 iteration_col=iteration_col,
+                augmented_cols=augm_features,
             )
             X = df[csv_reader.feature_cols].values
             y = df[csv_reader.label_cols].values
