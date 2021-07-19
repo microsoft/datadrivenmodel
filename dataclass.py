@@ -6,6 +6,8 @@ import numpy as np
 import copy as copy
 import random
 from collections import OrderedDict
+from typing import Dict, List, Tuple, Union
+from omegaconf.listconfig import ListConfig
 
 logger = logging.getLogger("data_class")
 logger.setLevel(logging.INFO)
@@ -268,7 +270,7 @@ class DataClass(object):
                 df = df[~df.isnull().any(axis=1)]
             if type(input_cols) == str:
                 base_features = [str(col) for col in df if col.startswith(input_cols)]
-            elif type(input_cols) == list:
+            elif isinstance(input_cols, (list, ListConfig)):
                 base_features = input_cols
             else:
                 raise TypeError(
@@ -276,9 +278,10 @@ class DataClass(object):
                 )
             if not augm_cols:
                 logging.debug(f"No augmented columns...")
+                augm_features = []
             elif type(augm_cols) == str:
                 augm_features = [str(col) for col in df if col.startswith(augm_cols)]
-            elif type(augm_cols) == list:
+            elif isinstance(augm_cols, (list, ListConfig)):
                 augm_features = augm_cols
             else:
                 raise TypeError(
@@ -294,7 +297,7 @@ class DataClass(object):
 
             if type(output_cols) == str:
                 labels = [col for col in df if col.startswith(output_cols)]
-            elif type(output_cols) == list:
+            elif isinstance(output_cols, (list, ListConfig)):
                 labels = output_cols
             else:
                 raise TypeError(
@@ -312,6 +315,7 @@ class DataClass(object):
                 label_cols=labels,
                 episode_col=episode_col,
                 iteration_col=iteration_col,
+                augmented_cols=augm_features,
             )
 
             # store episode_id to group_per_episode
