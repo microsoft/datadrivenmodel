@@ -317,7 +317,6 @@ class BaseModel(abc.ABC):
                     for j in range(n_subepisodes):
                         preds_aux = self.predict_sequentially_all(
                             X_grouped[i][j * it_per_episode : (j + 1) * it_per_episode],
-                            label_col_names,
                         )
                         preds_aux_array.append(copy.deepcopy(preds_aux))
 
