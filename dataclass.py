@@ -52,6 +52,7 @@ class DataClass(object):
         current_row,
         feature_cols,
         label_cols,
+        augmented_cols,
     ):
         """Split the dataset by features and labels
 
@@ -92,6 +93,11 @@ class DataClass(object):
         lagged_df = lagged_df.drop([iteration_col], axis=1)
 
         features_df = lagged_df[feature_cols]
+        # if iteration order is less than 1
+        # then the actions, configs should not be lagged
+        # only states should be lagged
+        if iteration_order < 0:
+            features_df[augmented_cols] = df[augmented_cols]
 
         # eventually we will join the labels_df with the features_df
         # if any columns are matching then rename them
@@ -117,8 +123,9 @@ class DataClass(object):
         iteration_order: int = -1,
         episode_col: str = "episode",
         iteration_col: str = "iteration",
-        feature_cols: List[str] = ["state_x_position", "action_command"],
+        feature_cols: List[str] = ["state_x_position"],
         label_cols: List[str] = ["state_x_position"],
+        augmented_cols: List[str] = ["action_command"],
     ):
         """Read episodic data where each row contains either inputs and its preceding output output or the causal inputs/outputs relationship
 
@@ -158,6 +165,7 @@ class DataClass(object):
                 current_row,
                 feature_cols,
                 label_cols,
+                augmented_cols,
             )
 
             # skip the first row of each episode since we do not have its st
@@ -183,6 +191,7 @@ class DataClass(object):
                 current_row,
                 feature_cols,
                 label_cols,
+                augmented_cols,
             )
             # truncate before the end of iteration_order for complete observations only
             joined_df = (
@@ -747,7 +756,7 @@ class DataClass(object):
         # Removing zero padded tows, if padding with zeros is disabled.
         if not zero_padding:
             df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
-
+        
         # Store information on transformation performed on debugger.
         if zero_padding:
             logger.debug(
