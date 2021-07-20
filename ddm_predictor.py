@@ -74,13 +74,18 @@ class Simulator(BaseModel):
             self.frequency = config['config_frequency']
         except:
             self.frequency = 80
+
+        try:
+            self.noise_percentage = config['noise_percentage']
+        except:
+            self.noise_percentage = 0
+
+        initial_action = {k: random.random() for k in self.action_keys}
         initial_state = {}
         if config:
             initial_state.update(
                 {k: config[self.initial_states[k]] for k in self.initial_states.keys()}
             )
-        initial_action = {k: random.random() for k in self.action_keys}
-        if config:
             logger.info(f"Initializing episode with provided config: {config}")
             self.config = config
         elif not config and self.episode_inits:
@@ -113,6 +118,8 @@ class Simulator(BaseModel):
         self.all_data.update(action)
 
         ddm_input = {k: self.all_data[k] for k in self.features}
+        print('~~~~~~~~~~~~~~', ddm_input)
+        pdb.set_trace()
 
         # input_list = [
         #     list(self.state.values()),
@@ -144,6 +151,9 @@ class Simulator(BaseModel):
                     )
                 self.count_view = True
             self.viewer.render(self.state['state_theta'], self.state['state_alpha'])
+        if self.noise_percentage:
+            for key, val in self.state.items():
+                self.state[key] += np.random.uniform(low=-self.noise_percentage/100, high=self.noise_percentage/100)
         return self.state
 
     def get_state(self):
@@ -205,6 +215,7 @@ def test_random_policy(
         iteration = 0
         terminal = False 
         config = {
+            #"noise_percentage": 1,
             "config_initial_theta": np.random.uniform(-0.27, 0.27),
             "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
             "config_initial_theta_dot": np.random.uniform(-0.05, 0.05),

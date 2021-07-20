@@ -1,13 +1,7 @@
 simulator:
   states: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
   actions: ["action_Vm"]
-  configs:
-    [
-      "config_initial_theta",
-      "config_initial_alpha",
-      "config_initial_theta_dot",
-      "config_initial_alpha_dot",
-    ]
+  configs: []
   episode_inits:
   initial_states:
     {

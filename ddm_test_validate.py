@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from typing import Any, Dict, List
 import time
+import random
 import pdb
 
 from base import BaseModel
@@ -37,6 +38,8 @@ class Simulator(BaseModel):
         states: List[str],
         actions: List[str],
         configs: List[str],
+        episode_inits: Dict[str, float],
+        initial_states: Dict[str, float],
         log_file: str = None,
         diff_state: bool = False,
         sim_orig=None,
@@ -49,6 +52,8 @@ class Simulator(BaseModel):
         self.action_keys = actions
         self.sim_orig = sim_orig()  # include simulator function if comparing to simulator
         self.diff_state = diff_state
+        self.initial_states = initial_states
+        self.episode_inits = episode_inits
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
             log_file = os.path.join(
@@ -71,15 +76,25 @@ class Simulator(BaseModel):
         self.log_file2 = log_file2
 
     def episode_start(self, config: Dict[str, Any] = None):
+        initial_action = {k: random.random() for k in self.action_keys}
+        initial_state = {}
         if config:
             self.config = config
+            initial_state.update(
+                {k: config[self.initial_states[k]] for k in self.initial_states.keys()}
+            )
+        elif not config and self.episode_inits:
+            self.config = self.episode_inits
+            initial_state.update(
+                {k: self.episode_inits[self.initial_states[k]] for k in self.initial_states.keys()}
+            )
         else:
             # configs randomized here. Need to decide a single place for configs
             # range either in main.py or in simulator configs
             self.config = {j: np.random.uniform(-1, 1) for j in self.config_keys}
         if self.sim_orig:
             # Assign same state as would be used by simulator
-            self.sim_orig.episode_start(config)
+            self.sim_orig.episode_start(self.config)
             _fullstate = self.sim_orig.get_state()
             # idempotent dict comprehension for sims with prefix in configurations
             self.state = {
@@ -88,13 +103,20 @@ class Simulator(BaseModel):
                 for l in _fullstate.keys()
                 if l in j
             }
+        elif not self.sim_orig and config:
+            self.config = config
+            self.state = initial_state
         else:
             # randomized state here need to be changed to appropriate ranges of each state
             # see Table of All Data (TOAD) from Discovery Session
             self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
 
+        self.action = initial_action
+        self.all_data = {**self.state, **self.action, **self.config}
+
     def episode_step(self, action: Dict[str, int]):
 
+        '''
         input_list = [
             list(
                 self.state.values()
@@ -104,6 +126,11 @@ class Simulator(BaseModel):
         ]
 
         input_array = [item for subl in input_list for item in subl]
+        '''
+        self.all_data.update(action)
+
+        ddm_input = {k: self.all_data[k] for k in self.features}
+        input_array = list(ddm_input.values())
         X = np.array(input_array).reshape(1, -1)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.dd_model.predict(
@@ -267,6 +294,8 @@ def main(cfg: DictConfig):
     states = cfg["simulator"]["states"]
     actions = cfg["simulator"]["actions"]
     configs = cfg["simulator"]["configs"]
+    episode_inits = cfg["simulator"]["episode_inits"]
+    initial_states = cfg["simulator"]["initial_states"]
     policy = cfg["simulator"]["policy"]
     logflag = cfg["simulator"]["logging"]
     scale_data = cfg["model"]["build_params"]["scale_data"]
@@ -295,7 +324,17 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state, TemplateSimulatorSession)
+    sim = Simulator(
+        model,
+        states,
+        actions,
+        configs,
+        episode_inits,
+        initial_states,
+        logflag,
+        diff_state,
+        TemplateSimulatorSession
+    )
 
     test_sim_model(1, 640, logflag, sim, policy)
 
