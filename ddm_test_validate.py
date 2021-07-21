@@ -246,7 +246,6 @@ def test_sim_model(
             print(f"Observations for Data: {ddm_state}")
             # Add additional terminal conditions if required. Here only time-out is used.
             terminal = iteration >= num_iterations or sim.halted()
-           
 
     return sim
 
@@ -271,7 +270,7 @@ def main(cfg: DictConfig):
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
-    
+
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)
     if type(output_cols) == ListConfig:
@@ -298,7 +297,9 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state)#, SimulatorSession)
+    sim = Simulator(
+        model, states, actions, configs, logflag, diff_state
+    )  # , SimulatorSession)
 
     test_sim_model(10, 250, logflag, sim)
 
