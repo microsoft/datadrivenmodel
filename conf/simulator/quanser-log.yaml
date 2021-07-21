@@ -13,13 +13,36 @@ simulator:
       "config_Dr",
       "config_Dp",
       "config_frequency",
-      "config_inital_theta",
+      "config_initial_theta",
       "config_initial_alpha",
       "config_initial_theta_dot",
       "config_initial_alpha_dot",
     ]
-  episode_inits:
-  initial_states:
+  episode_inits: 
+    {
+      "config_Lp": 0.129,
+      "config_mp": 0.024,
+      "config_Rm": 8.4,
+      "config_kt": 0.042,
+      "config_km": 0.042,
+      "config_mr": 0.095,
+      "config_Lr": 0.085,
+      "config_Dr": 0.00027,
+      "config_Dp": 0.00005,
+      "config_frequency": 80,
+      'config_initial_theta': 0,
+      'config_initial_alpha': 0,
+      'config_initial_theta_dot': 0,
+      'config_initial_alpha_dot': 0
+    }
+  initial_states: 
+    {
+      'config_initial_theta': 'state_theta',
+      'config_initial_alpha': 'state_alpha',
+      'config_initial_theta_dot': 'state_theta_dot',
+      'config_initial_alpha_dot': 'state_alpha_dot'
+    }
+  initial_states_mapper: True
   policy: random
   logging: enable
   workspace_setup: True

@@ -46,6 +46,7 @@ class Simulator(BaseModel):
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
         diff_state: bool = False,
+        initial_states_mapper: bool = False,
     ):
 
         self.model = model
@@ -59,6 +60,7 @@ class Simulator(BaseModel):
         self.action_keys = actions
         self.diff_state = diff_state
         self.initial_states = initial_states
+        self.initial_states_mapper = initial_states_mapper
         # TODO: Add logging
 
         logger.info(f"DDM features: {self.features}")
@@ -79,9 +81,16 @@ class Simulator(BaseModel):
         # define initial state from config if available (e.g. when brain training)
         # skip if config missing
         if config:
-            initial_state.update(
-                (k, config[k]) for k in initial_state.keys() & config.keys()
-            )
+            initial_state = {}
+            if self.initial_states_mapper:
+                initial_state.update(
+                    #{k: config[self.initial_states[k]] for k in self.initial_states.keys()}
+                    {v: config[k] for k, v in self.initial_states.items()}
+                )
+            else:
+                initial_state.update(
+                    (k, config[k]) for k in initial_state.keys() & config.keys()
+                )
         initial_action = {k: random.random() for k in self.action_keys}
         if config:
             logger.info(f"Initializing episode with provided config: {config}")
@@ -120,6 +129,11 @@ class Simulator(BaseModel):
         self.all_data.update(action)
 
         ddm_input = {k: self.all_data[k] for k in self.features}
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        for key, val in ddm_input.items():
+            print(key, val)
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        exit()
 
         # input_list = [
         #     list(self.state.values()),
@@ -201,6 +215,22 @@ def test_random_policy(
     def random_action():
         return {k: random.random() for k in sim.action_keys}
 
+    config = {
+        "config_Lp": 0.129,
+        "config_mp": 0.024,
+        "config_Rm": 8.4,
+        "config_kt": 0.042,
+        "config_km": 0.042,
+        "config_mr": 0.095,
+        "config_Lr": 0.085,
+        "config_Dr": 0.00027,
+        "config_Dp": 0.00005,
+        "config_frequency": 80,
+        "config_initial_theta": 0.1,
+        "config_initial_alpha": 0.1, # make sure pi if resetting downward
+        "config_initial_theta_dot": 0.1,
+        "config_initial_alpha_dot": 0.1,
+    }
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
@@ -237,6 +267,7 @@ def main(cfg: DictConfig):
     diff_state = cfg["data"]["diff_state"]
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
+    initial_states_mapper = cfg["simulator"]["initial_states_mapper"]
 
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
@@ -279,6 +310,7 @@ def main(cfg: DictConfig):
         episode_inits,
         initial_states,
         diff_state,
+        initial_states_mapper,
     )
 
     # do a random action to get initial state
