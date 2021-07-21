@@ -36,8 +36,6 @@ from all_models import available_models
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
 log_path = "logs"
-max_vel = 10
-R = 0.1125 # plate radius
 
 
 class Simulator(BaseModel):
@@ -248,13 +246,7 @@ def test_sim_model(
             print(f"Observations for Data: {ddm_state}")
             # Add additional terminal conditions if required. Here only time-out is used.
             terminal = iteration >= num_iterations or sim.halted()
-            if R<abs(sim_state["state_ball_x"]) or \
-                R<abs(sim_state["state_ball_y"]) or \
-                max_vel < abs(sim_state["state_ball_vel_x"]) or \
-                max_vel < abs(sim_state["state_ball_vel_y"]):
-                print("ball_x is {} and ball_y is {}".format(sim_state["state_ball_x"],sim_state["state_ball_y"]))
-                print("episode # is {}",episode)
-                terminal = True
+           
 
     return sim
 
@@ -306,7 +298,7 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state, SimulatorSession)
+    sim = Simulator(model, states, actions, configs, logflag, diff_state)#, SimulatorSession)
 
     test_sim_model(10, 250, logflag, sim)
 
