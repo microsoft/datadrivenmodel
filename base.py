@@ -62,7 +62,8 @@ class BaseModel(abc.ABC):
         output_col : Union[str, List[str]], optional
             output columns of the dynamical system. Can either be a string which is then matched for any columns or a list of exact matches, by default "state"
         iteration_order : int, optional
-            in the order of the raw dataset, what is the lag between iteration t and iteration t+1, by default -1
+            in the order of the raw dataset, what is the lag between action t and state t, by default -1, which means each row is
+            a_t,s_{t+1}
         max_rows : Union[int, None], optional
             max rows to read for a large dataset, by default None
         diff_state : bool, default False

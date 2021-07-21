@@ -44,6 +44,7 @@ class Simulator(BaseModel):
         inputs: List[str],
         outputs: List[str],
         episode_inits: Dict[str, float],
+        initial_states: Dict[str, float],
         diff_state: bool = False,
     ):
 
@@ -57,14 +58,30 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
+        self.initial_states = initial_states
         # TODO: Add logging
 
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
 
     def episode_start(self, config: Dict[str, Any] = None):
+        """Initialize DDM. This could include initializations of configs
+        as well as initial values for states.
 
-        initial_state = {k: random.random() for k in self.state_keys}
+        Parameters
+        ----------
+        config : Dict[str, Any], optional
+            episode initializations, by default None
+        """
+
+        # initialize states based on simulator.yaml
+        initial_state = self.initial_states
+        # define initial state from config if available (e.g. when brain training)
+        # skip if config missing
+        if config:
+            initial_state.update(
+                (k, config[k]) for k in initial_state.keys() & config.keys()
+            )
         initial_action = {k: random.random() for k in self.action_keys}
         if config:
             logger.info(f"Initializing episode with provided config: {config}")
@@ -79,9 +96,12 @@ class Simulator(BaseModel):
             logger.warn(
                 "No config provided, so using random Gaussians. This probably not what you want!"
             )
+            # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
+            # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
         self.state = initial_state
+        logger.info(f"Initial states: {initial_state}")
         self.action = initial_action
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
@@ -165,9 +185,10 @@ def env_setup():
 
 
 def test_random_policy(
-    num_episodes: int = 500,
-    num_iterations: int = 250,
+    num_episodes: int = 5,
+    num_iterations: int = 5,
     sim: Simulator = None,
+    config: Dict[str, float] = None,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -183,7 +204,7 @@ def test_random_policy(
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        sim.episode_start()
+        sim.episode_start(config)
         sim_state = sim.get_state()
         while not terminal:
             action = random_action()
@@ -208,8 +229,9 @@ def main(cfg: DictConfig):
     states = cfg["simulator"]["states"]
     actions = cfg["simulator"]["actions"]
     configs = cfg["simulator"]["configs"]
+    initial_states = cfg["simulator"]["initial_states"]
     policy = cfg["simulator"]["policy"]
-    logflag = cfg["simulator"]["logging"]
+    # logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
     scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
@@ -240,6 +262,12 @@ def main(cfg: DictConfig):
     model.load_model(filename=save_path, scale_data=scale_data)
     # model.build_model(**cfg["model"]["build_params"])
 
+    if not initial_states:
+        logger.warn(
+            "No initial values provided, using randomly initialized states which is probably NOT what you want"
+        )
+        initial_states = {k: random.random() for k in states}
+
     # Grab standardized way to interact with sim API
     sim = Simulator(
         model,
@@ -249,6 +277,7 @@ def main(cfg: DictConfig):
         input_cols,
         output_cols,
         episode_inits,
+        initial_states,
         diff_state,
     )
 
@@ -256,7 +285,7 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(1000, 250, sim)
+        test_random_policy(sim=sim, config={**episode_inits, **initial_states})
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")
