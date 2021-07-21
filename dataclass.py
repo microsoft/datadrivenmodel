@@ -110,7 +110,7 @@ class DataClass(object):
         # then features = states, actions, configs from current row (df)
         # labels = states from next row (lagged_df)
         else:
-            features_df = df[[episode_col, iteration_col] + feature_cols]
+            features_df = df[feature_cols]
             # TODO: check, is this always redundant?
             # i.e., is feature_cols is supset of augmented_cols
             features_df[augmented_cols] = df[augmented_cols]
@@ -131,7 +131,7 @@ class DataClass(object):
         if iteration_order < 0:
             labels_df = df[[episode_col, iteration_col] + label_cols]
         else:
-            labels_df = lagged_df[label_cols]
+            labels_df = df[[episode_col, iteration_col]].join(lagged_df[label_cols])
         return labels_df.join(features_df)[vars_to_keep]
 
     def read(
