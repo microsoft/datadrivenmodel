@@ -108,7 +108,7 @@ class Simulator(BaseModel):
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
 
-    def episode_step(self, action: Dict[str, int]):
+    def episode_step(self, action: Dict[str, int]) -> Dict:
 
         # load design matrix for self.model.predict
         # should match the shape of conf.data.inputs
@@ -141,11 +141,11 @@ class Simulator(BaseModel):
         self.all_data.update(ddm_output)
         self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
-        return self.state
+        return dict(self.state)
 
-    def get_state(self):
+    def get_state(self) -> Dict:
 
-        return self.state
+        return dict(self.state)
 
     def halted(self):
 
