@@ -118,7 +118,9 @@ class DataClass(object):
         # eventually we will join the labels_df with the features_df
         # if any columns are matching then rename them
         if bool(set(feature_cols) & set(label_cols)):
-            features_df = features_df.rename(columns=lambda x: "prev_" + x if x in label_cols else x)
+            features_df = features_df.rename(
+                columns=lambda x: "prev_" + x if x in label_cols else x
+            )
 
         self.feature_cols = list(features_df.columns.values)
         self.label_cols = list(label_cols)
@@ -302,7 +304,7 @@ class DataClass(object):
                 raise TypeError(
                     f"augm_cols expected type List[str] or str but received type {type(augm_cols)}"
                 )
-            
+
             if augm_cols:
                 features = base_features + augm_features
             else:
