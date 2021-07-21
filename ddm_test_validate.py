@@ -14,11 +14,14 @@ logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from all_models import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
+# Commented example import of sim model from the sim folder can be similar to mba example
+# from sim.moab.moab_main import SimulatorSession,  env_setup
+# from sim.moab.policies import coast, random_policy, small_perturbations
 ## Example: Quanser from a Microsoft Bonsai
 """
 ├───ddm_test_validate.py
@@ -33,6 +36,8 @@ from all_models import available_models
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
 log_path = "logs"
+max_vel = 10
+R = 0.1125 # plate radius
 
 
 class Simulator(BaseModel):
@@ -54,7 +59,7 @@ class Simulator(BaseModel):
         self.action_keys = actions
         self.sim_orig = (
             sim_orig()
-        )  # include simulator function if comparing to simulator
+        )  # include simulator instance if comparing to simulator
         self.diff_state = diff_state
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -109,6 +114,7 @@ class Simulator(BaseModel):
             list(self.config.values()),
             list(action.values()),
         ]
+        print(input_list)
 
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
@@ -242,6 +248,13 @@ def test_sim_model(
             print(f"Observations for Data: {ddm_state}")
             # Add additional terminal conditions if required. Here only time-out is used.
             terminal = iteration >= num_iterations or sim.halted()
+            if R<abs(sim_state["state_ball_x"]) or \
+                R<abs(sim_state["state_ball_y"]) or \
+                max_vel < abs(sim_state["state_ball_vel_x"]) or \
+                max_vel < abs(sim_state["state_ball_vel_y"]):
+                print("ball_x is {} and ball_y is {}".format(sim_state["state_ball_x"],sim_state["state_ball_y"]))
+                print("episode # is {}",episode)
+                terminal = True
 
     return sim
 
@@ -266,6 +279,15 @@ def main(cfg: DictConfig):
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
+    
+    if type(input_cols) == ListConfig:
+        input_cols = list(input_cols)
+    if type(output_cols) == ListConfig:
+        output_cols = list(output_cols)
+    if type(augmented_cols) == ListConfig:
+        augmented_cols = list(augmented_cols)
+    print(type(input_cols))
+    print(type(augmented_cols))
 
     input_cols = input_cols + augmented_cols
 
@@ -284,9 +306,9 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state)
+    sim = Simulator(model, states, actions, configs, logflag, diff_state, SimulatorSession)
 
-    test_sim_model(1, 250, logflag, sim)
+    test_sim_model(10, 250, logflag, sim)
 
     return sim
 
