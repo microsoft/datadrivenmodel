@@ -95,9 +95,9 @@ class CsvReader(object):
             [episode_col, iteration_col] + self.feature_cols + self.label_cols
         )
         if iteration_order < 0:
-            labels_df = df[[episode_col, iteration_col] + label_cols]
+            labels_df = df[[episode_col, iteration_col] + self.label_cols]
         else:
-            labels_df = df[[episode_col, iteration_col]].join(lagged_df[label_cols])
+            labels_df = df[[episode_col, iteration_col]].join(lagged_df[self.label_cols])
         return labels_df.join(features_df)[vars_to_keep]
 
     def read(
