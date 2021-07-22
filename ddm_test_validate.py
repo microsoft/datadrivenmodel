@@ -14,7 +14,7 @@ logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from all_models import available_models
 
@@ -42,6 +42,9 @@ class Simulator(BaseModel):
         states: List[str],
         actions: List[str],
         configs: List[str],
+        episode_inits: Dict[str, float],
+        initial_states: Dict[str, float],
+        initial_states_mapper: Dict[str, float],
         log_file: str = None,
         diff_state: bool = False,
         sim_orig=None,
@@ -52,6 +55,9 @@ class Simulator(BaseModel):
         self.config_keys = configs
         self.state_keys = states
         self.action_keys = actions
+        self.episode_inits = episode_inits
+        self.initial_states = initial_states
+        self.initial_states_mapper = initial_states_mapper
         self.sim_orig = (
             sim_orig()
         )  # include simulator function if comparing to simulator
@@ -99,18 +105,13 @@ class Simulator(BaseModel):
             # randomized state here need to be changed to appropriate ranges of each state
             # see Table of All Data (TOAD) from Discovery Session
             self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
+        self.all_data = {**self.state, **self.action, **self.config}
 
     def episode_step(self, action: Dict[str, int]):
+        self.all_data.update(action)
 
-        input_list = [
-            list(
-                self.state.values()
-            ),  # replace by self.sim_orig.state.values() for per iteration
-            list(self.config.values()),
-            list(action.values()),
-        ]
-
-        input_array = [item for subl in input_list for item in subl]
+        ddm_input = {k: self.all_data[k] for k in self.features}
+        input_array = list(ddm_input.values())
         X = np.array(input_array).reshape(1, -1)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.dd_model.predict(
@@ -260,12 +261,22 @@ def main(cfg: DictConfig):
     logflag = cfg["simulator"]["logging"]
     scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
+    initial_states = cfg["simulator"]["initial_states"]
+    episode_inits = cfg["simulator"]["episode_inits"]
+    initial_states_mapper = cfg["simulator"]["initial_states_mapper"]
 
     logger.info(f"Training with a new {policy} policy")
 
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
+    
+    if type(input_cols) == ListConfig:
+        input_cols = list(input_cols)
+    if type(output_cols) == ListConfig:
+        output_cols = list(output_cols)
+    if type(augmented_cols) == ListConfig:
+        augmented_cols = list(augmented_cols)
 
     input_cols = input_cols + augmented_cols
 
@@ -284,7 +295,17 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state)
+    sim = Simulator(
+        model,
+        states,
+        actions,
+        configs,
+        episode_inits,
+        initial_states,
+        initial_states_mapper,
+        logflag,
+        diff_state
+    )
 
     test_sim_model(1, 250, logflag, sim)
 

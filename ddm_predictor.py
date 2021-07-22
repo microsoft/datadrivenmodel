@@ -45,8 +45,8 @@ class Simulator(BaseModel):
         outputs: List[str],
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
+        initial_states_mapper: Dict[str, float],
         diff_state: bool = False,
-        initial_states_mapper: bool = False,
     ):
 
         self.model = model
@@ -81,18 +81,15 @@ class Simulator(BaseModel):
         # define initial state from config if available (e.g. when brain training)
         # skip if config missing
         if config:
-            initial_state = {}
             if self.initial_states_mapper:
+                initial_state = {}
                 initial_state.update(
-                    #{k: config[self.initial_states[k]] for k in self.initial_states.keys()}
-                    {v: config[k] for k, v in self.initial_states.items()}
+                    {v: config[k] for k, v in self.initial_states_mapper.items()}
                 )
             else:
                 initial_state.update(
                     (k, config[k]) for k in initial_state.keys() & config.keys()
                 )
-        initial_action = {k: random.random() for k in self.action_keys}
-        if config:
             logger.info(f"Initializing episode with provided config: {config}")
             self.config = config
         elif not config and self.episode_inits:
@@ -109,8 +106,11 @@ class Simulator(BaseModel):
             # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
+
         self.state = initial_state
         logger.info(f"Initial states: {initial_state}")
+        
+        initial_action = {k: random.random() for k in self.action_keys}
         self.action = initial_action
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
@@ -129,11 +129,6 @@ class Simulator(BaseModel):
         self.all_data.update(action)
 
         ddm_input = {k: self.all_data[k] for k in self.features}
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        for key, val in ddm_input.items():
-            print(key, val)
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        exit()
 
         # input_list = [
         #     list(self.state.values()),
@@ -214,23 +209,7 @@ def test_random_policy(
 
     def random_action():
         return {k: random.random() for k in sim.action_keys}
-
-    config = {
-        "config_Lp": 0.129,
-        "config_mp": 0.024,
-        "config_Rm": 8.4,
-        "config_kt": 0.042,
-        "config_km": 0.042,
-        "config_mr": 0.095,
-        "config_Lr": 0.085,
-        "config_Dr": 0.00027,
-        "config_Dp": 0.00005,
-        "config_frequency": 80,
-        "config_initial_theta": 0.1,
-        "config_initial_alpha": 0.1, # make sure pi if resetting downward
-        "config_initial_theta_dot": 0.1,
-        "config_initial_alpha_dot": 0.1,
-    }
+    
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
@@ -309,8 +288,8 @@ def main(cfg: DictConfig):
         output_cols,
         episode_inits,
         initial_states,
-        diff_state,
         initial_states_mapper,
+        diff_state,
     )
 
     # do a random action to get initial state

@@ -90,13 +90,23 @@ simulator:
       "pole_angle": 0,
       "pole_angular_velocity": 0,
     }
-  # episode_inits:
+  initial_states_mapper:
   policy: bonsai
   logging: enable
   workspace_setup: True
 ```
 
-When training with a brain, make sure that your scenario definitions include both `initial_state` values and/or `episode_inits` values.
+When training with a brain, make sure that your scenario definitions include both `initial_state` values and/or `episode_inits` values. The `initial_state` values will get overwritten by the values from Inkling when they keys match. If that poses difficult, you can populate `initial_states_mapper`. 
+
+```yaml
+initial_states_mapper:
+  {
+    'initial_cart_position': 'cart_position',
+    'initial_cart_velocity': 'cart_velocity',
+    'initial_pole_angle': 'pole_angle',
+    'initial_pole_angular_velocity': 'pole_angular_velocity'
+  }
+```
 
 ### Hyperparameter Tuning
 
@@ -176,7 +186,7 @@ from sim.quanser.policies import random_policy, brain_policy
 
 ```python
         '''
-       TODO: Add episode_start(config) so sim works properly and not initializing
+        TODO: Add episode_start(config) so sim works properly and not initializing
         with unrealistic initial conditions.
         '''
         sim.episode_start()

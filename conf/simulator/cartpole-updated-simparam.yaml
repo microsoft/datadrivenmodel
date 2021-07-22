@@ -16,7 +16,7 @@ simulator:
       "pole_angle": 0,
       "pole_angular_velocity": 0,
     }
-  # episode_inits:
+  initial_states_mapper:
   policy: bonsai
   logging: enable
   workspace_setup: True
