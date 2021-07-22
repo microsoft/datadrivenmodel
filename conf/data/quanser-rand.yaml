@@ -1,5 +1,5 @@
 data:
-  path: csv_data/quanser-rand-halts.csv
+  path: csv_data/quanser-mixed-05-200k.csv
   full_or_relative: relative
   inputs:
     [
@@ -12,16 +12,16 @@ data:
   outputs: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
   augmented_cols:
     [
-      "config_Lp",
-      "config_mp",
-      "config_Rm",
-      "config_kt",
-      "config_km",
-      "config_mr",
-      "config_Lr",
-      "config_Dr",
-      "config_Dp",
-      "config_frequency",
+      #"config_Lp",
+      #"config_mp",
+      #"config_Rm",
+      #"config_kt",
+      #"config_km",
+      #"config_mr",
+      #"config_Lr",
+      #"config_Dr",
+      #"config_Dp",
+      #"config_frequency",
       "config_initial_theta",
       "config_initial_alpha",
       "config_initial_theta_dot",
