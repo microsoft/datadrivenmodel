@@ -227,15 +227,20 @@ class BaseModel(abc.ABC):
             # print(f"X (predict_sequentially_all) ---> {np.shape(X)}")
             self.dataclass_obj.sequential_inference_initialize(ini_X=X[0])
 
-            # sequentially iterate retriving next prediction based on previous prediction
+            # Sequentially iterate retriving next prediction based on previous prediction.
+            # If a state is not predicted, we take the value from the dataset.
             next_X = X[0]
             preds_array = []
-            for i in range(len(X)):
+            X_len = len(X)
+            for i in range(X_len):
                 # get next prediction
                 preds = self.predict(np.array(next_X))
                 preds_array.append(preds[0])
-                # update prediction dictionary (for next iteration)
-                next_X = self.dataclass_obj.sequential_inference(new_y=preds[0])
+
+                # Update prediction dictionary (for next iteration).
+                # > The next value is provided, to update all states that are not being predicted.
+                if i < X_len-1:
+                    next_X = self.dataclass_obj.sequential_inference(new_y=preds[0], other_args=X[i+1])
 
             preds_array = np.array(preds_array)  # .transpose()
 
