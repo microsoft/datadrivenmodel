@@ -73,12 +73,20 @@ def main(cfg: DictConfig) -> None:
     )
     train_id_end = floor(X.shape[0] * (1 - test_perc))
     X_train, y_train = (
-        X[:train_id_end,],
-        y[:train_id_end,],
+        X[
+            :train_id_end,
+        ],
+        y[
+            :train_id_end,
+        ],
     )
     X_test, y_test = (
-        X[train_id_end:,],
-        y[train_id_end:,],
+        X[
+            train_id_end:,
+        ],
+        y[
+            train_id_end:,
+        ],
     )
 
     # save training and test sets

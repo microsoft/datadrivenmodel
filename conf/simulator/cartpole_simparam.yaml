@@ -8,10 +8,21 @@ simulator:
     ]
   actions: ["action_command"]
   configs: ["config_length", "config_masspole"]
-  # estiamte these during training
+  # estimate these during training
   # e.g.,:
   # episode_inits: { "config_length": 0.5, "config_masspole": 0.1 }
   episode_inits:
+  # e.g.,:  your simulator may need to know the initial state
+  # before the first episode. define these here as a dictionary
+  # you can include these in your Inkling scenarios during brain training
+  initial_states:
+    {
+      "state_x_position": 0,
+      "state_x_velocity": 0,
+      "state_angle_position": 0,
+      "state_angle_velocity": 0,
+    }
+  initial_states_mapper:
   policy: bonsai
   logging: enable
   workspace_setup: True

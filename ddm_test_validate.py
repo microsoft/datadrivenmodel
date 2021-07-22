@@ -16,7 +16,7 @@ logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from all_models import available_models
 
@@ -25,6 +25,15 @@ from all_models import available_models
 from main import TemplateSimulatorSession, env_setup
 import math
 from plot_diff import plot_diff
+## Example: Quanser from a Microsoft Bonsai
+"""
+├───ddm_test_validate.py
+├───main.py
+├───sim
+│   ├───quanser
+│   │   ├───sim
+│   │   |    ├───qube_simulator.py
+"""
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
@@ -40,6 +49,7 @@ class Simulator(BaseModel):
         configs: List[str],
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
+        initial_states_mapper: Dict[str, float],
         log_file: str = None,
         diff_state: bool = False,
         sim_orig=None,
@@ -50,7 +60,12 @@ class Simulator(BaseModel):
         self.config_keys = configs
         self.state_keys = states
         self.action_keys = actions
-        self.sim_orig = sim_orig()  # include simulator function if comparing to simulator
+        self.episode_inits = episode_inits
+        self.initial_states = initial_states
+        self.initial_states_mapper = initial_states_mapper
+        self.sim_orig = (
+            sim_orig()
+        )  # include simulator function if comparing to simulator
         self.diff_state = diff_state
         self.initial_states = initial_states
         self.episode_inits = episode_inits
@@ -76,22 +91,37 @@ class Simulator(BaseModel):
         self.log_file2 = log_file2
 
     def episode_start(self, config: Dict[str, Any] = None):
-        initial_action = {k: random.random() for k in self.action_keys}
-        initial_state = {}
+        # initialize states based on simulator.yaml
+        initial_state = self.initial_states
+        # define initial state from config if available (e.g. when brain training)
+        # skip if config missing
         if config:
+            if self.initial_states_mapper:
+                initial_state = {}
+                initial_state.update(
+                    {v: config[k] for k, v in self.initial_states_mapper.items()}
+                )
+            else:
+                initial_state.update(
+                    (k, config[k]) for k in initial_state.keys() & config.keys()
+                )
+            logger.info(f"Initializing episode with provided config: {config}")
             self.config = config
-            initial_state.update(
-                {k: config[self.initial_states[k]] for k in self.initial_states.keys()}
-            )
         elif not config and self.episode_inits:
-            self.config = self.episode_inits
-            initial_state.update(
-                {k: self.episode_inits[self.initial_states[k]] for k in self.initial_states.keys()}
+            logger.info(
+                f"No episode initializations provided, using initializations in yaml `episode_inits`"
             )
+            logger.info(f"Episode config: {self.episode_inits}")
+            self.config = self.episode_inits
         else:
-            # configs randomized here. Need to decide a single place for configs
-            # range either in main.py or in simulator configs
-            self.config = {j: np.random.uniform(-1, 1) for j in self.config_keys}
+            logger.warn(
+                "No config provided, so using random Gaussians. This probably not what you want!"
+            )
+            # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
+            # to a file so we can sample from that range instead of random Gaussians
+            # request_continue = input("Are you sure you want to continue with random configs?")
+            self.config = {k: random.random() for k in self.config_keys}
+        
         if self.sim_orig:
             # Assign same state as would be used by simulator
             self.sim_orig.episode_start(self.config)
@@ -103,30 +133,18 @@ class Simulator(BaseModel):
                 for l in _fullstate.keys()
                 if l in j
             }
-        elif not self.sim_orig and config:
-            self.config = config
-            self.state = initial_state
-        else:
-            # randomized state here need to be changed to appropriate ranges of each state
-            # see Table of All Data (TOAD) from Discovery Session
-            self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
 
+        self.state = initial_state
+        logger.info(f"Initial states: {initial_state}")
+        
+        initial_action = {k: random.random() for k in self.action_keys}
         self.action = initial_action
+        # capture all data
+        # TODO: check if we can pick a subset of data yaml, i.e., what happens if
+        # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
 
     def episode_step(self, action: Dict[str, int]):
-
-        '''
-        input_list = [
-            list(
-                self.state.values()
-            ),  # replace by self.sim_orig.state.values() for per iteration
-            list(self.config.values()),
-            list(action.values()),
-        ]
-
-        input_array = [item for subl in input_list for item in subl]
-        '''
         self.all_data.update(action)
 
         ddm_input = {k: self.all_data[k] for k in self.features}
@@ -195,6 +213,7 @@ class Simulator(BaseModel):
         # If arm hits rails of physical limit +/- 90 degrees
         return abs(sim_state['state_theta']) >= math.pi / 2 or abs(sim_state['state_alpha']) >= math.pi / 2 or abs(state['state_theta']) >= math.pi / 2 or abs(state['state_alpha']) >= math.pi / 2
 
+
     def log_iterations(
         self, state, action, fname: str, episode: int = 0, iteration: int = 1
     ):
@@ -234,9 +253,24 @@ def test_sim_model(
         number of iterations to run, by default 10
     """
     for episode in range(num_episodes):
+        """
+        TODO: Add episode_start(config) so sim works properly and not initializing
+        with unrealistic initial conditions.
+        """
         iteration = 0
         terminal = False
         config = {
+            "config_Lp": 0.129,
+            "config_mp": 0.024,
+            "config_Rm": 8.4,
+            "config_kt": 0.042,
+            "config_km": 0.042,
+            "config_mr": 0.095,
+            "config_Lr": 0.085,
+            "config_Dr": 0.00027,
+            "config_Dp": 0.00005,
+            "config_frequency": 80,
+            #"noise_percentage": 1,
             "config_initial_theta": np.random.uniform(-0.27, 0.27),
             "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
             "config_initial_theta_dot": np.random.uniform(-0.05, 0.05),
@@ -300,6 +334,9 @@ def main(cfg: DictConfig):
     logflag = cfg["simulator"]["logging"]
     scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
+    initial_states = cfg["simulator"]["initial_states"]
+    episode_inits = cfg["simulator"]["episode_inits"]
+    initial_states_mapper = cfg["simulator"]["initial_states_mapper"]
 
     logger.info(f"Training with a new {policy} policy")
     
@@ -309,16 +346,29 @@ def main(cfg: DictConfig):
 
     input_cols = input_cols + augmented_cols
 
+    input_cols = cfg["data"]["inputs"]
+    output_cols = cfg["data"]["outputs"]
+    augmented_cols = cfg["data"]["augmented_cols"]
+    
+    if type(input_cols) == ListConfig:
+        input_cols = list(input_cols)
+    if type(output_cols) == ListConfig:
+        output_cols = list(output_cols)
+    if type(augmented_cols) == ListConfig:
+        augmented_cols = list(augmented_cols)
+
+    input_cols = input_cols + augmented_cols
+
     ddModel = available_models[model_name]
     model = ddModel()
 
-    #model.build_model(**cfg["model"]["build_params"])
+    # model.build_model(**cfg["model"]["build_params"])
     if model_name.lower() == "pytorch":
         model.load_model(
             input_dim=len(input_cols),
             output_dim=len(output_cols),
             filename=save_path,
-            scale_data=scale_data
+            scale_data=scale_data,
         )
     else:
         model.load_model(filename=save_path, scale_data=scale_data)
@@ -331,12 +381,13 @@ def main(cfg: DictConfig):
         configs,
         episode_inits,
         initial_states,
+        initial_states_mapper,
         logflag,
         diff_state,
         TemplateSimulatorSession
     )
 
-    test_sim_model(1, 640, logflag, sim, policy)
+    test_sim_model(1, 250, logflag, sim)
 
     return sim
 

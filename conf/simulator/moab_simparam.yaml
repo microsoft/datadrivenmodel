@@ -13,6 +13,8 @@ simulator:
   actions: ["action_input_roll", "action_input_pitch"]
   configs: []
   episode_inits:
+  initial_states:
+  initial_states_mapper:
   policy: random
   logging: enable
   workspace_setup: True

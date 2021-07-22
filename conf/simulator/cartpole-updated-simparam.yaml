@@ -6,7 +6,17 @@ simulator:
   # estimate these during training
   # e.g.,:
   episode_inits: { "pole_length": 0.4, "pole_mass": 0.055, "cart_mass": 0.31 }
-  # episode_inits:
+  # e.g.,:  your simulator may need to know the initial state
+  # before the first episode. define these here as a dictionary
+  # you can include these in your Inkling scenarios during brain training
+  initial_states:
+    {
+      "cart_position": 0,
+      "cart_velocity": 0,
+      "pole_angle": 0,
+      "pole_angular_velocity": 0,
+    }
+  initial_states_mapper:
   policy: bonsai
   logging: enable
   workspace_setup: True

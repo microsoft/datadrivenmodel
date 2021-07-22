@@ -47,6 +47,7 @@ class Simulator(BaseModel):
         outputs: List[str],
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
+        initial_states_mapper: Dict[str, float],
         diff_state: bool = False,
         render=False,
     ):
@@ -64,12 +65,21 @@ class Simulator(BaseModel):
         self.initial_states = initial_states
         self.render = render
         self.count_view = False
+        self.initial_states_mapper = initial_states_mapper
         # TODO: Add logging
 
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
 
     def episode_start(self, config: Dict[str, Any] = None):
+        """Initialize DDM. This could include initializations of configs
+        as well as initial values for states.
+
+        Parameters
+        ----------
+        config : Dict[str, Any], optional
+            episode initializations, by default None
+        """
         try: 
             self.frequency = config['config_frequency']
         except:
@@ -80,12 +90,20 @@ class Simulator(BaseModel):
         except:
             self.noise_percentage = 0
 
-        initial_action = {k: random.random() for k in self.action_keys}
-        initial_state = {}
+        # initialize states based on simulator.yaml
+        initial_state = self.initial_states
+        # define initial state from config if available (e.g. when brain training)
+        # skip if config missing
         if config:
-            initial_state.update(
-                {k: config[self.initial_states[k]] for k in self.initial_states.keys()}
-            )
+            if self.initial_states_mapper:
+                initial_state = {}
+                initial_state.update(
+                    {v: config[k] for k, v in self.initial_states_mapper.items()}
+                )
+            else:
+                initial_state.update(
+                    (k, config[k]) for k in initial_state.keys() & config.keys()
+                )
             logger.info(f"Initializing episode with provided config: {config}")
             self.config = config
         elif not config and self.episode_inits:
@@ -98,15 +116,22 @@ class Simulator(BaseModel):
             logger.warn(
                 "No config provided, so using random Gaussians. This probably not what you want!"
             )
+            # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
+            # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
+
         self.state = initial_state
         logger.info(f"Initial states: {initial_state}")
+        
+        initial_action = {k: random.random() for k in self.action_keys}
         self.action = initial_action
         # capture all data
+        # TODO: check if we can pick a subset of data yaml, i.e., what happens if
+        # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
 
-    def episode_step(self, action: Dict[str, int]):
+    def episode_step(self, action: Dict[str, int]) -> Dict:
 
         # load design matrix for self.model.predict
         # should match the shape of conf.data.inputs
@@ -118,8 +143,6 @@ class Simulator(BaseModel):
         self.all_data.update(action)
 
         ddm_input = {k: self.all_data[k] for k in self.features}
-        print('~~~~~~~~~~~~~~', ddm_input)
-        pdb.set_trace()
 
         # input_list = [
         #     list(self.state.values()),
@@ -154,11 +177,11 @@ class Simulator(BaseModel):
         if self.noise_percentage:
             for key, val in self.state.items():
                 self.state[key] += np.random.uniform(low=-self.noise_percentage/100, high=self.noise_percentage/100)
-        return self.state
+        return dict(self.state)
 
-    def get_state(self):
+    def get_state(self) -> Dict:
 
-        return self.state
+        return dict(self.state)
 
     def halted(self):
 
@@ -198,7 +221,10 @@ def env_setup():
 
 
 def test_random_policy(
-    num_episodes: int = 500, num_iterations: int = 250, sim: Simulator = None,
+    num_episodes: int = 5,
+    num_iterations: int = 5,
+    sim: Simulator = None,
+    config: Dict[str, float] = None,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -210,11 +236,21 @@ def test_random_policy(
 
     def random_action():
         return {k: random.random() for k in sim.action_keys}
-
+    
     for episode in range(num_episodes):
         iteration = 0
         terminal = False 
         config = {
+            "config_Lp": 0.129,
+            "config_mp": 0.024,
+            "config_Rm": 8.4,
+            "config_kt": 0.042,
+            "config_km": 0.042,
+            "config_mr": 0.095,
+            "config_Lr": 0.085,
+            "config_Dr": 0.00027,
+            "config_Dp": 0.00005,
+            "config_frequency": 80,
             #"noise_percentage": 1,
             "config_initial_theta": np.random.uniform(-0.27, 0.27),
             "config_initial_alpha": np.random.uniform(-0.05, 0.05), # make sure pi if resetting downward
@@ -228,6 +264,7 @@ def test_random_policy(
             sim.episode_step(action)
             sim_state = sim.get_state()
             logger.info(f"Running iteration #{iteration} for episode #{episode}")
+            logger.info(f"Action: {action}")
             logger.info(f"Observations: {sim_state}")
             iteration += 1
             terminal = iteration >= num_iterations or sim.halted()
@@ -245,6 +282,7 @@ def main(cfg: DictConfig):
     states = cfg["simulator"]["states"]
     actions = cfg["simulator"]["actions"]
     configs = cfg["simulator"]["configs"]
+    initial_states = cfg["simulator"]["initial_states"]
     policy = cfg["simulator"]["policy"]
     render = cfg["simulator"]["render"]
     logflag = cfg["simulator"]["logging"]
@@ -254,6 +292,7 @@ def main(cfg: DictConfig):
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
     initial_states = cfg["simulator"]["initial_states"]
+    initial_states_mapper = cfg["simulator"]["initial_states_mapper"]
 
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
@@ -303,6 +342,7 @@ def main(cfg: DictConfig):
         output_cols,
         episode_inits,
         initial_states,
+        initial_states_mapper,
         diff_state,
         render
     )
@@ -311,7 +351,7 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(1000, 250, sim)
+        test_random_policy(sim=sim, config={**episode_inits, **initial_states})
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")
@@ -370,7 +410,9 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
+                    sequence_id=sequence_id,
+                    state=sim.get_state(),
+                    halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(
