@@ -32,5 +32,5 @@ data:
   iteration_col: iteration
   max_rows: -1
   scale_data: True
-  diff_state: False
+  diff_state: True
   test_perc: 0.25
