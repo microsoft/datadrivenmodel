@@ -564,16 +564,18 @@ class DataClass(object):
         self.last_X_d = OrderedDict(zip(self.feature_cols, list(ini_X)))
         return None
 
-    def sequential_inference(self, new_y: np.ndarray):
+    def sequential_inference(self, new_y: np.ndarray, other_args: np.ndarray):
         """Takes care of processing the predicted outputs, and insert them on top of the previous step for sequential prediction.
         At the moment we keep the input features static in between runs, only overwritting the labels that the model predicts sequentially.
-        - Note, "sequential_inference_initialize" needs to be called first.
+        - Note, "sequential_inference_initialize" needs to be called first when instancing a new prediction.
 
         Parameters
         ----------
         new_y: np.ndarray
             Predictions made by DDM, to be used to overwrite initial X.
-            .
+        other_args: np.ndarray
+            Take all other values required, that are not being predicted as labels.
+            Note, it might contain additional features that are being predicted as labels and should not be used.
 
         Returns
         -------
@@ -596,51 +598,72 @@ class DataClass(object):
             new_y
         ), "new_y should have same length than labels provided during load_csv method."
 
+        # Store the received label values indexed by their corresponding label names
         self.new_y_d = OrderedDict(zip(self.label_cols, list(new_y)))
+        other_args_d = OrderedDict(zip(self.feature_cols, list(other_args)))
 
         # if new_state is not None:
 
+        # Extract the original set of features (without any subindices added when concatenating steps)
         if self.concatenated_steps > 1:
             feats_list = self.original_features
         else:
             feats_list = self.feature_cols
 
+        # Extract the labels (without the "diff_" tag to match to features later)
+        if self.diff_state:
+            label_cols = self.original_labels
+        else:
+            label_cols = self.label_cols
+
+        # Modify the current state (features), with the updated states
         for feat in feats_list:
 
+            # Move the concatenated states forward by 1 step (higher number == least recent)
             if self.concatenated_steps > 1:
                 for i in range(1, self.concatenated_steps):
                     concat_feat = feat + f"_{i}"
                     next_concat_feat = feat + f"_{i+1}"
                     self.last_X_d[next_concat_feat] = self.last_X_d[concat_feat]
 
+            # Select the target feature to store the received values at
+            if self.concatenated_steps > 1:
                 target_feat = feat + "_1"
             else:
                 target_feat = feat
 
+            # Select the label that matches the feature
             target_label = None
-            for label in self.label_cols:
-                if self.iteration_order > 0:
-                    if label in feat:
-                        target_label = label
-                        break
-                elif self.iteration_order < 0:
-                    if label[5:] in feat:
-                        target_label = label
-                        break
-                else:
-                    raise Exception(
-                        "iteration_order == 0 has not been configured for sequential inference."
-                    )
+            for label in label_cols:
+                # See if the label is contained within the feature name.
+                # Note, we assume features matching labels will always be named ["prev_" + label_name].
+                # > For both self.iteration_order > 0 and self.iteration_order < 0.
+                if label in feat:
+                    target_label = label
+                    break
 
+            # If there is no matching label to current feature, we take it from the set of other arguments (when given).
             if target_label is None:
+                if target_feat in other_args_d.keys():
+                    self.last_X_d[target_feat] = other_args_d[target_feat]
+                    logger.debug(
+                        f"[dataclass: sequential_inference] updated value for feature ({target_feat}) was provided: ({self.last_X_d[target_feat]})."
+                    )
+                else:
+                    logger.debug(
+                        f"[dataclass: sequential_inference] updated value for feature ({target_feat}) was not provided. reusing previous value: ({self.last_X_d[target_feat]})."
+                    )
                 continue
 
+            # Update the state with the parsed new label values ("self.new_y_d")
             if self.diff_state:
                 target_label = "diff_" + target_label
                 self.last_X_d[target_feat] += self.new_y_d[target_label]
             else:
                 self.last_X_d[target_feat] = self.new_y_d[target_label]
-
+        
+        # Retrieve the set of updated values.
+        # Note, self.last_X_d is an ordered dictionary.
         return np.array(list(self.last_X_d.values()))
 
     def df_diff_predictions(self, df):
@@ -661,51 +684,54 @@ class DataClass(object):
 
         labels_matched_to_feats = True
 
+        # Save original labels and rename label_cols to point to the "diff" version
         if not self.original_labels:
             self.original_labels = copy.deepcopy(self.label_cols)
+            self.label_cols = ["diff_" + label for label in self.original_labels]
 
-        if len(self.original_labels) > len(self.label_cols):
-            # Re-start defining new cols if we previously skipped a df without copying all "diff" vars
-            self.label_cols = []
-
+        # Compute difference values for each label
         for label in self.original_labels:
 
             diff_label = "diff_" + label
             diff_values = None
 
-            if len(self.original_labels) > len(self.label_cols):
-                self.label_cols.append(diff_label)
-
-            # Iterate to find match for 'label' within feature columns
+            # Compute the difference between label and feature, when the feature exists
             for feat in self.feature_cols:
+                # See if the label is contained within the feature name.
+                # Note, we assume features matching labels will always be named ["prev_" + label_name].
+                # > For both self.iteration_order > 0 and self.iteration_order < 0.
+                if label in feat:
+                    # Compute the difference per row computed as: [label - feat]
+                    diff_values = df[label].values - df[feat].values
+                    break
 
-                if self.iteration_order > 0:
-                    if label in feat:
-                        diff_values = df[label].values - df[feat].values
-                        break
-                if self.iteration_order < 0:
-                    if label[5:] in feat:
-                        diff_values = df[label].values - df[feat].values
-                        break
-
+            # If no feature has been matched, compute the difference between rows
+            # > Note, the first row will have to be removed later
             if diff_values is None:
 
                 if len(df) < 2:
+                    log_message = f"Matching feature not found for label '{label}'."
+                    log_message += f" And not enough rows to compute diff (minimum 2, but {len(df)} were given)."
                     logger.warn(
-                        "not enough rows to provide diff on (minimum 2), or at least a matching feature column. df is skipped"
+                        log_message
                     )
                     return None
 
+                # Raise the flag to later remove the first row
                 labels_matched_to_feats = False
+
+                # Generate the difference between rows, and insert a zero (to be removed later)
                 diff_values = df[label].values[1:] - df[label].values[:-1]
                 diff_values = np.append([0], diff_values)
 
             df[diff_label] = diff_values
 
+        # If all labels have been matched, we will not be losing any rows
         if labels_matched_to_feats:
             logger.debug(
                 "delta states enabled, calculating differential between input and output values. note, no rows have been lost."
             )
+        # If at least one label has not been matched, we will have to remove the first row
         else:
             # drop last zeroed row
             df.drop(df.head(1).index, axis=0, inplace=True)
