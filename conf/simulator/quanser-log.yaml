@@ -49,7 +49,7 @@ simulator:
       'config_initial_theta_dot': 'state_theta_dot',
       'config_initial_alpha_dot': 'state_alpha_dot'
     }
-  policy: lqr
+  policy: bonsai
   logging: enable
-  workspace_setup: True
+  workspace_setup: False
   render: False
