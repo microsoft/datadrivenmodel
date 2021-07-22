@@ -22,10 +22,10 @@ data:
       #"config_Dr",
       #"config_Dp",
       #"config_frequency",
-      "config_initial_theta",
-      "config_initial_alpha",
-      "config_initial_theta_dot",
-      "config_initial_alpha_dot",
+      #"config_initial_theta",
+      #"config_initial_alpha",
+      #"config_initial_theta_dot",
+      #"config_initial_alpha_dot",
     ]
   iteration_order: -1
   episode_col: episode
