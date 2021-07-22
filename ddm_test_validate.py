@@ -387,7 +387,7 @@ def main(cfg: DictConfig):
         TemplateSimulatorSession
     )
 
-    test_sim_model(1, 250, logflag, sim)
+    test_sim_model(1, 640, logflag, sim, policy)
 
     return sim
 
