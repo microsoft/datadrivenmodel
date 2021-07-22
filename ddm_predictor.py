@@ -109,7 +109,7 @@ class Simulator(BaseModel):
 
         self.state = initial_state
         logger.info(f"Initial states: {initial_state}")
-        
+
         initial_action = {k: random.random() for k in self.action_keys}
         self.action = initial_action
         # capture all data
@@ -209,7 +209,7 @@ def test_random_policy(
 
     def random_action():
         return {k: random.random() for k in sim.action_keys}
-    
+
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
