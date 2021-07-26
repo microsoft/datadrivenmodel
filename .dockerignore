@@ -8,5 +8,9 @@ img/
 *.ipynb
 .ipynb_checkpoints
 bigmodels/
+tests/
+.github/
+.tours/
+notebooks/
 .vscode/
 __pycache__/

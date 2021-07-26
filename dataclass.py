@@ -739,7 +739,7 @@ class DataClass(object):
         # Drop episode if number of iterations is lower than number of desired concatenated steps.
         # - Dropped no matter if zero_padding is enabled or disabled -
         if len(df) < concatenated_steps:
-            logger.info(
+            logger.debug(
                 f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}.\
                 \n   >> We drop df, since df length ({len(df)}) is lower than number of steps to concatenate ({concatenated_steps})."
             )

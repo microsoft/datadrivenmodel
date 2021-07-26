@@ -363,7 +363,7 @@ class BaseModel(abc.ABC):
         if not parent_dir.exists():
             parent_dir.mkdir(parents=True, exist_ok=True)
         if self.scale_data:
-            logging.info(f"Scale transformations used, saving to {filename}")
+            logging.debug(f"Scale transformations used, saving to {filename}")
             pickle.dump(
                 self.xscalar, open(os.path.join(str(parent_dir), "xscalar.pkl"), "wb")
             )
