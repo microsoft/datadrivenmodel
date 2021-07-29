@@ -234,6 +234,7 @@ class DataClass(object):
         drop_nulls: bool = True,
         max_rows: Union[int, None] = None,
         test_perc: float = 0.15,
+        debug: bool = False,
         diff_state: bool = False,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
@@ -254,6 +255,10 @@ class DataClass(object):
             in the order of the raw dataset, what is the lag between iteration t and iteration t+1, by default -1
         max_rows : Union[int, None], optional
             max rows to read for a large dataset, by default None
+        test_perc : float [0, 1], optional
+            defines the percentage of the data to reserve for testing (from 0.1 == 10% test / 90% train)
+        debug : bool, optional
+            enables any changes useful for testing. For now, it disables shuffling the episodes prior to train/test split
         diff_state : bool, default False
             If enabled, calculate differential between current output_cols and past output_cols
         concatenated_steps : int, optional
@@ -364,7 +369,9 @@ class DataClass(object):
                         self.df_per_episode.append(aux_df)
 
             # Splitting datasets
-            self.split_train_and_test_samples(test_perc=test_perc)
+            self.debug = debug
+            self.test_perc = test_perc
+            self.split_train_and_test_samples(test_perc=self.test_perc)
 
             return self.get_train_set()
 
@@ -413,8 +420,14 @@ class DataClass(object):
 
         # Get train split - but ensuring we do not divide by zero later
         split = min(max(1 - test_perc, 0.01), 0.99)
+        # Update with validated test_perc
+        self.test_perc = 1-split
 
         episodes_len = []
+
+        # Randomize episodes prior to train/test split
+        if not self.debug:
+            random.shuffle(self.df_per_episode)
 
         self.test_len = 0
         self.train_len = 0
@@ -431,10 +444,6 @@ class DataClass(object):
                 self.test_len += ep_len
                 self.test_df_array.append(df)
 
-        # shuffle training and testing data
-        random.shuffle(self.train_df_array)
-        random.shuffle(self.test_df_array)
-
         # Extract episode length (mean & std dev)
         self.mean_episode_len = np.mean(episodes_len)
         self.std_episode_len = np.std(episodes_len)
@@ -442,6 +451,16 @@ class DataClass(object):
             f"divided train & test set with ({self.train_len}) and ({self.test_len}) iterations, respectively. Chosen split == {split*100}%.\
             \n   >> Average episode length: ({self.mean_episode_len}). Average std dev: ({self.std_episode_len})"
         )
+
+        # Reset training variables to None (in case this method is called after initialization)
+        self._X = None
+        self._y = None
+        self._X_train_seq = None
+        self._y_train_seq = None
+        self._X_test = None
+        self._y_test = None
+        self._X_test_seq = None
+        self._y_test_seq = None
 
         return
 
