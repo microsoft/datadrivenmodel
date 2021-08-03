@@ -96,7 +96,9 @@ simulator:
   workspace_setup: True
 ```
 
-When training with a brain, make sure that your scenario definitions include both `initial_state` values and/or `episode_inits` values. The `initial_state` values will get overwritten by the values from Inkling when they keys match. If that poses difficult, you can populate `initial_states_mapper`. 
+When training with a brain using the Bonsai platform, make sure that your scenario definitions include both `initial_states` values and/or `episode_inits` values (`episode_inits` will most likely correspond to the configuratino values in `augmented_cols` of your `data.yaml`). The `initial_states` values and the `episode_inits` values will get overwritten by the provided scenario values from Inkling when the keys match.
+
+You can also provide a dictionary `initial_states_mapper` describing how to map Inkling scenario parameters to initial state values in your simulator. 
 
 ```yaml
 initial_states_mapper:
@@ -107,6 +109,8 @@ initial_states_mapper:
     'initial_pole_angular_velocity': 'pole_angular_velocity'
   }
 ```
+
+This may be helpful when you want to give your Inkling `SimConfig` a different set of keys than your Inkling `SimState`.
 
 ### Hyperparameter Tuning
 
@@ -186,8 +190,8 @@ from sim.quanser.policies import random_policy, brain_policy
 
 ```python
         '''
-        TODO: Add episode_start(config) so sim works properly and not initializing
-        with unrealistic initial conditions.
+        TODO: Add episode_start(config) so your simulator initializes with
+        desired initial conditions 
         '''
         sim.episode_start()
         ddm_state = sim.get_state()
