@@ -133,9 +133,8 @@ class Simulator(BaseModel):
                 for l in _fullstate.keys()
                 if l in j
             }
-
-        self.state = initial_state
-        logger.info(f"Initial states: {initial_state}")
+        else:
+            self.state = initial_state
         
         initial_action = {k: random.random() for k in self.action_keys}
         self.action = initial_action
@@ -279,6 +278,8 @@ def test_sim_model(
         sim.episode_start(config)
         ddm_state = sim.get_state()
         sim_state = sim.get_sim_state()
+        print(f"Observations for Sim: {sim_state}")
+        print(f"Observations for Data: {ddm_state}")
         # it is important to know initial actions for evolution of the dynamics
         # action = random_action()
 
