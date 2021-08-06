@@ -98,16 +98,16 @@ simulator:
 
 When training with a brain using the Bonsai platform, make sure that your scenario definitions include `initial_states` and/or `episode_inits` keys(`episode_inits` will most likely correspond to the configuration values in `augmented_cols` of your `data.yaml`). The `initial_states` values and the `episode_inits` values will get overwritten by the provided scenario values from Inkling when the keys match.
 
-You can also provide a dictionary `initial_states_mapper` describing how to map Inkling scenario parameters to initial state values in your simulator. Be sure to comment them out if running with `simulator.policy=random` because `test_random_policy()` utilizes only the following `config={**episode_inits, **initial_states}`. If there is no need for a mapper, you may leave it blank.
+You can also provide a dictionary `initial_states_mapper` describing how to map Inkling scenario parameters to initial state values in your simulator. The `initial_states_mapper` is ignored when running `simulator.policy=random` because `test_policy()` will utilize only the following `config={**episode_inits, **initial_states}`.
 
 ```yaml
 initial_states_mapper:
-  #{
-  #  'state_theta': 'config_initial_theta',
-  #  'state_alpha': 'config_initial_alpha',
-  #  'state_theta_dot': 'config_initial_theta_dot',
-  #  'state_alpha_dot': 'config_initial_alpha_dot',
-  #}
+  {
+    'state_theta': 'config_initial_theta',
+    'state_alpha': 'config_initial_alpha',
+    'state_theta_dot': 'config_initial_theta_dot',
+    'state_alpha_dot': 'config_initial_alpha_dot',
+  }
 ```
 
 This may be helpful when you want to give your Inkling `SimConfig` a different set of keys than your Inkling `SimState`.

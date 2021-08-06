@@ -6,6 +6,8 @@ from typing import Any, Dict, List
 from omegaconf import ListConfig
 
 import numpy as np
+from functools import partial
+from policies import random_policy, brain_policy
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -201,11 +203,12 @@ def env_setup():
     return workspace, access_key
 
 
-def test_random_policy(
+def test_policy(
     num_episodes: int = 5,
     num_iterations: int = 5,
     sim: Simulator = None,
     config: Dict[str, float] = None,
+    policy=random_policy,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -215,16 +218,13 @@ def test_random_policy(
         number of iterations to run, by default 10
     """
 
-    def random_action():
-        return {k: random.random() for k in sim.action_keys}
-
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
         sim.episode_start(config)
         sim_state = sim.get_state()
         while not terminal:
-            action = random_action()
+            action = policy(sim_state)
             sim.episode_step(action)
             sim_state = sim.get_state()
             logger.info(f"Running iteration #{iteration} for episode #{episode}")
@@ -304,7 +304,11 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(sim=sim, config={**episode_inits, **initial_states})
+        # Ignore initial_states_mapper because that's used for Bonsai
+        sim.initial_states_mapper = None
+        # Pass in random action policy
+        random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
+        test_policy(sim=sim, config={**episode_inits, **initial_states}, policy=random_policy_from_keys)
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")

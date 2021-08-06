@@ -35,12 +35,12 @@ simulator:
       'state_alpha_dot': 0
     }
   initial_states_mapper:
-    #{
-    #  'state_theta': 'config_initial_theta',
-    #  'state_alpha': 'config_initial_alpha',
-    #  'state_theta_dot': 'config_initial_theta_dot',
-    #  'state_alpha_dot': 'config_initial_alpha_dot',
-    #}
+    {
+      'state_theta': 'config_initial_theta',
+      'state_alpha': 'config_initial_alpha',
+      'state_theta_dot': 'config_initial_theta_dot',
+      'state_alpha_dot': 'config_initial_alpha_dot',
+    }
   policy: random
   logging: enable
   workspace_setup: True
