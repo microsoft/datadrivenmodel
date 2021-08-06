@@ -300,7 +300,7 @@ def main(cfg: DictConfig):
         diff_state,
     )
 
-     # do a random action to get initial state
+    # do a random action to get initial state
     sim.episode_start()
 
     if policy == "random":
