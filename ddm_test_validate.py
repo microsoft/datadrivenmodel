@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pandas as pd
 from typing import Any, Dict, List
+import random
 import time
 
 from base import BaseModel
@@ -83,16 +84,48 @@ class Simulator(BaseModel):
         self.log_file = log_file
         self.log_file2 = log_file2
 
-    def episode_start(self, config: Dict[str, Any] = None):
+    def episode_start(self, config: Dict[str, Any] = None):        
+        # initialize states based on simulator.yaml
+        initial_state = self.initial_states
+
         if config:
-            self.config = config
+            if self.initial_states_mapper:
+                initial_state = {}
+                initial_state.update(
+                    {k: config[v] for k, v in self.initial_states_mapper.items()}
+                )
+                self.config = config
+                keys_to_drop = set(config) - set(self.config_keys)
+                for k in keys_to_drop:
+                    self.config.pop(k)
+                logger.info(f"Initializing episode with provided config (mapper): {self.config}")
+            else:
+                initial_state.update(
+                    (k, config[k]) for k in initial_state.keys() & config.keys()
+                )
+                self.config = config
+                keys_to_drop = set(config) - set(self.config_keys)
+                for k in keys_to_drop:
+                    self.config.pop(k)
+                logger.info(f"Initializing episode with provided config: {self.config}")
+        elif not config and self.episode_inits:
+            logger.info(
+                f"No episode initializations provided, using initializations in yaml `episode_inits`"
+            )
+            logger.info(f"Episode config: {self.episode_inits}")
+            self.config = self.episode_inits
         else:
-            # configs randomized here. Need to decide a single place for configs
-            # range either in main.py or in simulator configs
-            self.config = {j: np.random.uniform(-1, 1) for j in self.config_keys}
+            logger.warn(
+                "No config provided, so using random Gaussians. This probably not what you want!"
+            )
+            # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
+            # to a file so we can sample from that range instead of random Gaussians
+            # request_continue = input("Are you sure you want to continue with random configs?")
+            self.config = {k: random.random() for k in self.config_keys}
+        
         if self.sim_orig:
             # Assign same state as would be used by simulator
-            self.sim_orig.episode_start(config)
+            self.sim_orig.episode_start(self.config)
             _fullstate = self.sim_orig.get_state()
             # idempotent dict comprehension for sims with prefix in configurations
             self.state = {
@@ -102,9 +135,12 @@ class Simulator(BaseModel):
                 if l in j
             }
         else:
-            # randomized state here need to be changed to appropriate ranges of each state
-            # see Table of All Data (TOAD) from Discovery Session
-            self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
+            self.state = initial_state
+        logger.info(f"Initial states: {self.state}")
+
+        initial_action = {k: random.random() for k in self.action_keys}
+        self.action = initial_action
+        
         self.all_data = {**self.state, **self.action, **self.config}
 
     def episode_step(self, action: Dict[str, int]):

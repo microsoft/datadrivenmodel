@@ -13,10 +13,6 @@ simulator:
       "config_Dr",
       "config_Dp",
       "config_frequency",
-      "config_initial_theta",
-      "config_initial_alpha",
-      "config_initial_theta_dot",
-      "config_initial_alpha_dot",
     ]
   episode_inits: 
     {
@@ -30,25 +26,21 @@ simulator:
       "config_Dr": 0.00027,
       "config_Dp": 0.00005,
       "config_frequency": 80,
-      'config_initial_theta': 0,
-      'config_initial_alpha': 0,
-      'config_initial_theta_dot': 0,
-      'config_initial_alpha_dot': 0
   }
   initial_states: 
     {
-      'state_theta': 0.2,
-      'state_alpha': 0.2,
-      'state_theta_dot': 0.2,
-      'state_alpha_dot': 0.2
+      'state_theta': 0,
+      'state_alpha': 0,
+      'state_theta_dot': 0,
+      'state_alpha_dot': 0
     }
   initial_states_mapper:
-    {
-      'config_initial_theta': 'state_theta',
-      'config_initial_alpha': 'state_alpha',
-      'config_initial_theta_dot': 'state_theta_dot',
-      'config_initial_alpha_dot': 'state_alpha_dot'
-    }
+    #{
+    #  'state_theta': 'config_initial_theta',
+    #  'state_alpha': 'config_initial_alpha',
+    #  'state_theta_dot': 'config_initial_theta_dot',
+    #  'state_alpha_dot': 'config_initial_alpha_dot',
+    #}
   policy: random
   logging: enable
   workspace_setup: True

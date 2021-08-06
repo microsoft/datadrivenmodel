@@ -96,16 +96,18 @@ simulator:
   workspace_setup: True
 ```
 
-When training with a brain, make sure that your scenario definitions include both `initial_state` values and/or `episode_inits` values. The `initial_state` values will get overwritten by the values from Inkling when they keys match. If that poses difficult, you can populate `initial_states_mapper`. 
+When training with a brain, make sure that your scenario definitions in Inkling include both `initial_states` and/or `episode_inits` keys. The `initial_states` values will get overwritten by the values from Inkling when they keys match. If that poses difficult, you can populate `initial_states_mapper`.
+
+Be sure to comment them out if running with `simulator.policy=random` because `test_random_policy()` utilizes only the following `config={**episode_inits, **initial_states}`. If there is no need for a mapper, you may leave it blank.
 
 ```yaml
 initial_states_mapper:
-  {
-    'initial_cart_position': 'cart_position',
-    'initial_cart_velocity': 'cart_velocity',
-    'initial_pole_angle': 'pole_angle',
-    'initial_pole_angular_velocity': 'pole_angular_velocity'
-  }
+  #{
+  #  'state_theta': 'config_initial_theta',
+  #  'state_alpha': 'config_initial_alpha',
+  #  'state_theta_dot': 'config_initial_theta_dot',
+  #  'state_alpha_dot': 'config_initial_alpha_dot',
+  #}
 ```
 
 ### Hyperparameter Tuning

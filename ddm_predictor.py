@@ -84,14 +84,22 @@ class Simulator(BaseModel):
             if self.initial_states_mapper:
                 initial_state = {}
                 initial_state.update(
-                    {v: config[k] for k, v in self.initial_states_mapper.items()}
+                    {k: config[v] for k, v in self.initial_states_mapper.items()}
                 )
+                self.config = config
+                keys_to_drop = set(config) - set(self.config_keys)
+                for k in keys_to_drop:
+                    self.config.pop(k)
+                logger.info(f"Initializing episode with provided config (mapper): {self.config}")
             else:
                 initial_state.update(
                     (k, config[k]) for k in initial_state.keys() & config.keys()
                 )
-            logger.info(f"Initializing episode with provided config: {config}")
-            self.config = config
+                self.config = config
+                keys_to_drop = set(config) - set(self.config_keys)
+                for k in keys_to_drop:
+                    self.config.pop(k)
+                logger.info(f"Initializing episode with provided config: {self.config}")
         elif not config and self.episode_inits:
             logger.info(
                 f"No episode initializations provided, using initializations in yaml `episode_inits`"
@@ -291,9 +299,6 @@ def main(cfg: DictConfig):
         initial_states_mapper,
         diff_state,
     )
-
-    # do a random action to get initial state
-    sim.episode_start()
 
     if policy == "random":
         test_random_policy(sim=sim, config={**episode_inits, **initial_states})
