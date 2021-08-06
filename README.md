@@ -96,9 +96,9 @@ simulator:
   workspace_setup: True
 ```
 
-When training with a brain, make sure that your scenario definitions in Inkling include both `initial_states` and/or `episode_inits` keys. The `initial_states` values will get overwritten by the values from Inkling when they keys match. If that poses difficult, you can populate `initial_states_mapper`.
+When training with a brain using the Bonsai platform, make sure that your scenario definitions include `initial_states` and/or `episode_inits` keys(`episode_inits` will most likely correspond to the configuration values in `augmented_cols` of your `data.yaml`). The `initial_states` values and the `episode_inits` values will get overwritten by the provided scenario values from Inkling when the keys match.
 
-Be sure to comment them out if running with `simulator.policy=random` because `test_random_policy()` utilizes only the following `config={**episode_inits, **initial_states}`. If there is no need for a mapper, you may leave it blank.
+You can also provide a dictionary `initial_states_mapper` describing how to map Inkling scenario parameters to initial state values in your simulator. Be sure to comment them out if running with `simulator.policy=random` because `test_random_policy()` utilizes only the following `config={**episode_inits, **initial_states}`. If there is no need for a mapper, you may leave it blank.
 
 ```yaml
 initial_states_mapper:
@@ -109,6 +109,8 @@ initial_states_mapper:
   #  'state_alpha_dot': 'config_initial_alpha_dot',
   #}
 ```
+
+This may be helpful when you want to give your Inkling `SimConfig` a different set of keys than your Inkling `SimState`.
 
 ### Hyperparameter Tuning
 
@@ -188,8 +190,8 @@ from sim.quanser.policies import random_policy, brain_policy
 
 ```python
         '''
-        TODO: Add episode_start(config) so sim works properly and not initializing
-        with unrealistic initial conditions.
+        TODO: Add episode_start(config) so your simulator initializes with
+        desired initial conditions 
         '''
         sim.episode_start()
         ddm_state = sim.get_state()

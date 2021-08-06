@@ -306,7 +306,7 @@ def main(cfg: DictConfig):
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
-    
+
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)
     if type(output_cols) == ListConfig:
@@ -340,7 +340,7 @@ def main(cfg: DictConfig):
         initial_states,
         initial_states_mapper,
         logflag,
-        diff_state
+        diff_state,
     )
 
     test_sim_model(1, 250, logflag, sim)
