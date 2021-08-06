@@ -300,6 +300,9 @@ def main(cfg: DictConfig):
         diff_state,
     )
 
+     # do a random action to get initial state
+    sim.episode_start()
+
     if policy == "random":
         test_random_policy(sim=sim, config={**episode_inits, **initial_states})
     elif policy == "bonsai":
