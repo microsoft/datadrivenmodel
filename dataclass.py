@@ -1,4 +1,5 @@
 import os
+from numpy.lib.function_base import diff
 import pandas as pd
 from typing import List, Tuple, Union
 import logging
@@ -715,7 +716,7 @@ class DataClass(object):
 
         # y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
         return df
-
+        
     def df_concatenate_inputs(self, df):
         """Take the dataframe and concatenate as many steps as defined.
         Uses 'self.concatenated_steps' and 'self.concatenated_zero_padding', parsed during 'load_csv' method.

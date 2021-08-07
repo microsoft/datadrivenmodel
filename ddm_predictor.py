@@ -2,10 +2,17 @@ import logging
 import os
 import random
 import time
+import datetime
+import pathlib
+import copy
 from typing import Any, Dict, List
+from collections import deque,OrderedDict
+
+from numpy.lib.function_base import iterable
 from omegaconf import ListConfig
 
 import numpy as np
+import pandas as pd
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -32,6 +39,7 @@ from omegaconf import DictConfig
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
+log_path = "logs"
 
 
 class Simulator(BaseModel):
@@ -44,7 +52,11 @@ class Simulator(BaseModel):
         inputs: List[str],
         outputs: List[str],
         episode_inits: Dict[str, float],
+        initial_states: Dict[str, float],
         diff_state: bool = False,
+        concatenated_steps: int=1,
+        concatenated_zero_padding: bool=True,
+        log_file: str=None
     ):
 
         self.model = model
@@ -57,18 +69,59 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
-        # TODO: Add logging
+        self.concatenated_steps = concatenated_steps
+        self.concatenated_zero_padding = concatenated_zero_padding
+        self.initial_states = initial_states
+        # Add logging
+        if log_file == "enable":
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            log_file = os.path.join(
+                log_path, current_time + "_" + env_name + "_log.csv"
+            )
+            logs_directory = pathlib.Path(log_file).parent.absolute()
+            if not pathlib.Path(logs_directory).exists():
+                print(
+                    "Directory does not exist at {0}, creating now...".format(
+                        str(logs_directory)
+                    )
+                )
+                logs_directory.mkdir(parents=True, exist_ok=True)
+        self.log_file = log_file
 
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
 
     def episode_start(self, config: Dict[str, Any] = None):
+        """Initialize DDM. This could include initializations of configs
+        as well as initial values for states.
 
-        initial_state = {k: random.random() for k in self.state_keys}
-        initial_action = {k: random.random() for k in self.action_keys}
+        Parameters
+        ----------
+        config : Dict[str, Any], optional
+            episode initializations, by default None
+        """
+
+        # initialize states based on simulator.yaml
+        initial_state = self.initial_states
+        initial_action = {k: random.random()*0.1 for k in self.action_keys}
+        # define initial state from config if available (e.g. when brain training)
+        # skip if config missing
         if config:
             logger.info(f"Initializing episode with provided config: {config}")
             self.config = config
+            # Edit the config keys and initial state/action keys for a custom example.
+            # TODO: A generic state/action to config mapper or other generic design is 
+            # under development and can replace this requirement.
+            initial_state= {
+                      "ball_x":self.config["initial_x"],
+                      "ball_y":self.config["initial_y"],
+                      "ball_vel_x": self.config["initial_vel_x"],
+                      "ball_vel_y": self.config["initial_vel_y"]
+                      }
+            initial_action= {
+                      "input_roll": self.config["initial_roll"],
+                      "input_pitch": self.config["initial_pitch"]
+                      }
         elif not config and self.episode_inits:
             logger.info(
                 f"No episode initializations provided, using initializations in yaml `episode_inits`"
@@ -76,30 +129,50 @@ class Simulator(BaseModel):
             logger.info(f"Episode config: {self.episode_inits}")
             self.config = self.episode_inits
         else:
-            logger.warn(
+            logger.warning(
                 "No config provided, so using random Gaussians. This probably not what you want!"
             )
+            # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
+            # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
-            self.config = {k: random.random() for k in self.config_keys}
-        self.state = initial_state
+            self.config = {k: random.random()*0.1 for k in self.config_keys}
+        self.state = dict(initial_state)
         self.action = initial_action
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
+        # repeat states instead of zero padding so that average is similar to the
+        # first state
+        # features can be subset of all data, history will always be of features only 
+        if self.concatenated_zero_padding:
+            self.hist = {k+f"_{i}": 0 \
+                    for i in range(1,self.concatenated_steps)\
+                    for k in self.features\
+                    }
+        else:
+            self.hist = {k+f"_{i}": self.all_data[k] \
+                    for i in range(1,self.concatenated_steps)\
+                    for k in self.features\
+                    }
 
-    def episode_step(self, action: Dict[str, int]):
+        self.features_w_hist = {**{k:self.all_data[k] for k in self.features}, **self.hist}
+        print(self.features_w_hist)
+
+
+
+    def episode_step(self, action: Dict[str, int], iteration: int):
 
         # load design matrix for self.model.predict
         # should match the shape of conf.data.inputs
         # make dict of D={states, actions, configs}
         # ddm_inputs = filter D \ (conf.data.inputs+conf.data.augmented_cols)
-        # ddm_outputs = filter D \ conf.data.outputs
-        # update(ddm_state) =
+        # ddm_outputs = filter D \ conf.data.outputs      
 
         self.all_data.update(action)
+        self.features_w_hist.update(action)
 
-        ddm_input = {k: self.all_data[k] for k in self.features}
+        ddm_input = self.features_w_hist
 
         # input_list = [
         #     list(self.state.values()),
@@ -120,7 +193,21 @@ class Simulator(BaseModel):
         ddm_output = dict(zip(self.labels, preds.reshape(preds.shape[1]).tolist()))
         self.all_data.update(ddm_output)
         self.state = {k: self.all_data[k] for k in self.state_keys}
+        # shift the historical states by 1
+        i=self.concatenated_steps-2
+        while i>=0:
+            for k in self.features:
+                if i==0:
+                    self.hist[k+f"_{i+1}"]=copy.deepcopy(self.all_data[k])
+                else:
+                    self.hist[k+f"_{i+1}"]=copy.deepcopy(self.features_w_hist[k+f"_{i}"])
+
+            i-=1
+        # update all data with updates and updated historical states
+        self.features_w_hist.update({**{k:self.all_data[k] for k in self.features}, **self.hist})
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
+        print(self.features_w_hist)
+        time.sleep(1)
         return self.state
 
     def get_state(self):
@@ -131,6 +218,27 @@ class Simulator(BaseModel):
 
         pass
 
+    def log_iterations(
+        self, episode: int = 0, iteration: int = 1
+    ):
+        """Log iterations during training to a CSV.
+
+        Parameters
+        ----------
+        state : Dict
+        action : Dict
+        episode : int, optional
+        iteration : int, optional
+        """
+        data = copy.deepcopy(self.features_w_hist)
+        data["episode"] = episode
+        data["iteration"] = iteration
+        log_df = pd.DataFrame(data, index=[0])
+
+        if os.path.exists(self.log_file):
+            log_df.to_csv(path_or_buf=self.log_file, mode="a", header=False, index=False)
+        else:
+            log_df.to_csv(path_or_buf=self.log_file, mode="w", header=True, index=False)
 
 def env_setup():
     """Helper function to setup connection with Project Bonsai
@@ -187,7 +295,7 @@ def test_random_policy(
         sim_state = sim.get_state()
         while not terminal:
             action = random_action()
-            sim.episode_step(action)
+            sim.episode_step(action, iteration)
             sim_state = sim.get_state()
             logger.info(f"Running iteration #{iteration} for episode #{episode}")
             logger.info(f"Action: {action}")
@@ -215,6 +323,9 @@ def main(cfg: DictConfig):
     diff_state = cfg["data"]["diff_state"]
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
+    initial_states = cfg["simulator"]["initial_states"]
+    concatenated_steps = cfg['data']['concatenated_steps']
+    concatenated_zero_padding = cfg['data']['concatenated_zero_padding']
 
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
@@ -249,7 +360,11 @@ def main(cfg: DictConfig):
         input_cols,
         output_cols,
         episode_inits,
+        initial_states,
         diff_state,
+        concatenated_steps,
+        concatenated_zero_padding,
+        logflag
     )
 
     # do a random action to get initial state
@@ -365,9 +480,21 @@ def main(cfg: DictConfig):
                     print(event.episode_start.config)
                     sim.episode_start(event.episode_start.config)
                     episode += 1
+
+                    if sim.log_file:
+                        sim.log_iterations(
+                            episode=episode,
+                            iteration=iteration
+                        )
                 elif event.type == "EpisodeStep":
                     iteration += 1
-                    sim.episode_step(event.episode_step.action)
+                    sim.episode_step(event.episode_step.action,iteration)
+                    
+                    if sim.log_file:
+                        sim.log_iterations(
+                            episode=episode,
+                            iteration=iteration
+                        )
                 elif event.type == "EpisodeFinish":
                     print("Episode Finishing...")
                     iteration = 0

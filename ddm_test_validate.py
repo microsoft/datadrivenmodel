@@ -20,8 +20,8 @@ from all_models import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
 # Commented example import of sim model from the sim folder can be similar to mba example
-# from sim.moab.moab_main import SimulatorSession,  env_setup
-# from sim.moab.policies import coast, random_policy, small_perturbations
+from sim.moab.moab_main import SimulatorSession,  env_setup
+from sim.moab.policies import coast, random_policy, small_perturbations
 ## Example: Quanser from a Microsoft Bonsai
 """
 ├───ddm_test_validate.py
@@ -113,10 +113,11 @@ class Simulator(BaseModel):
             list(self.config.values()),
             list(action.values()),
         ]
-        print(input_list)
 
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
+        print("X")
+        print(X)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.dd_model.predict(
                 X

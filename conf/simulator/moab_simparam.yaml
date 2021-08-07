@@ -1,14 +1,22 @@
 simulator:
   states:
     [
-      "state_ball_x",
-      "state_ball_y",
-      "state_ball_vel_x",
-      "state_ball_vel_y",
+      "ball_x",
+      "ball_y",
+      "ball_vel_x",
+      "ball_vel_y",
     ]
-  actions: ["action_input_roll", "action_input_pitch"]
-  configs: []
-  episode_inits:
-  policy: random
+  actions: ["input_roll", "input_pitch"]
+  configs: [
+            "initial_x",
+            "initial_y",
+            "initial_vel_x",
+            "initial_vel_y",
+            "initial_roll",
+            "initial_pitch"
+            ]
+  episode_inits: []
+  initial_states: {"ball_x":0.1,"ball_y":0.1,"ball_vel_x":0.01,"ball_vel_y":0.01}
+  policy: bonsai
   logging: enable
-  workspace_setup: True
+  workspace_setup: False

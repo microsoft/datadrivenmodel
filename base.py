@@ -5,7 +5,7 @@ import os
 import pathlib
 import pickle
 from collections import OrderedDict
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 from omegaconf.listconfig import ListConfig
 
 import matplotlib
@@ -640,6 +640,7 @@ class BaseModel(abc.ABC):
         plt.ylabel("TPR")
         plt.title("ROC for Recycle Predictions")
         plt.legend(loc="lower right")
+
 
     def get_test_set(self, grouped_per_episode=False):
         """Extracts test sets from dataclass_obj"""
