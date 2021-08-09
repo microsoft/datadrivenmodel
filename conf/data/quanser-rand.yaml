@@ -7,11 +7,11 @@ data:
       "state_alpha",
       "state_theta_dot",
       "state_alpha_dot",
-      "action_Vm",
     ]
   outputs: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
   augmented_cols:
     [
+      "action_Vm",
       #"config_Lp,
       #"config_mp",
       #"config_Rm",
@@ -32,5 +32,5 @@ data:
   iteration_col: iteration
   max_rows: -1
   scale_data: False
-  diff_state: False
+  diff_state: True
   test_perc: 0.25
