@@ -1,7 +1,12 @@
+#defaults:
+#  - data: moab_5Kepi.yaml
+#  - model: lightgbm.yaml
+#  - simulator: moab_simparam.yaml
+
 defaults:
-  - data: moab_5Kepi.yaml
-  - model: lightgbm.yaml
-  - simulator: moab_simparam.yaml
+  - data: quanser-rand.yaml
+  - model: xgboost.yaml
+  - simulator: quanser-log.yaml
 
 # defaults:
 #   - data: cartpole-updated.yaml

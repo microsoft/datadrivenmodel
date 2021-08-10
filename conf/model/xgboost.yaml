@@ -10,9 +10,9 @@ model:
     scale_data: True
     max_depth: 6
   saver:
-    filename: models/xgboost_models/moabsemiexpert
+    filename: models/xgboost_models/quanser
   sweep:
-    run: True
+    run: False
     split_strategy: timeseries
     search_algorithm: bayesian
     num_trials: 2

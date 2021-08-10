@@ -3,22 +3,39 @@ simulator:
   actions: ["action_Vm"]
   configs:
     [
-      "config_Lp",
-      "config_mp",
-      "config_Rm",
-      "config_kt",
-      "config_km",
-      "config_mr",
-      "config_Lr",
-      "config_Dr",
-      "config_Dp",
-      "config_frequency",
-      "config_inital_theta",
-      "config_initial_alpha",
-      "config_initial_theta_dot",
-      "config_initial_alpha_dot",
+      #"config_Lp",
+      #"config_mp",
+      #"config_Rm",
+      #"config_kt",
+      #"config_km",
+      #"config_mr",
+      #"config_Lr",
+      #"config_Dr",
+      #"config_Dp",
+      #"config_frequency",
+      #"config_initial_theta",
+      #"config_initial_alpha",
+      #"config_initial_theta_dot",
+      #"config_initial_alpha_dot",
     ]
-  episode_inits:
-  policy: random
+  episode_inits: 
+    {
+      #"config_Lp": 0.129,
+      #"config_mp": 0.024,
+      #"config_Rm": 8.4,
+      #"config_kt": 0.042,
+      #"config_km": 0.042,
+      #"config_mr": 0.095,
+      #"config_Lr": 0.085,
+      #"config_Dr": 0.00027,
+      #"config_Dp": 0.00005,
+      #"config_frequency": 80,
+      'config_initial_theta': 0,
+      'config_initial_alpha': 0,
+      'config_initial_theta_dot': 0,
+      'config_initial_alpha_dot': 0
+  }
+  policy: bonsai
   logging: enable
-  workspace_setup: True
+  workspace_setup: False
+  render: False
