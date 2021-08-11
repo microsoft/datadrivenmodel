@@ -113,21 +113,21 @@ class GBoostModel(BaseModel):
 
     def save_model(self, filename):
 
+        if not self.separate_models:
+            if not any([s in filename for s in [".pkl", ".pickle"]]):
+                filename += ".pkl"
+            parent_dir = pathlib.Path(filename).parent
+            if not parent_dir.exists():
+                parent_dir.mkdir(parents=True, exist_ok=True)
+            path_name = str(parent_dir)
+        else:
+            file_dir = pathlib.Path(filename)
+            if not file_dir.exists():
+                logger.info(f"Creating new directories at {file_dir}")
+                file_dir.mkdir(parents=True, exist_ok=True)
+            path_name = file_dir
         if self.scale_data:
             logger.info(f"Scale transformations used, saving to {filename}")
-            if not self.separate_models:
-                if not any([s in filename for s in [".pkl", ".pickle"]]):
-                    filename += ".pkl"
-                parent_dir = pathlib.Path(filename).parent
-                if not parent_dir.exists():
-                    parent_dir.mkdir(parents=True, exist_ok=True)
-                path_name = str(parent_dir)
-            else:
-                file_dir = pathlib.Path(filename)
-                if not file_dir.exists():
-                    logger.info(f"Creating new directories at {file_dir}")
-                    file_dir.mkdir(parents=True, exist_ok=True)
-                path_name = file_dir
             pickle.dump(
                 self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")
             )
