@@ -56,23 +56,23 @@ class GBoostModel(BaseModel):
         self.model_type = model_type
         self.separate_models = fit_separate
 
-    def fit(self, X, y, fit_separate: bool = False):
+    def fit(self, X, y):
 
         if self.scale_data:
             X, y = self.scalar(X, y)
 
-        self.separate_models = fit_separate
-
         if self.separate_models:
+            logger.warn(f"Fitting {y.shape[1]} separate models for each output")
             self.models = []
             for i in range(y.shape[1]):
 
-                if self.model_type == "xgboost":
-                    boost_model = XGBRegressor()
-                elif self.model_type == "lightgbm":
-                    boost_model = LGBMRegressor()
-                else:
-                    raise ValueError("Unknown model type")
+                boost_model = self.single_model
+                # if self.model_type == "xgboost":
+                #     boost_model = XGBRegressor()
+                # elif self.model_type == "lightgbm":
+                #     boost_model = LGBMRegressor()
+                # else:
+                #     raise ValueError("Unknown model type")
 
                 logger.info(f"Fitting model {i+1} of {y.shape[1]}")
                 self.models.append(boost_model.fit(X, y[:, i]))
@@ -127,7 +127,7 @@ class GBoostModel(BaseModel):
                 if not file_dir.exists():
                     logger.info(f"Creating new directories at {file_dir}")
                     file_dir.mkdir(parents=True, exist_ok=True)
-                path_name = filename
+                path_name = file_dir
             pickle.dump(
                 self.xscalar, open(os.path.join(path_name, "xscalar.pkl"), "wb")
             )

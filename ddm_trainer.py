@@ -43,10 +43,11 @@ def main(cfg: DictConfig) -> None:
 
     Model = available_models[model_name]
 
+    # TODO, decide whether to always save to outputs directory
     if cfg["data"]["full_or_relative"] == "relative":
         dataset_path = os.path.join(dir_path, dataset_path)
 
-    save_path = os.path.join(dir_path, save_path + ".pkl")
+    save_path = os.path.join(dir_path, save_path)
 
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)
@@ -73,20 +74,12 @@ def main(cfg: DictConfig) -> None:
     )
     train_id_end = floor(X.shape[0] * (1 - test_perc))
     X_train, y_train = (
-        X[
-            :train_id_end,
-        ],
-        y[
-            :train_id_end,
-        ],
+        X[:train_id_end,],
+        y[:train_id_end,],
     )
     X_test, y_test = (
-        X[
-            train_id_end:,
-        ],
-        y[
-            train_id_end:,
-        ],
+        X[train_id_end:,],
+        y[train_id_end:,],
     )
 
     # save training and test sets
