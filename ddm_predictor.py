@@ -58,7 +58,26 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
-        self.initial_states = initial_states
+
+        # create a dictionary containing initial_states
+        # with some initial values
+        # these should be coming from the simulator.yaml
+        # the initial values aren't important
+        # these will be updated in self.episode_start
+
+        # create a mapper that maps config values to
+        # initial state values
+        # these will be used when mapping scenario keys
+        # to self.initial_states values during episode_start
+        initial_states_mapper = {}
+        if type(list(initial_states.values())[0]) == DictConfig:
+            self.initial_states = {k: v["min"] for k, v in initial_states.items()}
+            for k, v in initial_states.items():
+                initial_states_mapper[v["inkling_name"]] = k
+        else:
+            self.initial_states = initial_states
+        self.initial_states_mapper = initial_states_mapper
+
         # TODO: Add logging
 
         logger.info(f"DDM features: {self.features}")
@@ -75,18 +94,36 @@ class Simulator(BaseModel):
         """
 
         # initialize states based on simulator.yaml
+        # we have defined the initial dict in our
+        # constructor
         initial_state = self.initial_states
-        # define initial state from config if available (e.g. when brain training)
+
+        # if initial state from config if available (e.g. when brain training)
         # skip if config missing
+        # check if any keys from config exit in mapper
+        # if so update self.initial_states with config
+        # create new config to update self.all_data
         if config:
-            initial_state.update(
-                (k, config[k]) for k in initial_state.keys() & config.keys()
-            )
+            new_config = {}
+            for k, v in config.items():
+                if k in self.initial_states_mapper.keys():
+                    initial_state[self.initial_states_mapper[k]] = v
+                else:
+                    new_config[k] = v
+            logger.info(f"Initial states: {initial_state}")
+        else:
+            new_config = None
+
+        # if config:
+        #     initial_state.update(
+        #         (k, config[k]) for k in initial_state.keys() & config.keys()
+        #     )
+
         initial_action = {k: random.random() for k in self.action_keys}
-        if config:
-            logger.info(f"Initializing episode with provided config: {config}")
-            self.config = config
-        elif not config and self.episode_inits:
+        if new_config:
+            logger.info(f"Initializing episode with provided config: {new_config}")
+            self.config = new_config
+        elif not new_config and self.episode_inits:
             logger.info(
                 f"No episode initializations provided, using initializations in yaml `episode_inits`"
             )
@@ -100,8 +137,11 @@ class Simulator(BaseModel):
             # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
             self.config = {k: random.random() for k in self.config_keys}
+
+        # update state with initial_state values if
+        # provided by config
+        # otherwise default is used
         self.state = initial_state
-        logger.info(f"Initial states: {initial_state}")
         self.action = initial_action
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
@@ -201,10 +241,22 @@ def test_random_policy(
     def random_action():
         return {k: random.random() for k in sim.action_keys}
 
+    def _config_clean(in_config: Dict):
+
+        new_config = {}
+        for k, v in in_config.items():
+            if type(v) in [DictConfig, dict]:
+                v = random.uniform(in_config[k]["min"], in_config[k]["max"])
+                k = in_config[k]["inkling_name"]
+            new_config[k] = v
+        return new_config
+
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        sim.episode_start(config)
+        new_config = _config_clean(config)
+        logger.info(f"Configuration: {new_config}")
+        sim.episode_start(new_config)
         sim_state = sim.get_state()
         while not terminal:
             action = random_action()
@@ -250,7 +302,7 @@ def main(cfg: DictConfig):
 
     input_cols = input_cols + augmented_cols
 
-    logger.info(f"Training with a new {policy} policy")
+    logger.info(f"Predicing with {policy} policy")
     if model_name.lower() == "pytorch":
         from all_models import available_models
     else:
@@ -344,9 +396,7 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id,
-                    state=sim.get_state(),
-                    halted=sim.halted(),
+                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(
