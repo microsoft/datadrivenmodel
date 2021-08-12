@@ -3,15 +3,15 @@ data:
   full_or_relative: relative
   inputs:
     [
-      "state_theta",
-      "state_alpha",
-      "state_theta_dot",
-      "state_alpha_dot",
+      "theta",
+      "alpha",
+      "theta_dot",
+      "alpha_dot",
     ]
-  outputs: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
+  outputs: ["theta", "alpha", "theta_dot", "alpha_dot"]
   augmented_cols:
     [
-      "action_Vm",
+      "Vm",
       #"config_Lp,
       #"config_mp",
       #"config_Rm",
@@ -33,6 +33,6 @@ data:
   max_rows: -1
   scale_data: True
   diff_state: False
-  concatenated_steps: 5
+  concatenated_steps: 3
   concatenated_zero_padding: True
   test_perc: 0.25

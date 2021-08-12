@@ -112,16 +112,13 @@ class Simulator(BaseModel):
             # Edit the config keys and initial state/action keys for a custom example.
             # TODO: A generic state/action to config mapper or other generic design is 
             # under development and can replace this requirement.
-            initial_state= {
-                      "ball_x":self.config["initial_x"],
-                      "ball_y":self.config["initial_y"],
-                      "ball_vel_x": self.config["initial_vel_x"],
-                      "ball_vel_y": self.config["initial_vel_y"]
+            initial_state = {
+                      "theta":self.config["config_initial_theta"],
+                      "alpha":self.config["config_initial_alpha"],
+                      "theta_dot": self.config["config_initial_theta_dot"],
+                      "alpha_dot": self.config["config_initial_alpha_dot"]
                       }
-            initial_action= {
-                      "input_roll": self.config["initial_roll"],
-                      "input_pitch": self.config["initial_pitch"]
-                      }
+            initial_action = {k: random.random() for k in self.action_keys}
         elif not config and self.episode_inits:
             logger.info(
                 f"No episode initializations provided, using initializations in yaml `episode_inits`"

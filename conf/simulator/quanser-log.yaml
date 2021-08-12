@@ -1,6 +1,6 @@
 simulator:
-  states: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
-  actions: ["action_Vm"]
+  states: ["theta", "alpha", "theta_dot", "alpha_dot"]
+  actions: ["Vm"]
   configs:
     [
       #"config_Lp",
@@ -30,11 +30,18 @@ simulator:
       #"config_Dr": 0.00027,
       #"config_Dp": 0.00005,
       #"config_frequency": 80,
-      'config_initial_theta': 0,
-      'config_initial_alpha': 0,
-      'config_initial_theta_dot': 0,
-      'config_initial_alpha_dot': 0
-  }
+      #'config_initial_theta': 0,
+      #'config_initial_alpha': 0,
+      #'config_initial_theta_dot': 0,
+      #'config_initial_alpha_dot': 0
+    }
+  initial_states: 
+    {
+      'theta': 0,
+      'alpha': 0,
+      'theta_dot': 0,
+      'alpha_dot': 0
+    }
   policy: bonsai
   logging: enable
   workspace_setup: False
