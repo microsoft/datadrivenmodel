@@ -302,7 +302,7 @@ def main(cfg: DictConfig):
 
     input_cols = input_cols + augmented_cols
 
-    logger.info(f"Predicing with {policy} policy")
+    logger.info(f"Using DDM with {policy} policy")
     if model_name.lower() == "pytorch":
         from all_models import available_models
     else:

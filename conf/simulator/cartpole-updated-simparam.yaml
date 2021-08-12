@@ -14,22 +14,22 @@ simulator:
   # If empty they will be initialized as empty values
   # based using the keys in states
   initial_states:
-    # cart_position:
-    #   inkling_name: initial_cart_position
-    #   min: 0
-    #   max: 1
-    # cart_velocity:
-    #   inkling_name: initial_cart_velocity
-    #   min: 0
-    #   max: 1
-    # pole_angle: 
-    #   inkling_name: initial_pole_angle
-    #   min: 0
-    #   max: 1
-    # pole_angular_velocity:
-    #   inkling_name: initial_angular_velocity
-    #   min: 0
-    #   max: 1
+    cart_position:
+      inkling_name: initial_cart_position
+      min: 0
+      max: 1
+    cart_velocity:
+      inkling_name: initial_cart_velocity
+      min: 0
+      max: 1
+    pole_angle: 
+      inkling_name: initial_pole_angle
+      min: 0
+      max: 1
+    pole_angular_velocity:
+      inkling_name: initial_angular_velocity
+      min: 0
+      max: 1
   policy: bonsai
   logging: enable
   workspace_setup: True
