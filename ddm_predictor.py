@@ -4,6 +4,8 @@ import random
 import time
 from typing import Any, Dict, List
 from omegaconf import ListConfig
+from functools import partial
+from policies import random_policy, brain_policy
 
 import numpy as np
 
@@ -224,11 +226,12 @@ def env_setup():
     return workspace, access_key
 
 
-def test_random_policy(
+def test_policy(
     num_episodes: int = 5,
     num_iterations: int = 5,
     sim: Simulator = None,
     config: Dict[str, float] = None,
+    policy=random_policy,
 ):
     """Test a policy using random actions over a fixed number of episodes
 
@@ -237,9 +240,6 @@ def test_random_policy(
     num_episodes : int, optional
         number of iterations to run, by default 10
     """
-
-    def random_action():
-        return {k: random.random() for k in sim.action_keys}
 
     def _config_clean(in_config: Dict):
 
@@ -259,7 +259,7 @@ def test_random_policy(
         sim.episode_start(new_config)
         sim_state = sim.get_state()
         while not terminal:
-            action = random_action()
+            action = policy(sim_state)
             sim.episode_step(action)
             sim_state = sim.get_state()
             logger.info(f"Running iteration #{iteration} for episode #{episode}")
@@ -337,7 +337,15 @@ def main(cfg: DictConfig):
     sim.episode_start()
 
     if policy == "random":
-        test_random_policy(sim=sim, config={**episode_inits, **initial_states})
+        random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
+        test_policy(sim=sim, config={**episode_inits, **initial_states}, policy=random_policy_from_keys)
+    elif isinstance(policy, int):
+        # If docker PORT provided, set as exported brain PORT
+        port = policy
+        url = f"http://localhost:{port}"
+        print(f"Connecting to exported brain running at {url}...")
+        trained_brain_policy = partial(brain_policy, exported_brain_url=url)
+        test_policy(sim=sim, config={**episode_inits, **initial_states}, policy=trained_brain_policy)
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")

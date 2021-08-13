@@ -16,20 +16,20 @@ simulator:
   initial_states:
     cart_position:
       inkling_name: initial_cart_position
-      min: 0
-      max: 1
+      min: -0.05
+      max: 0.05
     cart_velocity:
       inkling_name: initial_cart_velocity
-      min: 0
-      max: 1
+      min: -0.05
+      max: 0.05
     pole_angle: 
       inkling_name: initial_pole_angle
-      min: 0
-      max: 1
+      min: -0.05
+      max: 0.05
     pole_angular_velocity:
       inkling_name: initial_angular_velocity
-      min: 0
-      max: 1
+      min: -0.05
+      max: 0.05
   policy: bonsai
   logging: enable
   workspace_setup: True
