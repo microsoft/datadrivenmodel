@@ -338,14 +338,22 @@ def main(cfg: DictConfig):
 
     if policy == "random":
         random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
-        test_policy(sim=sim, config={**episode_inits, **initial_states}, policy=random_policy_from_keys)
+        test_policy(
+            sim=sim,
+            config={**episode_inits, **initial_states},
+            policy=random_policy_from_keys,
+        )
     elif isinstance(policy, int):
         # If docker PORT provided, set as exported brain PORT
         port = policy
         url = f"http://localhost:{port}"
         print(f"Connecting to exported brain running at {url}...")
         trained_brain_policy = partial(brain_policy, exported_brain_url=url)
-        test_policy(sim=sim, config={**episode_inits, **initial_states}, policy=trained_brain_policy)
+        test_policy(
+            sim=sim,
+            config={**episode_inits, **initial_states},
+            policy=trained_brain_policy,
+        )
     elif policy == "bonsai":
         if workspace_setup:
             logger.info(f"Loading workspace information form .env")
