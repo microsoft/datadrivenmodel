@@ -48,6 +48,7 @@ class BaseModel(abc.ABC):
         drop_nulls: bool = True,
         max_rows: Union[int, None] = None,
         diff_state: bool = False,
+        # calc_config_stats: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -137,6 +138,9 @@ class BaseModel(abc.ABC):
                 iteration_col=iteration_col,
                 augmented_cols=augm_features,
             )
+            # TODO: calcualte config summary stats and save somewhere
+            # if calc_config_stats:
+            #     config_df = df[csv_reader.feature_cols]
             X = df[csv_reader.feature_cols].values
             y = df[csv_reader.label_cols].values
             # store episode_id to group_per_episode
