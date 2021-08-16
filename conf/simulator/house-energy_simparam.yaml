@@ -1,5 +1,7 @@
 simulator:
-  states: ["Tin"]
+  states: [
+    "Tin",
+  ]
   actions: ["hvacON"]
   configs: [    
     "K", # Thermal conductivity
@@ -7,7 +9,6 @@ simulator:
     "Qhvac", # Heat Flux
     "schedule_index", # 1 - fixed, 2 - randomized
     "number_of_days",
-    "Tin_initial",
     "timestep", # Min
     "max_iterations", # Alters schedule generation
     ]
@@ -19,12 +20,10 @@ simulator:
     "Qhvac": 9, # Heat Flux
     "schedule_index": 3, # 1 - fixed, 2 - randomized, 3 - constant
     "number_of_days": 1,
-    "Tin_initial": 29,
     "timestep": 5, # Min
     "max_iterations": 288, # Alters schedule generation
     }
   initial_states:
-    "Tin_initial": 28,
     Tin:
       inkling_name: Tin_initial
       min: 28
