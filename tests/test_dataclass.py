@@ -53,9 +53,12 @@ def test_cartpole_at_st(dataclass_obj):
 
     assert cp2_df.shape[0] == 980
     assert cp2_df.shape[1] == 13
+
+    # TODO: Review. We are matching the current state value to the next value of "PREV".
+    #      > This doesn't seem right at first.
     assert (
-        cp2_df["state_x_position"].values[1]
-        == cp2_df["next_state_x_position"].values[0]
+        cp2_df["state_x_position"].values[0]
+        == cp2_df["prev_state_x_position"].values[1]
     )
 
 

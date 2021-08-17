@@ -2,6 +2,8 @@ from gboost_models import GBoostModel
 import numpy as np
 import pathlib
 
+from assessment_metrics_loader import available_metrics
+
 xgboost_model = GBoostModel()
 lgbm = GBoostModel()
 
@@ -10,6 +12,7 @@ X, y = xgboost_model.load_csv(
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
     test_perc=0.15,
+    debug=True,
     concatenated_steps=6,
     concatenated_zero_padding=True,
 )
@@ -71,3 +74,16 @@ def test_xgb_train():
     yhat = xgm2.predict(X)
 
     assert np.array_equal(yhat, yhat0)
+
+
+def test_xgb_eval():
+
+    xgboost_model.build_model(model_type="xgboost")
+    xgboost_model.fit(X, y)
+    xgboost_model.save_model(filename="tmp/gbm_pole.pkl")
+
+    eval_metric = available_metrics["root_mean_squared_error"]
+    eval_out = xgboost_model.evaluate(eval_metric)
+
+    # Add evaluation metric check to test changes to model
+    assert round(eval_out, 10) == round(0.10077187689939525, 10)
