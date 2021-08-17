@@ -4,14 +4,27 @@ data:
   # include here all states that should be included
   # these will be lagged and concatenated with augmented_cols
   inputs:
-    ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+    - cart_position
+    - cart_velocity
+    - pole_angle
+    - pole_angular_velocity
+    # ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
   # include here all the values you want the ddm to predict
   # typically these include state values
   outputs:
-    ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+    - cart_position
+    - cart_velocity
+    - pole_angle
+    - pole_angular_velocity
+    # ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
   # include here all features that are not meant to be lagged
   # typically these include actions and configs
-  augmented_cols: ["pole_length", "pole_mass", "cart_mass", "command"]
+  augmented_cols: 
+    # ["pole_length", "pole_mass", "cart_mass", "command"]
+    - pole_length
+    - pole_mass
+    - cart_mass
+    - command
   iteration_order: -1
   episode_col: episode
   iteration_col: iteration
