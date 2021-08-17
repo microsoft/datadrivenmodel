@@ -14,11 +14,14 @@ logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("datamodeler")
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from all_models import available_models
 
 ## Add a local simulator in a `sim` folder to validate data-driven model
+# Commented example import of sim model from the sim folder can be similar to mba example
+# from sim.moab.moab_main import SimulatorSession,  env_setup
+# from sim.moab.policies import coast, random_policy, small_perturbations
 ## Example: Quanser from a Microsoft Bonsai
 """
 ├───ddm_test_validate.py
@@ -54,7 +57,7 @@ class Simulator(BaseModel):
         self.action_keys = actions
         self.sim_orig = (
             sim_orig()
-        )  # include simulator function if comparing to simulator
+        )  # include simulator instance if comparing to simulator
         self.diff_state = diff_state
         if log_file == "enable":
             current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -109,6 +112,7 @@ class Simulator(BaseModel):
             list(self.config.values()),
             list(action.values()),
         ]
+        print(input_list)
 
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
@@ -267,6 +271,15 @@ def main(cfg: DictConfig):
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
 
+    if type(input_cols) == ListConfig:
+        input_cols = list(input_cols)
+    if type(output_cols) == ListConfig:
+        output_cols = list(output_cols)
+    if type(augmented_cols) == ListConfig:
+        augmented_cols = list(augmented_cols)
+    print(type(input_cols))
+    print(type(augmented_cols))
+
     input_cols = input_cols + augmented_cols
 
     ddModel = available_models[model_name]
@@ -284,9 +297,11 @@ def main(cfg: DictConfig):
         model.load_model(filename=save_path, scale_data=scale_data)
 
     # Grab standardized way to interact with sim API
-    sim = Simulator(model, states, actions, configs, logflag, diff_state)
+    sim = Simulator(
+        model, states, actions, configs, logflag, diff_state
+    )  # , SimulatorSession)
 
-    test_sim_model(1, 250, logflag, sim)
+    test_sim_model(10, 250, logflag, sim)
 
     return sim
 

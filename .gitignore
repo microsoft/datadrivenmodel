@@ -82,3 +82,6 @@ pytest-coverage.txt
 
 # saved models
 saved_models/
+
+# sims
+sim/
