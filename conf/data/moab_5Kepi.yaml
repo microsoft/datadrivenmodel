@@ -1,5 +1,5 @@
 data:
-  path: csv_data/moab_BTD_logBallStatesOnly.csv #moab_sim_5Kepi.csv #PosVelMinStates.csv
+  path: csv_data/moab_BTD_logBallStatesOnly.csv
   full_or_relative: relative
   inputs: [
       "ball_x",

@@ -82,3 +82,8 @@ pytest-coverage.txt
 
 # saved models
 saved_models/
+# parameter search results
+lightgbm/
+sklearn-SVR/
+torch/
+xgboost_gridsearch/

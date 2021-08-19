@@ -1,9 +1,4 @@
 defaults:
-  - data: moab_5Kepi.yaml
-  - model: lightgbm.yaml
-  - simulator: moab_simparam.yaml
-
-# defaults:
-#   - data: cartpole-updated.yaml
-#   - model: SVR.yaml
-#   - simulator: cartpole-updated-simparam.yaml
+  - data: cartpole-updated.yaml
+  - model: SVR.yaml
+  - simulator: cartpole-updated-simparam.yaml
