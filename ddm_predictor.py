@@ -157,7 +157,6 @@ class Simulator(BaseModel):
                     }
 
         self.features_w_hist = {**{k:self.all_data[k] for k in self.features}, **self.hist}
-        print(self.features_w_hist)
 
 
 
@@ -205,9 +204,7 @@ class Simulator(BaseModel):
             i-=1
         # update all data with updates and updated historical states
         self.features_w_hist.update({**{k:self.all_data[k] for k in self.features}, **self.hist})
-        # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
-        print(self.features_w_hist)
-        time.sleep(1)
+
         return self.state
 
     def get_state(self):

@@ -116,8 +116,6 @@ class Simulator(BaseModel):
 
         input_array = [item for subl in input_list for item in subl]
         X = np.array(input_array).reshape(1, -1)
-        print("X")
-        print(X)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.dd_model.predict(
                 X
@@ -279,8 +277,6 @@ def main(cfg: DictConfig):
         output_cols = list(output_cols)
     if type(augmented_cols) == ListConfig:
         augmented_cols = list(augmented_cols)
-    print(type(input_cols))
-    print(type(augmented_cols))
 
     input_cols = input_cols + augmented_cols
 
