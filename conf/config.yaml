@@ -4,3 +4,5 @@ defaults:
   - model: xgboost.yaml
   - simulator: cartpole-updated-simparam.yaml
   # - simulator: quanser-log.yaml
+  #- data: house-energy.yaml
+  #- simulator: house-energy_simparam.yaml
