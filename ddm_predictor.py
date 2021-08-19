@@ -413,7 +413,9 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
+                    sequence_id=sequence_id,
+                    state=sim.get_state(),
+                    halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(
