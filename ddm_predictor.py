@@ -321,6 +321,10 @@ def main(cfg: DictConfig):
         )
         initial_states = {k: random.random() for k in states}
 
+    signals = hydra.utils.instantiate(cfg["simulator"]["signal_builder"])
+    print(signals)
+    exit()
+
     # Grab standardized way to interact with sim API
     sim = Simulator(
         model,

@@ -28,6 +28,13 @@ simulator:
       inkling_name: Tin_initial
       min: 28
       max: 28
+  signal_builder:
+    _target_: datamodeler.SignalBuilder
+    signal_type: {
+      "Tset": "step_function",
+      "Tout": "sinewave",
+    }
+    horizon: 288
   policy: bonsai
   logging: enable
   workspace_setup: True
