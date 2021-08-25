@@ -43,6 +43,7 @@ simulator:
       inkling_name: initial_angular_velocity
       min: -0.05
       max: 0.05
+  signal_builder:
   policy: bonsai
   logging: enable
   workspace_setup: True

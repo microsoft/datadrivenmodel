@@ -22,6 +22,7 @@ simulator:
       "state_angle_position": 0,
       "state_angle_velocity": 0,
     }
+  signal_builder:
   policy: bonsai
   logging: enable
   workspace_setup: True
