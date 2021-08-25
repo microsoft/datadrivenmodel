@@ -140,6 +140,53 @@ If you're having trouble running locally, chances are you need to set up your wo
 python ddm_predictor.py simulator.workspace_setup=True
 ```
 
+## Signal Builder
+
+Sometimes there are variables that need to be provided from the simulator for brain training, but we don't necessarily want a ddm model to predict it. A `SignalBuilder` class in `signal_builder.py` can be used to create signals with different types such as `step_function`, `ramp`, and `sinewave`. You can configure signals in the `conf/simulator` file by adding a key and a the desired signal type. The horizon is the length of episode. The signal will be created and the current signal will be provided as it is indexed through an episode in `ddm_predictor.py`.
+
+Depending on the signal type, you'll need to provide different signal parameters.
+
+### Step Function
+
+```python
+	def step_function(self, start, stop, transition):
+		signal = np.full(self.horizon+1, start)
+		signal[transition:] = stop
+		return signal
+```
+
+### Ramp
+
+```python
+	def ramp(self, start, stop):
+		signal = np.linspace(start, stop, self.horizon+1)
+		return signa
+```
+
+### Sine Wave
+
+```python
+	def sinewave(self, amplitude, median):
+		x = np.linspace(-np.pi, np.pi, self.horizon+1)
+		return median + (amplitude * np.sin(x))
+```
+
+```yml
+  signal_builder:
+    signal_types: 
+      Tset: step_function
+      Tout: sinewave
+    horizon: 288
+    signal_params:
+      Tset: 
+        start: 25
+        stop: 20
+        transition: 100
+      Tout:
+        amplitude: 5
+        median: 25
+```
+
 ## Generate Logs for Comparing DDM and Original Sim
 
 Validating your ddm simulator against the original sim is heavily recommended, especially paying attention to error propagation in a sequential manner. `ddm_test_validate.py` is one way to generate two csv files in `outputs/<DATE>/<TIME>/logs`. 
