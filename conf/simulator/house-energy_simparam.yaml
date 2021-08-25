@@ -29,12 +29,18 @@ simulator:
       min: 28
       max: 28
   signal_builder:
-    _target_: datamodeler.SignalBuilder
-    signal_type: {
-      "Tset": "step_function",
-      "Tout": "sinewave",
-    }
+    signal_types: 
+      Tset: step_function
+      Tout: sinewave
     horizon: 288
+    signal_params:
+      Tset: 
+        start: 25
+        stop: 20
+        transition: 100
+      Tout:
+        amplitude: 5
+        median: 25
   policy: bonsai
   logging: enable
   workspace_setup: True
