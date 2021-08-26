@@ -133,7 +133,9 @@ class DataClass(object):
         if iteration_order < 0:
             labels_df = df[[episode_col, iteration_col] + self.label_cols]
         else:
-            labels_df = df[[episode_col, iteration_col]].join(lagged_df[self.label_cols])
+            labels_df = df[[episode_col, iteration_col]].join(
+                lagged_df[self.label_cols]
+            )
         return labels_df.join(features_df)[vars_to_keep]
 
     def read(
@@ -403,7 +405,7 @@ class DataClass(object):
         self.df_per_episode = df_per_episode
 
         logger.info(
-            f"trimmed dataframe across episodes. found ({len(self.df_per_episode)}) episodes."
+            f"Trimmed DataFrame across episodes. found ({len(self.df_per_episode)}) episodes."
         )
 
         return df_per_episode
@@ -421,7 +423,7 @@ class DataClass(object):
         # Get train split - but ensuring we do not divide by zero later
         split = min(max(1 - test_perc, 0.01), 0.99)
         # Update with validated test_perc
-        self.test_perc = 1-split
+        self.test_perc = 1 - split
 
         episodes_len = []
 
@@ -448,7 +450,7 @@ class DataClass(object):
         self.mean_episode_len = np.mean(episodes_len)
         self.std_episode_len = np.std(episodes_len)
         logger.info(
-            f"divided train & test set with ({self.train_len}) and ({self.test_len}) iterations, respectively. Chosen split == {split*100}%.\
+            f"Divided train & test set with ({self.train_len}) and ({self.test_len}) iterations, respectively. Chosen split == {split*100}%.\
             \n   >> Average episode length: ({self.mean_episode_len}). Average std dev: ({self.std_episode_len})"
         )
 
@@ -680,7 +682,7 @@ class DataClass(object):
                 self.last_X_d[target_feat] += self.new_y_d[target_label]
             else:
                 self.last_X_d[target_feat] = self.new_y_d[target_label]
-        
+
         # Retrieve the set of updated values.
         # Note, self.last_X_d is an ordered dictionary.
         return np.array(list(self.last_X_d.values()))
@@ -731,9 +733,7 @@ class DataClass(object):
                 if len(df) < 2:
                     log_message = f"Matching feature not found for label '{label}'."
                     log_message += f" And not enough rows to compute diff (minimum 2, but {len(df)} were given)."
-                    logger.warn(
-                        log_message
-                    )
+                    logger.warn(log_message)
                     return None
 
                 # Raise the flag to later remove the first row

@@ -52,8 +52,8 @@ def test_cartpole_at_st(csv_reader):
     assert cp2_df.shape[0] == 980
     assert cp2_df.shape[1] == 13
     assert (
-        cp2_df["state_x_position"].values[1]
-        == cp2_df["next_state_x_position"].values[0]
+        cp2_df["state_x_position"].values[0]
+        == cp2_df["prev_state_x_position"].values[1]
     )
 
 

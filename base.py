@@ -4,7 +4,6 @@ import logging
 import os
 import pathlib
 import pickle
-from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
 from omegaconf.listconfig import ListConfig
 
@@ -37,6 +36,131 @@ class BaseModel(abc.ABC):
         self.halt_model = None
         self.dataclass_obj = DataClass()
 
+    def from_csv(
+        self,
+        dataset_path: str,
+        input_cols: Union[str, List[str]] = "state",
+        augm_cols: Union[str, List[str]] = ["action_command"],
+        output_cols: Union[str, List[str]] = "state",
+        iteration_order: int = -1,
+        episode_col: str = "episode",
+        iteration_col: str = "iteration",
+        drop_nulls: bool = True,
+        max_rows: Union[int, None] = None,
+        diff_state: bool = False,
+        # calc_config_stats: bool = False,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Read CSV data into two datasets for modeling
+
+        Parameters
+        ----------
+        dataset_path : str
+            path to csv dataset
+        input_cols : Union[str, List[str]], optional
+            list of columns represent the inputs to the dynamical system in the raw dataset. Can either be a string which is then matched for all columns in the dataset, or a list of strings with exact matches, by default "state"
+        augm_cols : Union[str, List[str]], optional
+            Exact match of additional columns to use for modeling, such as the actions of the current iteration and any scenario/config parameters, by default ["action_command"]
+        output_col : Union[str, List[str]], optional
+            output columns of the dynamical system. Can either be a string which is then matched for any columns or a list of exact matches, by default "state"
+        iteration_order : int, optional
+            in the order of the raw dataset, what is the lag between action t and state t, by default -1, which means each row is
+            a_t,s_{t+1}
+        max_rows : Union[int, None], optional
+            max rows to read for a large dataset, by default None
+        diff_state : bool, default False
+            If enabled, calculate differential between current output_cols and past output_cols
+
+        Returns
+        -------
+        Tuple[np.array, np.array]
+            Features and labels for modeling
+
+
+        Raises
+        ------
+        ValueError
+            Data not found
+        """
+
+        logger.warn(f"This method is deprecated, please use the dataclass load_csv instead")
+        from loaders import CsvReader
+
+        csv_reader = CsvReader()
+        if not os.path.exists(dataset_path):
+            raise ValueError(f"No data found at {dataset_path}")
+        else:
+            if max_rows < 0 or not max_rows:
+                max_rows = None
+            df = pd.read_csv(dataset_path, nrows=max_rows)
+            if drop_nulls:
+                df = df[~df.isnull().any(axis=1)]
+            if type(input_cols) == str:
+                base_features = [str(col) for col in df if col.startswith(input_cols)]
+            elif isinstance(input_cols, (list, ListConfig)):
+                base_features = input_cols
+            else:
+                raise TypeError(
+                    f"input_cols expected type List[str] or str but received type {type(input_cols)}"
+                )
+            if not augm_cols:
+                logging.debug(f"No augmented columns...")
+                augm_features = []
+            elif type(augm_cols) == str:
+                augm_features = [str(col) for col in df if col.startswith(augm_cols)]
+            elif isinstance(augm_cols, (list, ListConfig)):
+                augm_features = augm_cols
+            else:
+                raise TypeError(
+                    f"augm_cols expected type List[str] or str but received type {type(augm_cols)}"
+                )
+
+            if augm_cols:
+                features = base_features + augm_features
+            else:
+                features = base_features
+            self.features = features
+            logging.info(f"Using {features} as the features for modeling DDM")
+
+            if type(output_cols) == str:
+                labels = [col for col in df if col.startswith(output_cols)]
+            elif isinstance(output_cols, (list, ListConfig)):
+                labels = output_cols
+            else:
+                raise TypeError(
+                    f"output_cols expected type List[str] but received type {type(output_cols)}"
+                )
+            self.labels = labels
+            logging.info(f"Using {labels} as the labels for modeling DDM")
+
+            df = csv_reader.read(
+                df,
+                iteration_order=iteration_order,
+                feature_cols=features,
+                label_cols=labels,
+                episode_col=episode_col,
+                iteration_col=iteration_col,
+                augmented_cols=augm_features,
+            )
+            # TODO: calcualte config summary stats and save somewhere
+            # if calc_config_stats:
+            #     config_df = df[csv_reader.feature_cols]
+            X = df[csv_reader.feature_cols].values
+            y = df[csv_reader.label_cols].values
+            # store episode_id to group_per_episode
+            self.episode_ids = df[episode_col].values
+
+        self.diff_state = diff_state
+        if diff_state == True:
+            logging.info(
+                "delta states enabled, calculating differential between input and output values"
+            )
+            y = y - X[:, : y.shape[1]]  # s_t+1 - s_t
+
+        self.input_dim = X.shape[1]
+        self.output_dim = y.shape[1]
+
+        return X, y
+
     def load_csv(
         self,
         dataset_path: str,
@@ -67,7 +191,8 @@ class BaseModel(abc.ABC):
         output_col : Union[str, List[str]], optional
             output columns of the dynamical system. Can either be a string which is then matched for any columns or a list of exact matches, by default "state"
         iteration_order : int, optional
-            in the order of the raw dataset, what is the lag between iteration t and iteration t+1, by default -1
+            in the order of the raw dataset, what is the lag between action t and state t, by default -1, which means each row is
+            a_t,s_{t+1}
         max_rows : Union[int, None], optional
             max rows to read for a large dataset, by default None
         diff_state : bool, default False
@@ -191,8 +316,7 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self,
-        X: Union[None, np.ndarray] = None,
+        self, X: Union[None, np.ndarray] = None,
     ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 
@@ -241,8 +365,10 @@ class BaseModel(abc.ABC):
 
                 # Update prediction dictionary (for next iteration).
                 # > The next value is provided, to update all states that are not being predicted.
-                if i < X_len-1:
-                    next_X = self.dataclass_obj.sequential_inference(new_y=preds[0], other_args=X[i+1])
+                if i < X_len - 1:
+                    next_X = self.dataclass_obj.sequential_inference(
+                        new_y=preds[0], other_args=X[i + 1]
+                    )
 
             preds_array = np.array(preds_array)  # .transpose()
 
@@ -771,11 +897,7 @@ class BaseModel(abc.ABC):
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model,
-                param_grid=params,
-                refit=True,
-                cv=cv,
-                scoring=scoring_func,
+                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(

@@ -12,10 +12,10 @@ model:
   saver:
     filename: models/xgboost_models/mixed-cartpole
   sweep:
-    run: True
+    run: False
     split_strategy: timeseries
     search_algorithm: bayesian
-    num_trials: 2
+    num_trials: 15
     scoring_func: r2
     early_stopping: False
     results_csv_path: xgboost_gridsearch/search_results.csv

@@ -82,3 +82,10 @@ pytest-coverage.txt
 
 # saved models
 saved_models/
+
+# wandb
+wandb/
+etc/
+
+# data
+data/

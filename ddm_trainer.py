@@ -46,10 +46,11 @@ def main(cfg: DictConfig) -> None:
 
     Model = available_models[model_name]
 
+    # TODO, decide whether to always save to outputs directory
     if cfg["data"]["full_or_relative"] == "relative":
         dataset_path = os.path.join(dir_path, dataset_path)
 
-    save_path = os.path.join(dir_path, save_path + ".pkl")
+    save_path = os.path.join(dir_path, save_path)
 
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)

@@ -67,6 +67,37 @@ python ddm_trainer.py data.path=csv_data/cartpole_at_st.csv model=xgboost
 
 The script automatically saves your model to the path specified by `model.saver.filename`. An `outputs` directory is also saved with your configuration file and logs.
 
+#### Episode Initialization and Scenario Parameters
+
+In order to specify episode initializations and scenario parameters, you can provide a dictionary of parameters to the `simulator` yaml file:
+
+```yaml
+simulator:
+  states:
+    ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+  actions: ["command"]
+  configs: ["pole_length", "pole_mass", "cart_mass"]
+  # estimate these during training
+  # e.g.,:
+  episode_inits: { "pole_length": 0.4, "pole_mass": 0.055, "cart_mass": 0.31 }
+  # e.g.,:  your simulator may need to know the initial state
+  # before the first episode. define these here as a dictionary
+  # you can include these in your Inkling scenarios during brain training
+  initial_states:
+    {
+      "cart_position": 0,
+      "cart_velocity": 0,
+      "pole_angle": 0,
+      "pole_angular_velocity": 0,
+    }
+  # episode_inits:
+  policy: bonsai
+  logging: enable
+  workspace_setup: True
+```
+
+When training with a brain, make sure that your scenario definitions include both `initial_state` values and/or `episode_inits` values.
+
 ### Hyperparameter Tuning
 
 You can also do some hyperparameter tuning by setting `sweep.run` to True in your `conf.model.yaml` file and specifying the parameters to sweep over and their distributions in the params argument:
