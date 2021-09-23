@@ -86,6 +86,3 @@ saved_models/
 # wandb
 wandb/
 etc/
-
-# data
-data/

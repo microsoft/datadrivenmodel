@@ -9,6 +9,7 @@ from policies import random_policy, brain_policy
 from signal_builder import SignalBuilder
 
 import numpy as np
+import pdb
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -183,6 +184,10 @@ class Simulator(BaseModel):
         # update(ddm_state) =
 
         self.all_data.update(action)
+        
+        for key in self.features:
+            if key in self.signals:
+                self.all_data.update({key: self.current_signals[key]})
 
         ddm_input = {k: self.all_data[k] for k in self.features}
 
@@ -206,7 +211,7 @@ class Simulator(BaseModel):
         self.all_data.update(ddm_output)
         self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
-
+        
         if self.signal_builder:
             self.current_signals = {}
             for key, val in self.signals.items():

@@ -1,6 +1,7 @@
 simulator:
   states: [
     "Tin",
+    "Tout"
   ]
   actions: ["hvacON"]
   configs: [    
@@ -18,7 +19,7 @@ simulator:
     "K": 0.5, # Thermal conductivity
     "C": 0.3, # Thermal Capacity
     "Qhvac": 9, # Heat Flux
-    "schedule_index": 3, # 1 - fixed, 2 - randomized, 3 - constant
+    "schedule_index": 4, # 1 - fixed, 2 - randomized, 3 - constant
     "number_of_days": 1,
     "timestep": 5, # Min
     "max_iterations": 288, # Alters schedule generation
@@ -28,19 +29,40 @@ simulator:
       inkling_name: Tin_initial
       min: 28
       max: 28
+    Tout:
+      inkling_name: Tout
+      min: 25
+      max: 25
   signal_builder:
     signal_types: 
-      Tset: step_function
+      Tset: piecewise
       Tout: sinewave
     horizon: 288
     signal_params:
+      #Tset: 
+      #  start:
+      #    min: 25
+      #    max: 25
+      #  stop:
+      #    min: 20
+      #    max: 20
+      #  transition:
+      #    min: 100
+      #    max: 100
       Tset: 
-        start: 25
-        stop: 20
-        transition: 100
+        conditions:
+          min: [0, 110, 205]
+          max: [0, 110, 205]
+        values:
+          min: [25, 22, 24]
+          max: [25, 22, 24]
       Tout:
-        amplitude: 5
-        median: 25
+        amplitude:
+          min: 5
+          max: 5
+        median:
+          min: 25
+          max: 25
   policy: bonsai
   logging: enable
   workspace_setup: True
