@@ -35,33 +35,26 @@ simulator:
       max: 25
   signal_builder:
     signal_types: 
-      Tset: piecewise
-      Tout: sinewave
+      Tset: step_function
+      Tout: constant
     horizon: 288
     signal_params:
-      #Tset: 
-      #  start:
-      #    min: 25
-      #    max: 25
-      #  stop:
-      #    min: 20
-      #    max: 20
-      #  transition:
-      #    min: 100
-      #    max: 100
       Tset: 
-        conditions:
-          min: [0, 110, 205]
-          max: [0, 110, 205]
-        values:
-          min: [25, 22, 24]
-          max: [25, 22, 24]
+        start:
+          min: 25
+          max: 25
+        stop:
+          min: 20
+          max: 22
+        transition:
+          min: 100
+          max: 124
       Tout:
         amplitude:
-          min: 5
+          min: 3
           max: 5
         median:
-          min: 25
+          min: 18
           max: 25
   policy: bonsai
   logging: enable
