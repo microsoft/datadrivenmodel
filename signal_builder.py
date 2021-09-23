@@ -5,7 +5,6 @@ class SignalBuilder:
 		self.signal_type = signal_type
 		self.horizon = horizon
 		self.build_signal(signal_params)
-		self.iteration = 0
 	
 	def step_function(self, start, stop, transition):
 		signal = np.full(self.horizon+1, start)

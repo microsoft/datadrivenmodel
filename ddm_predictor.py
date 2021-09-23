@@ -151,19 +151,21 @@ class Simulator(BaseModel):
 
         if self.signal_builder:
             self.signals = {}
-            for key, val in self.signal_builder['signal_types'].items():
+            for key, val in self.signal_builder["signal_types"].items():
                 self.signals.update(
                     {
-                        key: SignalBuilder(val, self.signal_builder['horizon'], self.signal_builder['signal_params'][key])
+                        key: SignalBuilder(
+                            val,
+                            self.signal_builder["horizon"],
+                            self.signal_builder["signal_params"][key],
+                        )
                     }
                 )
-            
+
             self.current_signals = {}
             for key, val in self.signals.items():
                 self.current_signals.update(
-                    {
-                        key: float(self.signals[key].get_current_signal())
-                    }
+                    {key: float(self.signals[key].get_current_signal())}
                 )
 
         # capture all data
@@ -204,14 +206,12 @@ class Simulator(BaseModel):
         self.all_data.update(ddm_output)
         self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
-        
+
         if self.signal_builder:
             self.current_signals = {}
             for key, val in self.signals.items():
                 self.current_signals.update(
-                    {
-                        key: float(self.signals[key].get_current_signal())
-                    }
+                    {key: float(self.signals[key].get_current_signal())}
                 )
 
         return dict(self.state)
