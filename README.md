@@ -144,32 +144,32 @@ python ddm_predictor.py simulator.workspace_setup=True
 
 Sometimes there are variables that need to be provided from the simulator for brain training, but we don't necessarily want a ddm model to predict it. A `SignalBuilder` class in `signal_builder.py` can be used to create signals with different types such as `step_function`, `ramp`, and `sinewave`. You can configure signals in the `conf/simulator` file by adding a key and a the desired signal type. The horizon is the length of episode. The signal will be created and the current signal will be provided as it is indexed through an episode in `ddm_predictor.py`.
 
-Depending on the signal type, you'll need to provide different signal parameters.
+Depending on the signal type, you'll need to provide different signal parameters. One can randomize the signals at the start of every episode by specifying the min/max. If you want them to be constant, just set them to be the same. 
 
 ### Step Function
 
-```python
-	def step_function(self, start, stop, transition):
-		signal = np.full(self.horizon+1, start)
-		signal[transition:] = stop
-		return signal
-```
+- start
+- stop
+- transition
 
 ### Ramp
 
-```python
-	def ramp(self, start, stop):
-		signal = np.linspace(start, stop, self.horizon+1)
-		return signa
-```
+- start
+- stop
 
 ### Sine Wave
 
-```python
-	def sinewave(self, amplitude, median):
-		x = np.linspace(-np.pi, np.pi, self.horizon+1)
-		return median + (amplitude * np.sin(x))
-```
+- amplitude
+- mean
+
+### Constant
+
+- value
+
+### Piecewise
+
+- conditions (must use list)
+- values (must use list)
 
 ```yml
   signal_builder:
@@ -179,11 +179,19 @@ Depending on the signal type, you'll need to provide different signal parameters
     horizon: 288
     signal_params:
       Tset: 
-        start: 25
-        stop: 20
-        transition: 100
+        conditions:
+          min: [0, 110, 205]
+          max: [0, 110, 205]
+        values:
+          min: [25, 22, 24]
+          max: [25, 22, 24]
       Tout:
-        amplitude: 5
+        amplitude:
+          min: 5
+          max: 5
+        median:
+          min: 25
+          max: 25
         median: 25
 ```
 
