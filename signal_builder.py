@@ -10,15 +10,18 @@ class SignalBuilder:
 	def step_function(self, start, stop, transition):
 		signal = np.full(self.horizon+1, start)
 		signal[transition:] = stop
-		return signal
+		return iter(signal)
 
 	def ramp(self, start, stop):
 		signal = np.linspace(start, stop, self.horizon+1)
-		return signal
+		return iter(signal)
 
 	def sinewave(self, amplitude, median):
 		x = np.linspace(-np.pi, np.pi, self.horizon+1)
-		return median + (amplitude * np.sin(x))
+		return iter(median + (amplitude * np.sin(x)))
+
+	def constant(self, value):
+		return iter(value * np.ones(self.horizon+1))
 
 	def build_signal(self, signal_params):
 		if self.signal_type == "step_function":
@@ -37,10 +40,10 @@ class SignalBuilder:
 				signal_params['amplitude'],
 				signal_params['median'],
 			)
+		elif self.signal_type == "constant":
+			self.signal = self.constant(signal_params['value'])
 		else:
 			print("Signal Type provided is not available.")
 
 	def get_current_signal(self):
-		signal = self.signal[self.iteration]
-		self.iteration += 1
-		return signal
+		return next(self.signal)
