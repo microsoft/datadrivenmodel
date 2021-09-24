@@ -157,7 +157,7 @@ class Simulator(BaseModel):
                 for key, value in new_config.items():
                     if k in key:
                         self.config_signals.update({key: value})
-        
+
         if self.config_signals:
             # If signal params from Inkling, use those for building signals
             self.signals = {}
@@ -166,8 +166,12 @@ class Simulator(BaseModel):
                     {
                         key: SignalBuilder(
                             val,
-                            new_config['horizon'],
-                            {k.split('_')[1]:v for k, v in self.config_signals.items() if key in k},
+                            new_config["horizon"],
+                            {
+                                k.split("_")[1]: v
+                                for k, v in self.config_signals.items()
+                                if key in k
+                            },
                         )
                     }
                 )
@@ -197,7 +201,7 @@ class Simulator(BaseModel):
                     {key: float(self.signals[key].get_current_signal())}
                 )
         else:
-            print('No signal builder used')
+            print("No signal builder used")
 
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
