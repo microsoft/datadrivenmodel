@@ -8,10 +8,12 @@ simulator:
     "K", # Thermal conductivity
     "C", # Thermal Capacity
     "Qhvac", # Heat Flux
-    "schedule_index", # 1 - fixed, 2 - randomized
-    "number_of_days",
-    "timestep", # Min
-    "max_iterations", # Alters schedule generation
+    "horizon",
+    "Tset_start",
+    "Tset_stop",
+    "Tset_transition",
+    "Tout_amplitude",
+    "Tout_median"
     ]
   # estimate these during training
   # e.g.,:
@@ -19,10 +21,12 @@ simulator:
     "K": 0.5, # Thermal conductivity
     "C": 0.3, # Thermal Capacity
     "Qhvac": 9, # Heat Flux
-    "schedule_index": 4, # 1 - fixed, 2 - randomized, 3 - constant
-    "number_of_days": 1,
-    "timestep": 5, # Min
-    "max_iterations": 288, # Alters schedule generation
+    "horizon": 288,
+    "Tset_start": 25,
+    "Tset_stop": 20,
+    "Tset_transition": 100,
+    "Tout_amplitude": 5,
+    "Tout_median": 25
     }
   initial_states:
     Tin:
@@ -36,7 +40,7 @@ simulator:
   signal_builder:
     signal_types: 
       Tset: step_function
-      Tout: constant
+      Tout: sinewave
     horizon: 288
     signal_params:
       Tset: 

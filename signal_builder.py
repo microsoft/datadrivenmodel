@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import pdb
 
 
 class SignalBuilder:
@@ -9,44 +10,59 @@ class SignalBuilder:
         self.build_signal(signal_params)
 
     def step_function(self, start, stop, transition):
-        start = random.uniform(start["min"], start["max"])
-        stop = random.uniform(stop["min"], stop["max"])
-        transition = int(random.uniform(transition["min"], transition["max"]))
+        try:
+            start = random.uniform(start["min"], start["max"])
+            stop = random.uniform(stop["min"], stop["max"])
+            transition = int(random.uniform(transition["min"], transition["max"]))
+        except:
+            transition = int(transition)
 
-        signal = np.full(self.horizon + 1, start)
+        signal = np.full(self.horizon + 1, float(start))
         signal[transition:] = stop
         return iter(signal)
 
     def ramp(self, start, stop):
-        start = random.uniform(start["min"], start["max"])
-        stop = random.uniform(stop["min"], stop["max"])
+        try:
+            start = random.uniform(start["min"], start["max"])
+            stop = random.uniform(stop["min"], stop["max"])
+        except:
+            pass
 
         signal = np.linspace(start, stop, self.horizon + 1)
         return iter(signal)
 
     def sinewave(self, amplitude, median):
-        amplitude = random.uniform(amplitude["min"], amplitude["max"])
-        median = random.uniform(median["min"], median["max"])
+        try:
+            amplitude = random.uniform(amplitude["min"], amplitude["max"])
+            median = random.uniform(median["min"], median["max"])
+        except:
+            pass
 
         x = np.linspace(-np.pi, np.pi, self.horizon + 1)
         return iter(median + (amplitude * np.sin(x)))
 
     def constant(self, value):
-        value = random.uniform(value["min"], value["max"])
+        try:
+            value = random.uniform(value["min"], value["max"])
+        except:
+            pass
 
         return iter(value * np.ones(self.horizon + 1))
 
     def piecewise(self, conditions, values):
         x = np.arange(self.horizon + 1)
 
-        conditions = [
-            random.uniform(conditions["min"][i], conditions["max"][i])
-            for i in range(len(conditions["max"]))
-        ]
-        values = [
-            random.uniform(values["min"][i], values["max"][i])
-            for i in range(len(values["max"]))
-        ]
+        try:
+            conditions = [
+                random.uniform(conditions["min"][i], conditions["max"][i])
+                for i in range(len(conditions["max"]))
+            ]
+            values = [
+                random.uniform(values["min"][i], values["max"][i])
+                for i in range(len(values["max"]))
+            ]
+        except:
+            pass
 
         signal = np.piecewise(
             x,

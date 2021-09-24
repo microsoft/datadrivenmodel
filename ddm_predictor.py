@@ -150,7 +150,35 @@ class Simulator(BaseModel):
         self.state = initial_state
         self.action = initial_action
 
-        if self.signal_builder:
+        # Grab signal params pertaining to specific format of key_parameter from Inkling
+        self.config_signals = {}
+        if new_config:
+            for k, v in self.signal_builder["signal_params"].items():
+                for key, value in new_config.items():
+                    if k in key:
+                        self.config_signals.update({key: value})
+        
+        if self.config_signals:
+            # If signal params from Inkling, use those for building signals
+            self.signals = {}
+            for key, val in self.signal_builder["signal_types"].items():
+                self.signals.update(
+                    {
+                        key: SignalBuilder(
+                            val,
+                            new_config['horizon'],
+                            {k.split('_')[1]:v for k, v in self.config_signals.items() if key in k},
+                        )
+                    }
+                )
+
+            self.current_signals = {}
+            for key, val in self.signals.items():
+                self.current_signals.update(
+                    {key: float(self.signals[key].get_current_signal())}
+                )
+        elif self.signal_builder:
+            # Otherwise use signal builder from simulator/conf
             self.signals = {}
             for key, val in self.signal_builder["signal_types"].items():
                 self.signals.update(
@@ -168,6 +196,8 @@ class Simulator(BaseModel):
                 self.current_signals.update(
                     {key: float(self.signals[key].get_current_signal())}
                 )
+        else:
+            print('No signal builder used')
 
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if

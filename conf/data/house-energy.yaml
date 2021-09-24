@@ -1,5 +1,5 @@
 data:
-  path: csv_data/house-energy.csv
+  path: csv_data/house-energy-mod.csv
   full_or_relative: relative
   inputs: [
     "Tin",
@@ -12,11 +12,13 @@ data:
     "K", # Thermal conductivity
     "C", # Thermal Capacity
     "Qhvac", # Heat Flux
-    "schedule_index", # 1 - fixed, 2 - randomized
-    "number_of_days",
-    "timestep", # Min
-    "max_iterations", # Alters schedule generation
     "hvacON",
+    "horizon",
+    "Tset_start",
+    "Tset_stop",
+    "Tset_transition",
+    "Tout_amplitude",
+    "Tout_median"
   ]
   iteration_order: -1
   episode_col: episode
