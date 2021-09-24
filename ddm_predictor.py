@@ -152,7 +152,7 @@ class Simulator(BaseModel):
 
         # Grab signal params pertaining to specific format of key_parameter from Inkling
         self.config_signals = {}
-        if new_config:
+        if new_config and self.signal_builder is not None:
             for k, v in self.signal_builder["signal_params"].items():
                 for key, value in new_config.items():
                     if k in key:
@@ -215,9 +215,11 @@ class Simulator(BaseModel):
 
         self.all_data.update(action)
 
-        for key in self.features:
-            if key in self.signals:
-                self.all_data.update({key: self.current_signals[key]})
+        # Use the signal builder's value as input to DDM if specified
+        if self.signal_builder:
+            for key in self.features:
+                if key in self.signals:
+                    self.all_data.update({key: self.current_signals[key]})
 
         ddm_input = {k: self.all_data[k] for k in self.features}
 
