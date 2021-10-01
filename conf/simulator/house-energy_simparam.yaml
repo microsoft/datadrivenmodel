@@ -31,8 +31,8 @@ simulator:
   initial_states:
     Tin:
       inkling_name: Tin_initial
-      min: 28
-      max: 28
+      min: 18
+      max: 30
     Tout:
       inkling_name: Tout
       min: 25
@@ -52,14 +52,14 @@ simulator:
           max: 22
         transition:
           min: 100
-          max: 124
+          max: 148
       Tout:
         amplitude:
           min: 3
           max: 5
         median:
-          min: 18
-          max: 25
+          min: 23
+          max: 30
   policy: bonsai
   logging: enable
   workspace_setup: True
