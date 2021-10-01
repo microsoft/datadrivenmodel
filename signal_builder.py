@@ -38,7 +38,7 @@ class SignalBuilder:
         except:
             pass
 
-        x = np.linspace(0, 2*np.pi, self.horizon + 1)
+        x = np.linspace(0, 2 * np.pi, self.horizon + 1)
         return iter(median + (amplitude * np.sin(x)))
 
     def constant(self, value):
