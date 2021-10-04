@@ -1,5 +1,5 @@
 data:
-  path: csv_data/house-energy-mod.csv
+  path: csv_data/house-energy.csv
   full_or_relative: relative
   inputs: [
     "Tin",
