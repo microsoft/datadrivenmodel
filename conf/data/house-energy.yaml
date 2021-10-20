@@ -1,25 +1,21 @@
 data:
   path: csv_data/house-energy.csv
   full_or_relative: relative
-  inputs: [
-    "Tin",
-    "Tout"
-  ]
-  outputs: [
-    "Tin",
-  ]
-  augmented_cols: [
-    "K", # Thermal conductivity
-    "C", # Thermal Capacity
-    "Qhvac", # Heat Flux
-    "hvacON",
-    "horizon",
-    "Tset_start",
-    "Tset_stop",
-    "Tset_transition",
-    "Tout_amplitude",
-    "Tout_median"
-  ]
+  inputs:
+    - Tin
+    - Tout
+  outputs:
+    - Tin
+  augmented_cols:
+    - K # Thermal conductivity
+    - C # Thermal Capacity
+    - Qhvac # Heat flux
+    - horizon
+    - Tset_start
+    - Tset_stop
+    - Tset_transition
+    - Tout_amplitude
+    - Tout_median
   iteration_order: -1
   episode_col: episode
   iteration_col: iteration

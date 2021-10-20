@@ -1,33 +1,29 @@
 simulator:
-  states: [
-    "Tin",
-    "Tout"
-  ]
-  actions: ["hvacON"]
-  configs: [    
-    "K", # Thermal conductivity
-    "C", # Thermal Capacity
-    "Qhvac", # Heat Flux
-    "horizon",
-    "Tset_start",
-    "Tset_stop",
-    "Tset_transition",
-    "Tout_amplitude",
-    "Tout_median"
-    ]
-  # estimate these during training
-  # e.g.,:
-  episode_inits: {
-    "K": 0.5, # Thermal conductivity
-    "C": 0.3, # Thermal Capacity
-    "Qhvac": 9, # Heat Flux
-    "horizon": 288,
-    "Tset_start": 25,
-    "Tset_stop": 20,
-    "Tset_transition": 100,
-    "Tout_amplitude": 5,
-    "Tout_median": 25
-    }
+  states: 
+    - Tin
+    - Tout
+  actions:
+    - hvacON
+  configs:
+    - K # Thermal conductivity
+    - C # Thermal Capacity
+    - Qhvac # Heat flux
+    - horizon
+    - Tset_start
+    - Tset_stop
+    - Tset_transition
+    - Tout_amplitude
+    - Tout_median
+  episode_inits:
+    K: 0.5 # Thermal conductivity
+    C: 0.3 # Thermal Capacity
+    Qhvac: 9 # Heat Flux
+    horizon: 288
+    Tset_start: 25
+    Tset_stop: 20
+    Tset_transition: 100
+    Tout_amplitude: 5
+    Tout_median: 25
   initial_states:
     Tin:
       inkling_name: Tin_initial

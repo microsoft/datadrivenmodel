@@ -5,4 +5,4 @@ defaults:
   #- data: quanser-rand.yaml
   #- simulator: quanser-log.yaml
   - data: house-energy.yaml
-  - simulator: house-energy_simparam.yaml
+  - simulator: house_energy_simparam.yaml
