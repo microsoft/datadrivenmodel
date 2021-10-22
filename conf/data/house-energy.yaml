@@ -16,6 +16,7 @@ data:
     - Tset_transition
     - Tout_amplitude
     - Tout_median
+    - hvacON
   iteration_order: -1
   episode_col: episode
   iteration_col: iteration
