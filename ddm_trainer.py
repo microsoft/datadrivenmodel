@@ -5,6 +5,7 @@ import hydra
 import numpy as np
 from math import floor
 from omegaconf import DictConfig, ListConfig, OmegaConf
+from sklearn.metrics import r2_score
 
 logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -122,6 +123,8 @@ def main(cfg: DictConfig) -> None:
         logger.info("Fitting model...")
         model.fit(X_train, y_train)
 
+    y_pred = model.predict(X_test)
+    logger.info(f"R^2 score is {r2_score(y_test,y_pred)} for test set.")
     logger.info(f"Saving model to {save_path}")
     model.save_model(filename=save_path)
 

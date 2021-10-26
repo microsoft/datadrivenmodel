@@ -5,7 +5,7 @@ model:
     scale_data: True
     fit_separate: False
   saver:
-    filename: models/cartpole-tests/svr/SVR
+    filename: models/SVR
   sweep:
     run: False
     split_strategy: timeseries

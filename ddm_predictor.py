@@ -6,8 +6,10 @@ from typing import Any, Dict, List
 from omegaconf import ListConfig
 from functools import partial
 from policies import random_policy, brain_policy
+from signal_builder import SignalBuilder
 
 import numpy as np
+import pdb
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -47,6 +49,7 @@ class Simulator(BaseModel):
         outputs: List[str],
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
+        signal_builder: Dict[str, float],
         diff_state: bool = False,
     ):
 
@@ -59,6 +62,7 @@ class Simulator(BaseModel):
         self.episode_inits = episode_inits
         self.state_keys = states
         self.action_keys = actions
+        self.signal_builder = signal_builder
         self.diff_state = diff_state
 
         # create a dictionary containing initial_states
@@ -145,6 +149,60 @@ class Simulator(BaseModel):
         # otherwise default is used
         self.state = initial_state
         self.action = initial_action
+
+        # Grab signal params pertaining to specific format of key_parameter from Inkling
+        self.config_signals = {}
+        if new_config and self.signal_builder is not None:
+            for k, v in self.signal_builder["signal_params"].items():
+                for key, value in new_config.items():
+                    if k in key:
+                        self.config_signals.update({key: value})
+
+        if self.config_signals:
+            # If signal params from Inkling, use those for building signals
+            self.signals = {}
+            for key, val in self.signal_builder["signal_types"].items():
+                self.signals.update(
+                    {
+                        key: SignalBuilder(
+                            val,
+                            new_config["horizon"],
+                            {
+                                k.split("_")[1]: v
+                                for k, v in self.config_signals.items()
+                                if key in k
+                            },
+                        )
+                    }
+                )
+
+            self.current_signals = {}
+            for key, val in self.signals.items():
+                self.current_signals.update(
+                    {key: float(self.signals[key].get_current_signal())}
+                )
+        elif self.signal_builder:
+            # Otherwise use signal builder from simulator/conf
+            self.signals = {}
+            for key, val in self.signal_builder["signal_types"].items():
+                self.signals.update(
+                    {
+                        key: SignalBuilder(
+                            val,
+                            self.signal_builder["horizon"],
+                            self.signal_builder["signal_params"][key],
+                        )
+                    }
+                )
+
+            self.current_signals = {}
+            for key, val in self.signals.items():
+                self.current_signals.update(
+                    {key: float(self.signals[key].get_current_signal())}
+                )
+        else:
+            print("No signal builder used")
+
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
@@ -160,6 +218,12 @@ class Simulator(BaseModel):
         # update(ddm_state) =
 
         self.all_data.update(action)
+
+        # Use the signal builder's value as input to DDM if specified
+        if self.signal_builder:
+            for key in self.features:
+                if key in self.signals:
+                    self.all_data.update({key: self.current_signals[key]})
 
         ddm_input = {k: self.all_data[k] for k in self.features}
 
@@ -183,12 +247,25 @@ class Simulator(BaseModel):
         self.all_data.update(ddm_output)
         self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
+
+        if self.signal_builder:
+            self.current_signals = {}
+            for key, val in self.signals.items():
+                self.current_signals.update(
+                    {key: float(self.signals[key].get_current_signal())}
+                )
+
         return dict(self.state)
 
     def get_state(self) -> Dict:
 
-        logger.info(f"Current state: {self.state}")
-        return dict(self.state)
+        if self.signal_builder:
+            state_plus_signals = {**self.state, **self.current_signals}
+            logger.info(f"Current state with signals: {state_plus_signals}")
+            return state_plus_signals
+        else:
+            logger.info(f"Current state: {self.state}")
+            return dict(self.state)
 
     def halted(self):
 
@@ -321,6 +398,8 @@ def main(cfg: DictConfig):
         )
         initial_states = {k: random.random() for k in states}
 
+    signal_builder = cfg["simulator"]["signal_builder"]
+
     # Grab standardized way to interact with sim API
     sim = Simulator(
         model,
@@ -331,6 +410,7 @@ def main(cfg: DictConfig):
         output_cols,
         episode_inits,
         initial_states,
+        signal_builder,
         diff_state,
     )
 

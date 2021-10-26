@@ -1,0 +1,61 @@
+simulator:
+  states: 
+    - Tin
+    - Tout
+  actions:
+    - hvacON
+  configs:
+    - K # Thermal conductivity
+    - C # Thermal Capacity
+    - Qhvac # Heat flux
+    - horizon
+    - Tset_start
+    - Tset_stop
+    - Tset_transition
+    - Tout_amplitude
+    - Tout_median
+  episode_inits:
+    K: 0.5 # Thermal conductivity
+    C: 0.3 # Thermal Capacity
+    Qhvac: 9 # Heat Flux
+    horizon: 288
+    Tset_start: 25
+    Tset_stop: 20
+    Tset_transition: 100
+    Tout_amplitude: 5
+    Tout_median: 25
+  initial_states:
+    Tin:
+      inkling_name: Tin_initial
+      min: 18
+      max: 30
+    Tout:
+      inkling_name: Tout
+      min: 25
+      max: 25
+  signal_builder:
+    signal_types: 
+      Tset: step_function
+      Tout: sinewave
+    horizon: 288
+    signal_params:
+      Tset: 
+        start:
+          min: 25
+          max: 25
+        stop:
+          min: 20
+          max: 22
+        transition:
+          min: 100
+          max: 148
+      Tout:
+        amplitude:
+          min: 3
+          max: 5
+        median:
+          min: 23
+          max: 30
+  policy: bonsai
+  logging: enable
+  workspace_setup: True
