@@ -21,6 +21,5 @@ data:
   episode_col: episode
   iteration_col: iteration
   max_rows: -1
-  scale_data: False
   diff_state: False
   test_perc: 0.2
