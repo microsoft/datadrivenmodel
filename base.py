@@ -537,7 +537,7 @@ class BaseModel(abc.ABC):
         an array of same length than X/y with a unique id per independent episode
         """
 
-        if not episode_ids:
+        if not episode_ids.any():
             episode_ids = self.episode_ids
 
         assert (
