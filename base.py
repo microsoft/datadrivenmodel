@@ -603,9 +603,13 @@ class BaseModel(abc.ABC):
         # `partial_fit` method
         from tune_sklearn import TuneSearchCV
         import mlflow
+        import time
+
+        mlflow.set_tracking_uri(os.path.join("file:/",os.getcwd(),"outputs"))
+
 
         # start mlflow auto-logging
-        mlflow.sklearn.autolog()
+        # mlflow.sklearn.autolog()
 
         if search_algorithm.lower() == "bohb":
             early_stopping = True
@@ -622,6 +626,7 @@ class BaseModel(abc.ABC):
                 early_stopping=early_stopping,
                 scoring=scoring_func,
                 loggers=["csv", "tensorboard"],
+                verbose=1
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
@@ -630,6 +635,7 @@ class BaseModel(abc.ABC):
                 refit=True,
                 cv=cv,
                 scoring=scoring_func,
+                verbose=1
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
@@ -638,20 +644,23 @@ class BaseModel(abc.ABC):
                 refit=True,
                 cv=cv,
                 scoring=scoring_func,
+                verbose=1
             )
         else:
             raise NotImplementedError(
                 "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
             )
 
-        with mlflow.start_run() as run:
-            search.fit(X, y)
+        
+        #with mlflow.start_run() as run:
+        search.fit(X, y)
         self.model = search.best_estimator_
         results_df = pd.DataFrame(search.cv_results_)
         if not pathlib.Path(results_csv_path).parent.exists():
             pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
-        logger.info(f"Saving sweeping results to {results_csv_path}")
-        results_df.to_csv(results_csv_path)
+        final_path = results_csv_path[:-4]+"_"+time.strftime("%Y%m%d-%H%M%S")+".csv"
+        logger.info(f"Saving sweeping results to {final_path}")
+        results_df.to_csv(final_path)
         logger.info(f"Best hyperparams: {search.best_params_}")
         logger.info(f"Best score: {search.best_score_}")
 

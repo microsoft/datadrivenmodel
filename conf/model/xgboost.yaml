@@ -10,7 +10,7 @@ model:
     scale_data: True
     max_depth: 6
   saver:
-    filename: models/xgboost_models/house-energy
+    filename: models/xgboost_models/house_energy
   sweep:
     run: False
     split_strategy: timeseries

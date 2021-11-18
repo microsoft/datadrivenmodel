@@ -75,6 +75,7 @@ tmp/
 outputs/
 multirun/
 mlruns/
+xgboost_gridsearch
 
 # pytest reports
 .coverage
