@@ -1,0 +1,26 @@
+simulator:
+  states: ["state_theta", "state_alpha", "state_theta_dot", "state_alpha_dot"]
+  actions: ["action_Vm"]
+  configs:
+    [
+      "config_Lp",
+      "config_mp",
+      "config_Rm",
+      "config_kt",
+      "config_km",
+      "config_mr",
+      "config_Lr",
+      "config_Dr",
+      "config_Dp",
+      "config_frequency",
+      "config_initial_theta",
+      "config_initial_alpha",
+      "config_initial_theta_dot",
+      "config_initial_alpha_dot",
+    ]
+  episode_inits:
+  initial_states:
+  signal_builder:
+  policy: random
+  logging: enable
+  workspace_setup: True

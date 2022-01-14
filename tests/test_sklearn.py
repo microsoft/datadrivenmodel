@@ -4,7 +4,7 @@ import pathlib
 
 skmodel = SKModel()
 X, y = skmodel.load_csv(
-    dataset_path="csv_data/cartpole-log.csv",
+    dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
 )

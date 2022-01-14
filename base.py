@@ -454,6 +454,7 @@ class BaseModel(abc.ABC):
         metric,
         marginal: bool = False,
         it_per_episode=100,
+        episode_ids=None,
     ):
 
         if not self.model:
@@ -461,13 +462,20 @@ class BaseModel(abc.ABC):
         else:
 
             if not marginal:
-                y_hat = self.predict_sequentially(X_test, it_per_episode=it_per_episode)
+                y_hat = self.predict_sequentially(
+                    X_test, it_per_episode=it_per_episode, episode_ids=episode_ids
+                )
                 y_hat_len = np.shape(y_hat)[0]
                 y_test = y_test[:y_hat_len]
                 return metric(y_test, y_hat)
             else:
                 results_df = self.evaluate_margins_sequentially(
-                    X_test, y_test, metric, False, it_per_episode=it_per_episode
+                    X_test,
+                    y_test,
+                    metric,
+                    False,
+                    it_per_episode=it_per_episode,
+                    episode_ids=episode_ids,
                 )
                 return results_df
 
@@ -493,10 +501,13 @@ class BaseModel(abc.ABC):
         metric,
         verbose: bool = False,
         it_per_episode: int = 100,
+        episode_ids=None,
     ):
 
         # Extract prediction and remove any tail reminder from int(len(X_test)/it_per_episode)
-        y_pred = self.predict_sequentially(X_test, it_per_episode=it_per_episode)
+        y_pred = self.predict_sequentially(
+            X_test, it_per_episode=it_per_episode, episode_ids=episode_ids
+        )
         y_pred_len = np.shape(y_pred)[0]
         y_test = y_test[:y_pred_len]
 
@@ -537,7 +548,7 @@ class BaseModel(abc.ABC):
         an array of same length than X/y with a unique id per independent episode
         """
 
-        if not episode_ids:
+        if episode_ids is None:
             episode_ids = self.episode_ids
 
         assert (
@@ -603,9 +614,12 @@ class BaseModel(abc.ABC):
         # `partial_fit` method
         from tune_sklearn import TuneSearchCV
         import mlflow
+        import time
+
+        mlflow.set_tracking_uri(os.path.join("file:/", os.getcwd(), "outputs"))
 
         # start mlflow auto-logging
-        mlflow.sklearn.autolog()
+        # mlflow.sklearn.autolog()
 
         if search_algorithm.lower() == "bohb":
             early_stopping = True
@@ -622,6 +636,7 @@ class BaseModel(abc.ABC):
                 early_stopping=early_stopping,
                 scoring=scoring_func,
                 loggers=["csv", "tensorboard"],
+                verbose=1,
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
@@ -630,6 +645,7 @@ class BaseModel(abc.ABC):
                 refit=True,
                 cv=cv,
                 scoring=scoring_func,
+                verbose=1,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
@@ -638,20 +654,24 @@ class BaseModel(abc.ABC):
                 refit=True,
                 cv=cv,
                 scoring=scoring_func,
+                verbose=1,
             )
         else:
             raise NotImplementedError(
                 "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
             )
 
-        with mlflow.start_run() as run:
-            search.fit(X, y)
+        # with mlflow.start_run() as run:
+        search.fit(X, y)
         self.model = search.best_estimator_
         results_df = pd.DataFrame(search.cv_results_)
         if not pathlib.Path(results_csv_path).parent.exists():
             pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
-        logger.info(f"Saving sweeping results to {results_csv_path}")
-        results_df.to_csv(results_csv_path)
+        final_path = (
+            results_csv_path[:-4] + "_" + time.strftime("%Y%m%d-%H%M%S") + ".csv"
+        )
+        logger.info(f"Saving sweeping results to {final_path}")
+        results_df.to_csv(final_path)
         logger.info(f"Best hyperparams: {search.best_params_}")
         logger.info(f"Best score: {search.best_score_}")
 

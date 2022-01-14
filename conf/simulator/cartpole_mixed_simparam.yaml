@@ -1,0 +1,49 @@
+simulator:
+  states:
+    - cart_position
+    - cart_velocity
+    - pole_angle
+    - pole_angular_velocity
+    # ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+  actions:
+    # ["command"]
+    - command
+  configs: 
+    - pole_length
+    - pole_mass
+    - cart_mass 
+    # ["pole_length", "pole_mass", "cart_mass"]
+  # include here all config variables initializations
+  # needed if you don't have these variables defined in Inkling scenarios
+  # or if are testing using policy=random
+  episode_inits:
+    pole_length: 0.4 
+    pole_mass: 0.055
+    cart_mass: 0.31
+  # e.g.,:  your simulator may need to know the initial state values
+  # before the first episode. Define these here as a dictionary
+  # You can include these in your Inkling scenarios during brain training with different names.
+  # Specify the inkling name as `inkling_name`
+  # If empty they will be initialized as empty values
+  # based using the keys in states
+  initial_states:
+    cart_position:
+      inkling_name: initial_cart_position
+      min: -0.05
+      max: 0.05
+    cart_velocity:
+      inkling_name: initial_cart_velocity
+      min: -0.05
+      max: 0.05
+    pole_angle: 
+      inkling_name: initial_pole_angle
+      min: -0.05
+      max: 0.05
+    pole_angular_velocity:
+      inkling_name: initial_angular_velocity
+      min: -0.05
+      max: 0.05
+  signal_builder:
+  policy: bonsai
+  logging: enable
+  workspace_setup: True
