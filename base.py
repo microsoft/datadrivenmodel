@@ -454,6 +454,7 @@ class BaseModel(abc.ABC):
         metric,
         marginal: bool = False,
         it_per_episode=100,
+        episode_ids=None,
     ):
 
         if not self.model:
@@ -461,13 +462,13 @@ class BaseModel(abc.ABC):
         else:
 
             if not marginal:
-                y_hat = self.predict_sequentially(X_test, it_per_episode=it_per_episode)
+                y_hat = self.predict_sequentially(X_test, it_per_episode=it_per_episode, episode_ids=episode_ids)
                 y_hat_len = np.shape(y_hat)[0]
                 y_test = y_test[:y_hat_len]
                 return metric(y_test, y_hat)
             else:
                 results_df = self.evaluate_margins_sequentially(
-                    X_test, y_test, metric, False, it_per_episode=it_per_episode
+                    X_test, y_test, metric, False, it_per_episode=it_per_episode, episode_ids=episode_ids
                 )
                 return results_df
 
@@ -493,10 +494,11 @@ class BaseModel(abc.ABC):
         metric,
         verbose: bool = False,
         it_per_episode: int = 100,
+        episode_ids=None
     ):
 
         # Extract prediction and remove any tail reminder from int(len(X_test)/it_per_episode)
-        y_pred = self.predict_sequentially(X_test, it_per_episode=it_per_episode)
+        y_pred = self.predict_sequentially(X_test, it_per_episode=it_per_episode, episode_ids=episode_ids)
         y_pred_len = np.shape(y_pred)[0]
         y_test = y_test[:y_pred_len]
 
@@ -537,7 +539,7 @@ class BaseModel(abc.ABC):
         an array of same length than X/y with a unique id per independent episode
         """
 
-        if not episode_ids.any():
+        if episode_ids is None:
             episode_ids = self.episode_ids
 
         assert (
