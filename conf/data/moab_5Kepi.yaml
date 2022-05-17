@@ -1,13 +1,13 @@
 data:
   path: csv_data/moab_sim_5KepiPosVelMinStates.csv
   full_or_relative: relative
-  inputs: state
-  outputs: state
-  augmented_cols: ["action_input_roll","action_input_pitch"]
-  iteration_order: -1
+  inputs: ['ball_x', 'ball_y', 'ball_vel_x', 'ball_vel_y']
+  outputs: ['ball_x', 'ball_y', 'ball_vel_x', 'ball_vel_y']
+  augmented_cols: ["input_pitch","input_roll"]
+  iteration_order: 0
   episode_col: episode
   iteration_col: iteration
   max_rows: 230000 # 251000 used in LNN to generate 232432 samples of which 200K is trained
   scale_data: True
   diff_state: True
-  test_perc: 0.25
+  test_perc: 0.2

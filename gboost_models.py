@@ -4,7 +4,7 @@ import pickle
 from typing import Dict
 
 import numpy as np
-from lightgbm import LGBMRegressor, LGBMClassifier
+# from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.exceptions import NotFittedError
 from xgboost import XGBRegressor, XGBClassifier
@@ -37,9 +37,11 @@ class GBoostModel(BaseModel):
                 n_estimators=n_estimators,
                 max_depth=max_depth,
                 learning_rate=learning_rate,
+                verbosity=1,
             )
         elif model_type == "lightgbm":
-            self.single_model = LGBMRegressor()
+            pass
+            # self.single_model = LGBMRegressor()
         else:
             raise NotImplementedError("Unknown model selected")
 
@@ -49,8 +51,8 @@ class GBoostModel(BaseModel):
             )
             if model_type == "xgboost":
                 self.halt_model = XGBClassifier()
-            elif model_type == "lightgbm":
-                self.halt_model = LGBMClassifier()
+            # elif model_type == "lightgbm":
+                # self.halt_model = LGBMClassifier()
 
         self.model = MultiOutputRegressor(self.single_model)
         self.model_type = model_type

@@ -1,25 +1,25 @@
 model:
   name: pytorch
   build_params:
-    num_units: 50
+    num_units: 256
     dropout: 0.5
-    num_layers: 10
+    num_layers: 2
     device: cpu
-    batch_size: 128
-    num_epochs: 10
+    batch_size: 5000
+    num_epochs: 50
     scale_data: True
   network:
-    num_units: 50
+    num_units: 256
     p_dropout: 0.5
-    n_layers: 10
+    n_layers: 2
   trainer:
     device: cpu
-    batch_size: 128
-    num_epochs: 10
+    batch_size: 5000
+    num_epochs: 50
   saver:
     filename: models/torch_model
   sweep:
-    run: True
+    run: False
     search_algorithm: bayesian
     split_strategy: timeseries
     num_trials: 50

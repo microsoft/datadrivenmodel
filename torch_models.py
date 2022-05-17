@@ -74,6 +74,8 @@ class PyTorchModel(BaseModel):
         self.dropout = dropout
         self.num_epochs = num_epochs
         self.batch_size = batch_size
+        self.input_dim = 6
+        self.output_dim= 4
 
         if not all([hasattr(self, "input_dim"), hasattr(self, "output_dim")]):
 
