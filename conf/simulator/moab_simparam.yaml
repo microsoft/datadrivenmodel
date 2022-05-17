@@ -1,20 +1,10 @@
 simulator:
-  states:
-    [
-      "state_roll",
-      "state_pitch",
-      "state_ball_x",
-      "state_ball_y",
-      "state_roll_vel",
-      "state_pitch_vel",
-      "state_ball_vel_x",
-      "state_ball_vel_y",
-    ]
-  actions: ["action_input_roll", "action_input_pitch"]
-  configs: []
-  episode_inits:
+  states: ['ball_x', 'ball_y', 'ball_vel_x', 'ball_vel_y']
+  actions: ["input_pitch","input_roll"]
+  configs: {}
+  episode_inits: {}
   initial_states:
   signal_builder:
-  policy: random
+  policy: bonsai
   logging: enable
   workspace_setup: True

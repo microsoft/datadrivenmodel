@@ -36,7 +36,7 @@ from omegaconf import DictConfig
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
-
+NOISE_SCALE = 0.1
 
 class Simulator(BaseModel):
     def __init__(
@@ -125,10 +125,17 @@ class Simulator(BaseModel):
         #         (k, config[k]) for k in initial_state.keys() & config.keys()
         #     )
 
-        initial_action = {k: random.random() for k in self.action_keys}
+        initial_action = {k: random.random()*NOISE_SCALE for k in self.action_keys}
         if new_config:
             logger.info(f"Initializing episode with provided config: {new_config}")
             self.config = new_config
+            initial_state['ball_x'] = config['initial_x']
+            initial_state['ball_y'] = config['initial_y']
+            initial_state['ball_vel_x'] = config['initial_vel_x']
+            initial_state['ball_vel_y'] = config['initial_vel_y']
+            
+            initial_action['input_pitch'] = config['initial_pitch']
+            initial_action['input_roll'] = config['initial_roll']
         elif not new_config and self.episode_inits:
             logger.info(
                 f"No episode initializations provided, using initializations in yaml `episode_inits`"
@@ -142,7 +149,7 @@ class Simulator(BaseModel):
             # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
             # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
-            self.config = {k: random.random() for k in self.config_keys}
+            self.config = {k: random.random()*NOISE_SCALE for k in self.config_keys}
 
         # update state with initial_state values if
         # provided by config
@@ -396,7 +403,7 @@ def main(cfg: DictConfig):
         logger.warn(
             "No initial values provided, using randomly initialized states which is probably NOT what you want"
         )
-        initial_states = {k: random.random() for k in states}
+        initial_states = {k: random.random()*NOISE_SCALE for k in states}
 
     signal_builder = cfg["simulator"]["signal_builder"]
 

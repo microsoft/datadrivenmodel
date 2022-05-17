@@ -5,7 +5,7 @@ import hydra
 import numpy as np
 from math import floor
 from omegaconf import DictConfig, ListConfig, OmegaConf
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 
 logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -58,17 +58,30 @@ def main(cfg: DictConfig) -> None:
         augmented_cols = list(augmented_cols)
 
     model = Model()
-    X, y = model.load_csv(
-        input_cols=input_cols,
-        output_cols=output_cols,
-        augm_cols=augmented_cols,
-        dataset_path=dataset_path,
-        iteration_order=iteration_order,
-        episode_col=episode_col,
-        iteration_col=iteration_col,
-        max_rows=max_rows,
-        diff_state=delta_state,
-    )
+    path = os.path.join(dir_path, "csv_data/expert_19k/")
+    with open(path + 'X.npy', 'rb') as f:
+        X = np.load(f)
+
+    with open(path + 'y.npy', 'rb') as f:
+        y = np.load(f)
+
+    if delta_state == True:
+        logging.info(
+            "delta states enabled, calculating differential between input and output values"
+        )
+        y = y - X[:, : y.shape[1]] # s_t+1 - s_t
+
+    # X, y = model.load_csv(
+    #     input_cols=input_cols,
+    #     output_cols=output_cols,
+    #     augm_cols=augmented_cols,
+    #     dataset_path=dataset_path,
+    #     iteration_order=iteration_order,
+    #     episode_col=episode_col,
+    #     iteration_col=iteration_col,
+    #     max_rows=max_rows,
+    #     diff_state=delta_state,
+    # )
 
     logger.info(
         f"Saving last {test_perc * 100}% for test, using first {(1 - test_perc) * 100}% for training/sweeping"
@@ -123,8 +136,25 @@ def main(cfg: DictConfig) -> None:
         logger.info("Fitting model...")
         model.fit(X_train, y_train)
 
-    y_pred = model.predict(X_test)
-    logger.info(f"R^2 score is {r2_score(y_test,y_pred)} for test set.")
+    if delta_state:
+        y_pred = model.predict(X_train)
+        y_pred += X_train[:, : y_pred.shape[1]]
+        y_train += X_train[:, : y_pred.shape[1]]
+    else:
+        y_pred = model.predict(X_train)
+    logger.info(f"R^2 score, samples: {y_pred.shape[0]} is {r2_score(y_train, y_pred)} for train set. "
+                f"MSE: {mean_squared_error(y_train, y_pred)}")
+
+    if delta_state:
+        y_pred = model.predict(X_test)
+        y_pred += X_test[:, : y_pred.shape[1]]
+        y_test += X_test[:, : y_pred.shape[1]]
+    else:
+        y_pred = model.predict(X_test)
+    logger.info(f"R^2 score, samples: {y_pred.shape[0]} - {test_perc*100}% is {r2_score(y_test,y_pred)} for test set. "
+                f"MSE: {mean_squared_error(y_test, y_pred)}")
+
+
     logger.info(f"Saving model to {save_path}")
     model.save_model(filename=save_path)
 
