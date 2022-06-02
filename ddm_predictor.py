@@ -48,6 +48,8 @@ class Simulator(BaseModel):
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
         diff_state: bool = False,
+        lagged_inputs: int = 1,
+        lagged_padding: bool = False,
     ):
 
         self.model = model
@@ -60,6 +62,19 @@ class Simulator(BaseModel):
         self.state_keys = states
         self.action_keys = actions
         self.diff_state = diff_state
+        self.lagged_inputs = lagged_inputs
+        self.lagged_padding = lagged_padding
+
+        if self.lagged_inputs > 1:
+            logger.info(f"Using {self.lagged_inputs} lagged inputs as features")
+            self.lagged_feature_cols = [
+                feat + f"_{i}"
+                for i in range(1, self.lagged_inputs + 1)
+                for feat in self.features
+            ]
+            self.features = self.lagged_feature_cols
+        else:
+            self.lagged_feature_cols = []
 
         # create a dictionary containing initial_states
         # with some initial values
@@ -94,6 +109,8 @@ class Simulator(BaseModel):
         config : Dict[str, Any], optional
             episode initializations, by default None
         """
+
+        self.iteration_counter = 0
 
         # initialize states based on simulator.yaml
         # we have defined the initial dict in our
@@ -150,6 +167,13 @@ class Simulator(BaseModel):
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
 
+        ## if you're using lagged_features, compute it now
+        if self.lagged_inputs > 1:
+            self.lagged_all_data = {
+                k: self.all_data["_".join(k.split("_")[:-1])] for k in self.features
+            }
+        self.all_data = self.lagged_all_data
+
     def episode_step(self, action: Dict[str, int]) -> Dict:
 
         # load design matrix for self.model.predict
@@ -159,7 +183,15 @@ class Simulator(BaseModel):
         # ddm_outputs = filter D \ conf.data.outputs
         # update(ddm_state) =
 
+        if self.lagged_inputs > 1:
+            lagged_action = {
+                f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
+                for k, v in action.items()
+                for i in range(1, self.lagged_inputs + 1)
+            }
+            action = lagged_action
         self.all_data.update(action)
+        self.iteration_counter += 1
 
         ddm_input = {k: self.all_data[k] for k in self.features}
 
@@ -180,8 +212,19 @@ class Simulator(BaseModel):
         else:
             preds = self.model.predict(X)  # absolute prediction
         ddm_output = dict(zip(self.labels, preds.reshape(preds.shape[1]).tolist()))
+        if self.lagged_inputs > 1:
+            lagged_ddm_output = {
+                f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
+                for k, v in ddm_output.items()
+                for i in range(1, self.lagged_inputs + 1)
+            }
+            ddm_output = lagged_ddm_output
         self.all_data.update(ddm_output)
-        self.state = {k: self.all_data[k] for k in self.state_keys}
+
+        if self.lagged_inputs > 1:
+            self.state = {k: self.all_data[f"{k}_1"] for k in self.state_keys}
+        else:
+            self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
         return dict(self.state)
 
@@ -288,6 +331,9 @@ def main(cfg: DictConfig):
     # logging not yet implemented
     scale_data = cfg["model"]["build_params"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
+    concatenated_steps = cfg["data"]["concatenated_steps"]
+    concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
+
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
 
@@ -332,6 +378,8 @@ def main(cfg: DictConfig):
         episode_inits,
         initial_states,
         diff_state,
+        concatenated_steps,
+        concatenated_zero_padding,
     )
 
     # do a random action to get initial state
@@ -413,9 +461,7 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id,
-                    state=sim.get_state(),
-                    halted=sim.halted(),
+                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(

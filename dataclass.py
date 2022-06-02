@@ -363,6 +363,9 @@ class DataClass(object):
             self.concatenated_steps = concatenated_steps
             self.concatenated_zero_padding = concatenated_zero_padding
             if self.concatenated_steps > 1:
+                logger.info(
+                    f"Using previous {self.concatenated_steps} lags for all features as inputs and using padding: {self.concatenated_zero_padding}"
+                )
                 df_per_episode = copy.deepcopy(self.df_per_episode)
                 self.df_per_episode = []
                 for df in df_per_episode:
@@ -784,11 +787,10 @@ class DataClass(object):
         # Drop episode if number of iterations is lower than number of desired concatenated steps.
         # - Dropped no matter if zero_padding is enabled or disabled -
         if len(df) < concatenated_steps:
-            logger.info(
-                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}.\
-                \n   >> We drop df, since df length ({len(df)}) is lower than number of steps to concatenate ({concatenated_steps})."
+            logger.error(
+                f"Concatenated inputs enabled, attempting to concatenate {concatenated_steps} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({concatenated_steps}). Please lower or turn of concatenated steps to use dataset."
             )
-            return None
+            raise ValueError("Not enough data to use with concatenated lagged features")
 
         # Redefine input states to ensure input state names are unique
         # - Note, state names are used on predict_sequentially_all method (and possibly others)
@@ -806,9 +808,12 @@ class DataClass(object):
             self.aux_concat_index = 0
         self.aux_concat_index += 1
 
+        self.concatenated_feature_list = []
+
         for feat in self.original_features:
             for i in range(1, concatenated_steps + 1):
                 concat_feat = feat + f"_{i}"
+                self.concatenated_feature_list.append(concat_feat)
 
                 # Concatenate steps >> i == 1: has the newest value; i == concatenated_steps: has the oldest value
                 if i == 1:
@@ -819,7 +824,7 @@ class DataClass(object):
                     feat_array = np.array(list(np.zeros(i - 1)) + list(feat_array))
                 df[concat_feat] = feat_array
 
-        # Removing zero padded tows, if padding with zeros is disabled.
+        # Removing zero padded rows, if padding with zeros is disabled.
         if not zero_padding:
             df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
 
