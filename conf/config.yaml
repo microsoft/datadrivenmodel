@@ -4,5 +4,7 @@ defaults:
   #- simulator: cartpole_mixed_simparam.yaml
   #- data: quanser_rand.yaml
   #- simulator: quanser_simparam.yaml
-  - data: house_energy.yaml
-  - simulator: house_energy_simparam.yaml
+  #- data: house_energy.yaml
+  #- simulator: house_energy_simparam.yaml
+  - data: moab-telem.yaml
+  - simulator: moab_simparam.yaml

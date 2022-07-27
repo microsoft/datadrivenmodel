@@ -1,20 +1,36 @@
 simulator:
   states:
-    [
-      "state_roll",
-      "state_pitch",
-      "state_ball_x",
-      "state_ball_y",
-      "state_roll_vel",
-      "state_pitch_vel",
-      "state_ball_vel_x",
-      "state_ball_vel_y",
-    ]
-  actions: ["action_input_roll", "action_input_pitch"]
-  configs: []
+    - ball_x
+    - ball_y
+    - ball_vel_x
+    - ball_vel_y
+  actions:
+    - input_roll,
+    - input_pitch,
+  configs:
   episode_inits:
+    initial_x: 0.1
+    initial_y: 0.1
+    initial_vel_x: 0.1
+    initial_vel_y: 0.1
   initial_states:
+    ball_x: 
+      inkling_name: initial_x
+      min: -0.0675
+      max: 0.0675
+    ball_y:
+      inkling_name: initial_y
+      min: -0.0675
+      max: 0.0675
+    ball_vel_x:
+      inkling_name: initial_vel_x
+      min: -0.4
+      max: 0.4
+    ball_vel_y:
+      inkling_name: initial_vel_y
+      min: -0.4
+      max: 0.4
   signal_builder:
-  policy: random
+  policy: bonsai
   logging: enable
   workspace_setup: True

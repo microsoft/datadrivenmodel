@@ -1,0 +1,23 @@
+data:
+  path: csv_data/4_config_merged_pid_v1.csv
+  full_or_relative: relative
+  inputs:
+    - ball_x
+    - ball_y
+    - ball_vel_x
+    - ball_vel_y
+  outputs:
+    - ball_x
+    - ball_y
+    - ball_vel_x
+    - ball_vel_y
+  augmented_cols:
+    - input_roll
+    - input_pitch
+  iteration_order: 1
+  episode_col: episode
+  iteration_col: iteration
+  max_rows: -1
+  scale_data: True
+  diff_state: False
+  test_perc: 0.001
