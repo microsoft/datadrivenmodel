@@ -1,5 +1,5 @@
 data:
-  path: csv_data/moab_BTD_logBallStatesOnly.csv
+  path: csv_data/4_config_merged_pid_v1.csv
   full_or_relative: relative
   inputs: [
       "ball_x",
@@ -22,4 +22,4 @@ data:
   diff_state: False
   concatenated_steps: 5
   concatenated_zero_padding: True
-  test_perc: 0.25
+  test_perc: 0.02

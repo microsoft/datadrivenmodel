@@ -12,7 +12,7 @@ model:
   saver:
     filename: models/xgboost_models/moabsemiexpert
   sweep:
-    run: True
+    run: False
     split_strategy: timeseries
     search_algorithm: bayesian
     num_trials: 2
