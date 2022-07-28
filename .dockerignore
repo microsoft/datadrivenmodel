@@ -10,3 +10,4 @@ img/
 bigmodels/
 .vscode/
 __pycache__/
+outputs/
