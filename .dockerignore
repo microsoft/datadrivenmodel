@@ -14,3 +14,4 @@ tests/
 notebooks/
 .vscode/
 __pycache__/
+outputs/

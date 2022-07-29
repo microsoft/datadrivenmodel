@@ -1,5 +1,9 @@
 data:
-  path: csv_data/4_config_merged_pid_v1.csv
+  #path: csv_data/4_config_merged_pid_v1.csv
+  #path: csv_data/3_config_80_percent_expert_medium.csv
+  #path: csv_data/2_config_twothirds_medium_expert_100k_telemetry.csv
+  path: csv_data/1_config_50k_50k_medium_expert.csv
+  #path: csv_data/0_config_zero_expert_medium_random.csv
   full_or_relative: relative
   inputs: [
       "ball_x",
@@ -14,7 +18,7 @@ data:
       "ball_vel_y",
     ]
   augmented_cols: ["input_roll","input_pitch"]
-  iteration_order: -1
+  iteration_order: 1
   episode_col: episode
   iteration_col: iteration
   max_rows: 230000 # 251000 used in LNN to generate 232432 samples of which 200K is trained
