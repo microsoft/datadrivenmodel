@@ -1,10 +1,14 @@
 defaults:
-  - data: cartpole-updated.yaml
-  # - data: quanser-rand.yaml
   - model: xgboost.yaml
-  - simulator: cartpole-updated-simparam.yaml
+  # - simulator: cartpole-updated-simparam.yaml
   # - simulator: quanser-log.yaml
   #- data: house-energy.yaml
   #- simulator: house-energy_simparam.yaml
-  - hydra/job_logging: colorlog
-  - hydra/hydra_logging: colorlog
+  # - hydra/job_logging: colorlog
+  # - hydra/hydra_logging: colorlog
+  #- data: cartpole_mixed.yaml
+  #- simulator: cartpole_mixed_simparam.yaml
+  #- data: quanser_rand.yaml
+  #- simulator: quanser_simparam.yaml
+  - data: house_energy.yaml
+  - simulator: house_energy_simparam.yaml

@@ -1,5 +1,5 @@
 data:
-  path: csv_data/cartpole-log.csv
+  path: csv_data/cartpole_st1_at.csv
   full_or_relative: relative
   inputs: state
   outputs: state
@@ -7,7 +7,7 @@ data:
   iteration_order: -1
   episode_col: episode
   iteration_col: iteration
-  max_rows: 1000
+  max_rows: -1
   scale_data: True
   diff_state: False
   concatenated_steps: 4

@@ -75,6 +75,7 @@ tmp/
 outputs/
 multirun/
 mlruns/
+xgboost_gridsearch
 
 # pytest reports
 .coverage
@@ -86,6 +87,3 @@ saved_models/
 # wandb
 wandb/
 etc/
-
-# data
-data/

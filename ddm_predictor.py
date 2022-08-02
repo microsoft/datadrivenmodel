@@ -257,6 +257,12 @@ class Simulator(BaseModel):
                 if key in self.signals:
                     self.all_data.update({key: self.current_signals[key]})
 
+        # Use the signal builder's value as input to DDM if specified
+        if self.signal_builder:
+            for key in self.features:
+                if key in self.signals:
+                    self.all_data.update({key: self.current_signals[key]})
+
         ddm_input = {k: self.all_data[k] for k in self.features}
 
         # input_list = [

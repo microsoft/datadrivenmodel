@@ -8,7 +8,7 @@ X, y = torch_model.load_csv(
     input_cols="state",
     output_cols="state",
     augm_cols=["action_command", "config_length", "config_masspole"],
-    dataset_path="csv_data/cartpole-log.csv",
+    dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
     test_perc=0.15,
 )

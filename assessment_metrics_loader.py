@@ -3,7 +3,7 @@ Any desired assessment metric should be added here
 
 """
 # DEVELOPER TODO: Add your favorite assessing metrics
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 
 
 def root_mean_squared_error(
@@ -15,4 +15,5 @@ def root_mean_squared_error(
 available_metrics = {
     "mean_squared_error": mean_squared_error,
     "root_mean_squared_error": root_mean_squared_error,
+    "r2_score": r2_score,
 }
