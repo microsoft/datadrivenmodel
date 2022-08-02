@@ -3,8 +3,10 @@ import os
 import pathlib
 import hydra
 import numpy as np
+import pandas as pd
 from math import floor
 from omegaconf import DictConfig, ListConfig, OmegaConf
+from sklearn.metrics import r2_score
 
 logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -60,6 +62,8 @@ def main(cfg: DictConfig) -> None:
         augmented_cols = list(augmented_cols)
 
     model = Model()
+    # Add extra preprocessing step inside load_csv
+    # should be done before concatenate_steps
     X, y = model.load_csv(
         dataset_path=dataset_path,
         input_cols=input_cols,
@@ -114,8 +118,24 @@ def main(cfg: DictConfig) -> None:
         logger.info("Fitting model...")
         model.fit(X_train, y_train)
 
+    y_pred = model.predict(X_test)
+    logger.info(f"R^2 score is {r2_score(y_test,y_pred)} for test set.")
     logger.info(f"Saving model to {save_path}")
     model.save_model(filename=save_path)
+
+    ## save datasets
+    pd.DataFrame(X_train, columns=model.feature_cols).to_csv(
+        os.path.join(save_data_path, "x_train.csv")
+    )
+    pd.DataFrame(X_test, columns=model.feature_cols).to_csv(
+        os.path.join(save_data_path, "x_test.csv")
+    )
+    pd.DataFrame(y_train, columns=model.label_cols).to_csv(
+        os.path.join(save_data_path, "y_train.csv")
+    )
+    pd.DataFrame(y_test, columns=model.label_cols).to_csv(
+        os.path.join(save_data_path, "y_test.csv")
+    )
 
 
 if __name__ == "__main__":

@@ -4,7 +4,8 @@ import logging
 import os
 import pathlib
 import pickle
-from typing import Dict, List, Tuple, Union
+from collections import OrderedDict
+from typing import Dict, List, Tuple, Union, Optional
 from omegaconf.listconfig import ListConfig
 
 import matplotlib
@@ -29,11 +30,17 @@ matplotlib.rcParams["figure.figsize"] = [12, 10]
 
 
 class BaseModel(abc.ABC):
-    def __init__(self, log_dirs: str = "logs", model=None):
+    def __init__(
+        self,
+        log_dirs: str = "logs",
+        model=None,
+        model_mapper: Optional[Dict[str, str]] = None,
+    ):
 
         self.logs_dir = log_dirs
         self.model = model
         self.halt_model = None
+        self.model_mapper = model_mapper
         self.dataclass_obj = DataClass()
 
     def from_csv(
@@ -82,7 +89,9 @@ class BaseModel(abc.ABC):
             Data not found
         """
 
-        logger.warn(f"This method is deprecated, please use the dataclass load_csv instead")
+        logger.warn(
+            f"This method is deprecated, please use the dataclass load_csv instead"
+        )
         from loaders import CsvReader
 
         csv_reader = CsvReader()
@@ -141,7 +150,7 @@ class BaseModel(abc.ABC):
                 iteration_col=iteration_col,
                 augmented_cols=augm_features,
             )
-            # TODO: calcualte config summary stats and save somewhere
+            # TODO: calculate config summary stats and save somewhere
             # if calc_config_stats:
             #     config_df = df[csv_reader.feature_cols]
             X = df[csv_reader.feature_cols].values
@@ -284,12 +293,38 @@ class BaseModel(abc.ABC):
 
     def fit(self, X, y):
 
-        if not self.model:
+        if not self.model and not self.model_mapper:
             raise ValueError("Please build or load the model first")
 
         if self.scale_data:
             X, y = self.scalar(X, y)
-        self.model.fit(X, y)
+
+        if self.model_mapper:
+            self._fit_multiple_models(X, y)
+        else:
+            self.model._fit(X, y)
+
+    def _fit(self, X, y):
+
+        raise NotImplementedError
+
+    def _fit_multiple_models(self, X, y):
+
+        self.models = {k: None for k in self.model_mapper.keys()}
+        # if self.var_names:
+        # logger.info(
+        #     f"Training {len(self.models)} {self.model_type} models for {self.var_names}"
+        # )
+        # self.models = {k: None for k in self.var_names}
+
+        # for i in range(y.shape[1]):
+        for var in self.models:
+            # logger.info(f"Fitting model {self.model_type} for target {var}")
+            target_y = y[:, list(self.models.keys()).index(var)]
+            self.models[var] = self._fit(X, target_y)
+
+        # for key, value in self.model_mapper.items():
+        #     self.models[key] = value.fit(X, y)
 
     def fit_halt_classifier(self, X, y):
 
@@ -382,6 +417,7 @@ class BaseModel(abc.ABC):
         X_grouped: Union[None, List[np.ndarray]] = None,
         y_grouped: Union[None, List[np.ndarray]] = None,
         it_per_episode: Union[None, int] = None,
+        return_flattened: bool = True,
     ):
         """Make predictions sequentially for provided episodes. Each episode is compound of the iterations to be run sequentially.
 
@@ -433,6 +469,9 @@ class BaseModel(abc.ABC):
 
             num_of_episodes = int(np.shape(X_grouped)[0])
 
+            preds_grouped = []
+            labels_grouped = []
+
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
 
@@ -468,13 +507,20 @@ class BaseModel(abc.ABC):
                 if y_grouped is not None:
                     labels.extend(copy.deepcopy(labels_aux))
 
+                preds_grouped.append(copy.deepcopy(preds_aux))
+                if y_grouped is not None:
+                    labels_grouped.append(copy.deepcopy(labels_aux))
+
             preds = np.array(preds)
             labels = np.array(labels)
 
             # preds_df = pd.DataFrame(preds)
             # preds_df.columns = label_col_names
 
-            return preds, labels  # preds_df
+            if return_flattened:
+                return preds, labels  # preds_df
+            else:
+                return preds_grouped, labels_grouped
 
     def predict_halt_classifier(self, X: np.ndarray):
 
@@ -488,7 +534,7 @@ class BaseModel(abc.ABC):
 
         return halts
 
-    def save_model(self, filename):
+    def save_model(self, filename, dump_attributes: bool = False):
 
         if not any([s in filename for s in [".pkl", ".pickle"]]):
             filename += ".pkl"
@@ -496,7 +542,7 @@ class BaseModel(abc.ABC):
         if not parent_dir.exists():
             parent_dir.mkdir(parents=True, exist_ok=True)
         if self.scale_data:
-            logging.info(f"Scale transformations used, saving to {filename}")
+            logging.info(f"Scale transformations used, saving to {parent_dir}")
             pickle.dump(
                 self.xscalar, open(os.path.join(str(parent_dir), "xscalar.pkl"), "wb")
             )
@@ -504,7 +550,25 @@ class BaseModel(abc.ABC):
                 self.yscalar, open(os.path.join(str(parent_dir), "yscalar.pkl"), "wb")
             )
 
-        pickle.dump(self.model, open(filename, "wb"))
+        if dump_attributes:
+            logging.info(f"Saving attributes to {parent_dir}")
+            pickle.dump(
+                self.label_cols, open(os.path.join(str(parent_dir), "labels.pkl"), "wb")
+            )
+            pickle.dump(
+                self.feature_cols,
+                open(os.path.join(str(parent_dir), "features.pkl"), "wb"),
+            )
+
+        if self.model_mapper:
+            for var in self.models:
+                pickle.dump(
+                    self.models[var],
+                    open(os.path.join(str(parent_dir), var + ".pkl"), "wb"),
+                )
+            # TODO: reconcile saver when using model_mapper and _multiple_models
+        else:
+            pickle.dump(self.model, open(filename, "wb"))
 
     def save_halt_model(self, dir_path: str = "models"):
 
@@ -610,9 +674,6 @@ class BaseModel(abc.ABC):
             - Note, we provide the y_test here to ensure we can keep track of any skipped iterations.
         marginal: bool
             Retrieve per var computed error honoring "metric" function.
-        it_per_episode: int
-            Number os iterations to subdivide episodes on. Disregarded if it_per_episode > len(X_test_grouped[i]).
-
 
         Returns
         -------
@@ -702,6 +763,7 @@ class BaseModel(abc.ABC):
         y_grouped: Union[None, np.ndarray] = None,
         verbose: bool = False,
         it_per_episode: int = 100,
+        episode_ids=None,
     ):
         """Evaluate sequential prediction for provided episodes. Splitting prediction results per label variable.
 
@@ -875,9 +937,12 @@ class BaseModel(abc.ABC):
         # `partial_fit` method
         from tune_sklearn import TuneSearchCV
         import mlflow
+        import time
+
+        mlflow.set_tracking_uri(os.path.join("file:/", os.getcwd(), "outputs"))
 
         # start mlflow auto-logging
-        mlflow.sklearn.autolog()
+        # mlflow.sklearn.autolog()
 
         if search_algorithm.lower() == "bohb":
             early_stopping = True
@@ -894,10 +959,16 @@ class BaseModel(abc.ABC):
                 early_stopping=early_stopping,
                 scoring=scoring_func,
                 loggers=["csv", "tensorboard"],
+                verbose=1,
             )
         elif search_algorithm == "grid":
             search = GridSearchCV(
-                self.model, param_grid=params, refit=True, cv=cv, scoring=scoring_func,
+                self.model,
+                param_grid=params,
+                refit=True,
+                cv=cv,
+                scoring=scoring_func,
+                verbose=1,
             )
         elif search_algorithm == "random":
             search = RandomizedSearchCV(
@@ -906,20 +977,24 @@ class BaseModel(abc.ABC):
                 refit=True,
                 cv=cv,
                 scoring=scoring_func,
+                verbose=1,
             )
         else:
             raise NotImplementedError(
                 "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
             )
 
-        with mlflow.start_run() as run:
-            search.fit(X, y)
+        # with mlflow.start_run() as run:
+        search.fit(X, y)
         self.model = search.best_estimator_
         results_df = pd.DataFrame(search.cv_results_)
         if not pathlib.Path(results_csv_path).parent.exists():
             pathlib.Path(results_csv_path).parent.mkdir(exist_ok=True, parents=True)
-        logger.info(f"Saving sweeping results to {results_csv_path}")
-        results_df.to_csv(results_csv_path)
+        final_path = (
+            results_csv_path[:-4] + "_" + time.strftime("%Y%m%d-%H%M%S") + ".csv"
+        )
+        logger.info(f"Saving sweeping results to {final_path}")
+        results_df.to_csv(final_path)
         logger.info(f"Best hyperparams: {search.best_params_}")
         logger.info(f"Best score: {search.best_score_}")
 
@@ -954,6 +1029,15 @@ def plot_parallel_coords(results_df: pd.DataFrame):
 
 
 if __name__ == "__main__":
+
+    multi_models = {
+        "state_MHW Mean Weight": "xgboost",
+        "state_MHW Weigher Speed (setting)": "xgboost",
+        "state_MHW Weighing Speed": "xgboost",
+        "state_MHW Good Weights Made": "zeroinflatedpoisson",
+        "state_MHW Low Product": "zeroinflatedpoisson",
+        "state_MHW OverWt": "zeroinflatedpoisson",
+    }
 
     base_model = BaseModel()
     x, y = base_model.load_csv(
