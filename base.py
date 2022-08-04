@@ -351,7 +351,8 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self, X: Union[None, np.ndarray] = None,
+        self,
+        X: Union[None, np.ndarray] = None,
     ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 

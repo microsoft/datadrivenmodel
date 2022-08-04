@@ -77,7 +77,12 @@ def test_diff_names():
     base_model = BaseModel()
     X, y, _, _ = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "off_names.csv"),
-        input_cols=["x_position", "x_velocity", "angle_position", "angle_velocity",],
+        input_cols=[
+            "x_position",
+            "x_velocity",
+            "angle_position",
+            "angle_velocity",
+        ],
         output_cols=["angle_position", "angle_velocity"],
         augm_cols=["command", "length", "masspole"],
         max_rows=1000,
