@@ -240,7 +240,7 @@ class DataClass(object):
         diff_state: bool = False,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
         Parameters
@@ -378,9 +378,10 @@ class DataClass(object):
             self.test_perc = test_perc
             self.split_train_and_test_samples(test_perc=self.test_perc)
 
-            return self.get_train_set()
+            X_train, y_train = self.get_train_set()
+            X_test, y_test = self.get_test_set()
 
-        return None, None
+            return X_train, y_train, X_test, y_test
 
     def trim_episodes(self, df):
         """Split the array into episodes using iteration/episode provided in dataframe.

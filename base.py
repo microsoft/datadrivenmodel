@@ -186,7 +186,7 @@ class BaseModel(abc.ABC):
         diff_state: bool = False,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
         Parameters
@@ -224,7 +224,7 @@ class BaseModel(abc.ABC):
             Data not found
         """
 
-        X, y = self.dataclass_obj.load_csv(
+        X_train, y_train, X_test, y_test = self.dataclass_obj.load_csv(
             dataset_path=dataset_path,
             input_cols=input_cols,
             augm_cols=augm_cols,
@@ -256,7 +256,7 @@ class BaseModel(abc.ABC):
         if hasattr(self, "original_labels"):
             self.original_labels = self.dataclass_obj.original_labels
 
-        return X, y
+        return X_train, y_train, X_test, y_test
 
     def load_numpy(
         self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy"
@@ -351,8 +351,7 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self,
-        X: Union[None, np.ndarray] = None,
+        self, X: Union[None, np.ndarray] = None,
     ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 
@@ -382,10 +381,9 @@ class BaseModel(abc.ABC):
 
             assert (
                 len(X) > 0
-            ), "Predict sequentially requires at least one iteration provided, but none where given."
+            ), "Predict sequentially requires at least one iteration provided, but none were given."
 
             # scaling is performed within "predict" (self.scale_data)
-
             # print(f"X (predict_sequentially_all) ---> {np.shape(X)}")
             self.dataclass_obj.sequential_inference_initialize(ini_X=X[0])
 
@@ -624,33 +622,33 @@ class BaseModel(abc.ABC):
     def evaluate(
         self,
         metric,
-        X_test: Union[None, np.ndarray] = None,
-        y_test: Union[None, np.ndarray] = None,
+        y_hat: np.ndarray,
+        y_test: np.ndarray,
         marginal: bool = False,
+        verbose: bool = False,
     ):
+        """
+        Evaluate predictions according to a metric
+        Should be called after `model.predict`
+        """
 
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
 
-            if X_test is None:
-                X_test, y_test = self.get_test_set(grouped_per_episode=False)
-
-            assert (
-                len(X_test) > 0
-            ), "Predict sequentially requires at least one iteration provided, but none where given."
-
-            if y_test is not None:
-                assert len(X_test) == len(
-                    y_test
-                ), f"number of iterations for predictions ({len(X_test)}) and labels ({len(y_test)}) do not match."
-
             if not marginal:
-                y_hat = self.predict(X_test)
                 return metric(y_test, y_hat)
             else:
-                results_df = self.evaluate_margins(metric, X_test, y_test, False)
-                return results_df
+                idx = 0
+                results = {}
+                for var in self.labels:
+                    scores = metric(y_test[:, idx], y_hat[:, idx])
+                    if verbose:
+                        print(f"Score for var {var}: {scores}")
+                    results[var] = scores
+                    idx += 1
+
+                return pd.DataFrame(results.items(), columns=["var", "score"])
 
     def evaluate_sequentially(
         self,

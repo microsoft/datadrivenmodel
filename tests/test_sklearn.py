@@ -3,7 +3,7 @@ import numpy as np
 import pathlib
 
 skmodel = SKModel()
-X, y = skmodel.load_csv(
+X, y, _, _ = skmodel.load_csv(
     dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],

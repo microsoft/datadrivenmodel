@@ -7,7 +7,7 @@ from assessment_metrics_loader import available_metrics
 xgboost_model = GBoostModel()
 lgbm = GBoostModel()
 
-X, y = xgboost_model.load_csv(
+X, y, X_test, y_test = xgboost_model.load_csv(
     dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
@@ -16,8 +16,6 @@ X, y = xgboost_model.load_csv(
     concatenated_steps=6,
     concatenated_zero_padding=True,
 )
-
-X_test, y_test = xgboost_model.get_test_set(grouped_per_episode=False)
 
 
 def test_shape():
@@ -83,7 +81,8 @@ def test_xgb_eval():
     xgboost_model.save_model(filename="tmp/gbm_pole.pkl")
 
     eval_metric = available_metrics["root_mean_squared_error"]
-    eval_out = xgboost_model.evaluate(eval_metric)
+    y_hat = xgboost_model.predict(X_test)
+    eval_out = xgboost_model.evaluate(eval_metric, y_hat, y_test)
 
     # Add evaluation metric check to test changes to model
     assert round(eval_out, 10) == round(0.10077187689939525, 10)

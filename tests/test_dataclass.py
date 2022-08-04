@@ -66,7 +66,7 @@ def test_diff_labels_1(dataclass_obj):
     # testing diff labels:
     # - iteration order = -1
 
-    X, y = dataclass_obj.load_csv(
+    X, y, _, _ = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
@@ -103,7 +103,7 @@ def test_diff_labels_2(dataclass_obj):
     # testing diff labels:
     # - iteration order = 1
 
-    X, y = dataclass_obj.load_csv(
+    X, y, _, _ = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
@@ -130,7 +130,7 @@ def test_concatenate_states_1(dataclass_obj):
     # - zero padding disabled
     # - iteration order = -1
 
-    X, y = dataclass_obj.load_csv(
+    X, y, _, _ = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
@@ -159,7 +159,7 @@ def test_concatenate_states_2(dataclass_obj):
     # - zero padding enabled
     # - iteration order = 1
 
-    X, y = dataclass_obj.load_csv(
+    X, y, _, _ = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
@@ -184,7 +184,7 @@ def test_concatenate_states_2(dataclass_obj):
 def test_concatenate_states_3(dataclass_obj):
     # testing loading 2 csv's consecutively on same DataClass object
 
-    X, y = dataclass_obj.load_csv(
+    X, y, _, _ = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
@@ -203,7 +203,7 @@ def test_concatenate_states_3(dataclass_obj):
         y.shape[1] == 4 == dataclass_obj.output_dim
     ), f"y.shape[1] ({y.shape[1]}) -- output_dim ({dataclass_obj.output_dim})"
 
-    X, y = dataclass_obj.load_csv(
+    X, y, _, _ = dataclass_obj.load_csv(
         dataset_path=csv_dir,
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],

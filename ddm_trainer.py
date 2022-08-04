@@ -64,7 +64,7 @@ def main(cfg: DictConfig) -> None:
     model = Model()
     # Add extra preprocessing step inside load_csv
     # should be done before concatenate_steps
-    X, y = model.load_csv(
+    X_train, y_train, X_test, y_test = model.load_csv(
         dataset_path=dataset_path,
         input_cols=input_cols,
         augm_cols=augmented_cols,
@@ -83,8 +83,8 @@ def main(cfg: DictConfig) -> None:
     logger.info(
         f"From the full dataset, {test_perc * 100}% will be used for test, while {(1 - test_perc) * 100}% for training/sweeping"
     )
-    X_train, y_train = model.get_train_set(grouped_per_episode=False)
-    X_test, y_test = model.get_test_set(grouped_per_episode=False)
+    # X_train, y_train = model.get_train_set(grouped_per_episode=False)
+    # X_test, y_test = model.get_test_set(grouped_per_episode=False)
 
     # save training and test sets
     save_data_path = os.path.join(os.getcwd(), "data")

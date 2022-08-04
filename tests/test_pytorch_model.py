@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 torch_model = PyTorchModel()
-X, y = torch_model.load_csv(
+X, y, _, _ = torch_model.load_csv(
     input_cols="state",
     output_cols="state",
     augm_cols=["action_command", "config_length", "config_masspole"],
