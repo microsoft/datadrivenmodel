@@ -675,7 +675,7 @@ class DataClass(object):
                     )
                 else:
                     logger.debug(
-                        f"[dataclass: sequential_inference] updated value for feature ({target_feat}) was not provided. reusing previous value: ({self.last_X_d[target_feat]})."
+                        f"[dataclass: sequential_inference] updated value for feature ({target_feat}) was not provided. Reusing previous value: ({self.last_X_d[target_feat]})."
                     )
                 continue
 
@@ -795,6 +795,7 @@ class DataClass(object):
         # Redefine input states to ensure input state names are unique
         # - Note, state names are used on predict_sequentially_all method (and possibly others)
 
+        # TODO: we shouldn't lag the augmented cols?
         if not self.original_features:
             self.original_features = copy.deepcopy(self.feature_cols)
             # Note, naming convention needs to honor the way it is done in the subsequent loop
@@ -803,6 +804,9 @@ class DataClass(object):
                 for i in range(1, concatenated_steps + 1)
                 for feat in self.original_features
             ]
+            logger.info(
+                f"Features after incorporating lagged features: {self.feature_cols}"
+            )
 
         if not hasattr(self, "aux_concat_index"):
             self.aux_concat_index = 0

@@ -33,4 +33,6 @@ data:
   max_rows: -1
   scale_data: True
   diff_state: False
+  concatenated_steps: 4
+  concatenated_zero_padding: True
   test_perc: 0.25
