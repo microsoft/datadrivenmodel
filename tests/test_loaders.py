@@ -60,13 +60,14 @@ def test_cartpole_at_st(csv_reader):
 def test_base_reader():
 
     base_model = BaseModel()
-    X, y = base_model.load_csv(
+    X, y, _, _ = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "cartpole_st1_at.csv"),
         max_rows=1000,
         augm_cols=["action_command", "config_length", "config_masspole"],
+        test_perc=0.15,
     )
 
-    assert X.shape[0] == 980 == y.shape[0]
+    assert X.shape[0] == 833 == y.shape[0]
     assert X.shape[1] == 7
     assert y.shape[1] == 4
 
@@ -74,7 +75,7 @@ def test_base_reader():
 def test_diff_names():
 
     base_model = BaseModel()
-    X, y = base_model.load_csv(
+    X, y, _, _ = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "off_names.csv"),
         input_cols=[
             "x_position",
@@ -85,6 +86,7 @@ def test_diff_names():
         output_cols=["angle_position", "angle_velocity"],
         augm_cols=["command", "length", "masspole"],
         max_rows=1000,
+        test_perc=0.15,
     )
 
-    assert X.shape[0] == 980 == y.shape[0]
+    assert X.shape[0] == 833 == y.shape[0]

@@ -18,6 +18,9 @@ data:
     - Tout_median
     - hvacON
   iteration_order: -1
+  scale_data: True
+  concatenated_steps: 4
+  concatenated_zero_padding: True
   episode_col: episode
   iteration_col: iteration
   max_rows: -1

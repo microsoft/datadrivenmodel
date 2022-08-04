@@ -28,6 +28,7 @@ class GBoostModel(BaseModel):
         n_estimators: int = 100,
         learning_rate: float = 0.3,
         max_depth: int = 6,
+        num_leaves: int = 10,
     ):
 
         self.scale_data = scale_data
@@ -39,7 +40,12 @@ class GBoostModel(BaseModel):
                 learning_rate=learning_rate,
             )
         elif model_type == "lightgbm":
-            self.single_model = LGBMRegressor()
+            self.single_model = LGBMRegressor(
+                max_depth=max_depth,
+                learning_rate=learning_rate,
+                n_estimators=n_estimators,
+                num_leaves=num_leaves,
+            )
         else:
             raise NotImplementedError("Unknown model selected")
 

@@ -3,16 +3,17 @@ import numpy as np
 import pathlib
 
 skmodel = SKModel()
-X, y = skmodel.load_csv(
+X, y, _, _ = skmodel.load_csv(
     dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
+    test_perc=0.15,
 )
 
 
 def test_shape():
 
-    assert X.shape[0] == 980 == y.shape[0]
+    assert X.shape[0] == 833 == y.shape[0]
     assert X.shape[1] == skmodel.input_dim
     assert y.shape[1] == skmodel.output_dim
 

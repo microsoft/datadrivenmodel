@@ -195,7 +195,10 @@ if __name__ == "__main__":
     logger.info(f"Using data saved in directory {data_dir}")
 
     csv_reader = CsvReader()
-    df = pd.read_csv(os.path.join(data_dir, "cartpole-log.csv"), nrows=1000)
+    # df = pd.read_csv(os.path.join(data_dir, "cartpole-log.csv"), nrows=1000)
+    df = pd.read_csv(
+        os.path.join(data_dir, "cartpole-mixed-brain-rand-term.csv"), nrows=1000
+    )
     df = csv_reader.read(df, iteration_order=-1)
-    df2 = pd.read_csv(os.path.join(data_dir, "cartpole_at_st.csv"), nrows=1000)
-    df2 = csv_reader.read(df2, iteration_order=1)
+    # df2 = pd.read_csv(os.path.join(data_dir, "cartpole_at_st.csv"), nrows=1000)
+    # df2 = csv_reader.read(df2, iteration_order=1)

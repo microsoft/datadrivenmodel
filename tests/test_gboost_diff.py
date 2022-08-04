@@ -10,6 +10,7 @@ X, y, _, _ = xgboost_model.load_csv(
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
     test_perc=0.15,
+    diff_state=True,
 )
 
 X_test, y_test = xgboost_model.get_test_set(grouped_per_episode=False)

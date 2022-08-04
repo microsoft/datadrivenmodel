@@ -4,18 +4,19 @@ import numpy as np
 import os
 
 torch_model = PyTorchModel()
-X, y = torch_model.load_csv(
+X, y, _, _ = torch_model.load_csv(
     input_cols="state",
     output_cols="state",
     augm_cols=["action_command", "config_length", "config_masspole"],
     dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
+    test_perc=0.15,
 )
 
 
 def test_shape():
 
-    assert X.shape[0] == 980 == y.shape[0]
+    assert X.shape[0] == 833 == y.shape[0]
     assert X.shape[1] == torch_model.input_dim
     assert y.shape[1] == torch_model.output_dim
 
