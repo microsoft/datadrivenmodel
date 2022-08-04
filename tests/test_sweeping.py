@@ -14,16 +14,20 @@ from hydra.experimental import compose, initialize
 initialize(config_path="../conf", job_name="model_validation")
 
 
+@pytest.mark.skip(reason="Too slow")
 def test_sweeping_lightgbm():
     cfg_obj = compose(
-        config_name="config", overrides=["data=cartpole-updated", "model=lightgbm"]
+        config_name="config",
+        overrides=["data=cartpole_st1_at", "model=lightgbm", "simulator.policy=random"],
     )
     main(cfg_obj)
 
 
+@pytest.mark.skip(reason="Too slow")
 def test_sweeping_svr():
     cfg_obj = compose(
-        config_name="config", overrides=["data=cartpole-updated", "model=SVR"]
+        config_name="config",
+        overrides=["data=cartpole_st1_at", "model=SVR", "simulator.policy=random"],
     )
     main(cfg_obj)
 
@@ -33,9 +37,11 @@ def test_sweeping_svr():
 #    main(cfg_obj)
 
 
+@pytest.mark.skip(reason="Too slow")
 def test_sweeping_xgboost():
     cfg_obj = compose(
-        config_name="config", overrides=["data=cartpole-updated", "model=xgboost"]
+        config_name="config",
+        overrides=["data=cartpole_st1_at", "model=xgboost", "simulator.policy=random"],
     )
     main(cfg_obj)
 

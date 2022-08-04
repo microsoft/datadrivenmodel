@@ -8,7 +8,7 @@ xgboost_model = GBoostModel()
 lgbm = GBoostModel()
 
 X, y = xgboost_model.load_csv(
-    dataset_path="csv_data/cartpole-log.csv",
+    dataset_path="csv_data/cartpole_st1_at.csv",
     max_rows=1000,
     augm_cols=["action_command", "config_length", "config_masspole"],
     test_perc=0.15,

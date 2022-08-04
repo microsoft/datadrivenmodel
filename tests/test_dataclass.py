@@ -6,7 +6,7 @@ import pathlib
 from dataclass import DataClass
 
 data_dir = "csv_data"
-csv_dir = os.path.join(data_dir, "cartpole-log.csv")
+csv_dir = os.path.join(data_dir, "cartpole_st1_at.csv")
 df = pd.read_csv(csv_dir, nrows=1000)
 df2 = pd.read_csv(csv_dir, nrows=1000)
 features = [
