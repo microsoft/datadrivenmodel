@@ -478,7 +478,9 @@ def main(cfg: DictConfig):
     if policy == "random":
         random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
         test_policy(
-            sim=sim, config={**initial_states}, policy=random_policy_from_keys,
+            sim=sim,
+            config={**initial_states},
+            policy=random_policy_from_keys,
         )
     elif isinstance(policy, int):
         # If docker PORT provided, set as exported brain PORT
@@ -487,7 +489,9 @@ def main(cfg: DictConfig):
         print(f"Connecting to exported brain running at {url}...")
         trained_brain_policy = partial(brain_policy, exported_brain_url=url)
         test_policy(
-            sim=sim, config={**initial_states}, policy=trained_brain_policy,
+            sim=sim,
+            config={**initial_states},
+            policy=trained_brain_policy,
         )
     elif policy == "bonsai":
         if workspace_setup:
@@ -547,7 +551,9 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
+                    sequence_id=sequence_id,
+                    state=sim.get_state(),
+                    halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(
