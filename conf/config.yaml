@@ -1,12 +1,12 @@
 defaults:
-  # - data: house_energy.yaml
-  - data: cartpole_mixed.yaml
+  - data: house_energy.yaml
+  # - data: cartpole_mixed.yaml
   # - data: quanser_rand.yaml
   - model: xgboost.yaml
   # - model: lightgbm.yaml
   # - model: SVR.yaml
   # - model: torch.yaml
-  # - simulator: house_energy_simparam.yaml
-  - simulator: cartpole_mixed_simparam.yaml
+  - simulator: house_energy_simparam.yaml
+  # - simulator: cartpole_mixed_simparam.yaml
   # - simulator: quanser-log.yaml
   # - simulator: quanser_simparam.yaml

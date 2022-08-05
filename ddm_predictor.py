@@ -2,14 +2,13 @@ import logging
 import os
 import random
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from omegaconf import ListConfig
 from functools import partial
 from policies import random_policy, brain_policy
 from signal_builder import SignalBuilder
 
 import numpy as np
-import pdb
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -53,6 +52,7 @@ class Simulator(BaseModel):
         diff_state: bool = False,
         lagged_inputs: int = 1,
         lagged_padding: bool = False,
+        concatenate_var_length: Optional[Dict[str, int]] = None,
     ):
 
         self.model = model
@@ -68,8 +68,21 @@ class Simulator(BaseModel):
         self.diff_state = diff_state
         self.lagged_inputs = lagged_inputs
         self.lagged_padding = lagged_padding
+        self.concatenate_var_length = concatenate_var_length
 
-        if self.lagged_inputs > 1:
+        if self.concatenate_var_length:
+            logger.info(f"Using variable length lags: {self.concatenate_var_length}")
+            self.lagged_feature_cols = [
+                feat + f"_{i}"
+                for feat in list(self.concatenate_var_length.keys())
+                for i in range(1, self.concatenate_var_length[feat] + 1)
+            ]
+            self.non_lagged_feature_cols = list(
+                set(self.features) - set(list(self.concatenate_var_length.keys()))
+            )
+            # TODO: AAA, need to verify order here
+            self.features = self.non_lagged_feature_cols + self.lagged_feature_cols
+        elif self.lagged_inputs > 1:
             logger.info(f"Using {self.lagged_inputs} lagged inputs as features")
             self.lagged_feature_cols = [
                 feat + f"_{i}"
@@ -98,8 +111,6 @@ class Simulator(BaseModel):
         else:
             self.initial_states = initial_states
         self.initial_states_mapper = initial_states_mapper
-
-        # TODO: Add logging
 
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
@@ -225,12 +236,22 @@ class Simulator(BaseModel):
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
         self.all_data = {**self.state, **self.action, **self.config}
 
-        ## if you're using lagged_features, compute it now
+        ## if you're using lagged_features, we need to initialize them
         if self.lagged_inputs > 1:
             self.lagged_all_data = {
-                k: self.all_data["_".join(k.split("_")[:-1])] for k in self.features
+                k: self.all_data["_".join(k.split("_")[:-1])]
+                if not self.lagged_padding
+                else 0
+                for k in self.lagged_feature_cols
             }
-        self.all_data = self.lagged_all_data
+        self.all_data = {**self.all_data, **self.lagged_all_data}
+
+        # if self.concatenate_var_length:
+        #     all_data = {
+        #         k: self.all_data[k] for k in self.features
+        #         if k not in self.lagged_feature_cols
+        #         else
+        #     }
 
     def episode_step(self, action: Dict[str, int]) -> Dict:
 
@@ -239,9 +260,18 @@ class Simulator(BaseModel):
         # make dict of D={states, actions, configs}
         # ddm_inputs = filter D \ (conf.data.inputs+conf.data.augmented_cols)
         # ddm_outputs = filter D \ conf.data.outputs
-        # update(ddm_state) =
 
-        if self.lagged_inputs > 1:
+        # initialize matrix of all actions
+        # set current action to action_1
+        # all other actions get pushed back one value to action_{i+1}
+        if self.concatenate_var_length:
+            lagged_action = {
+                f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
+                for k, v in action.items()
+                for i in range(1, self.concatenate_var_length[k] + 1)
+            }
+            action = lagged_action
+        elif self.lagged_inputs > 1:
             lagged_action = {
                 f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
                 for k, v in action.items()
@@ -285,7 +315,14 @@ class Simulator(BaseModel):
 
         # update lagged values in ddm_output -> which updates self.all_data
         # current predictions become the new t1, everything else is pushed back by 1
-        if self.lagged_inputs > 1:
+        if self.concatenate_var_length:
+            lagged_ddm_output = {
+                f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
+                for k, v in ddm_output.items()
+                for i in range(1, self.concatenate_var_length[k] + 1)
+            }
+            ddm_output = lagged_ddm_output
+        elif self.lagged_inputs > 1:
             lagged_ddm_output = {
                 f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
                 for k, v in ddm_output.items()
@@ -420,6 +457,7 @@ def main(cfg: DictConfig):
     diff_state = cfg["data"]["diff_state"]
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
+    concatenate_var_length = cfg["data"]["concatenate_length"]
 
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
@@ -470,6 +508,7 @@ def main(cfg: DictConfig):
         diff_state,
         concatenated_steps,
         concatenated_zero_padding,
+        concatenate_var_length,
     )
 
     # do a random action to get initial state
@@ -478,9 +517,7 @@ def main(cfg: DictConfig):
     if policy == "random":
         random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
         test_policy(
-            sim=sim,
-            config={**initial_states},
-            policy=random_policy_from_keys,
+            sim=sim, config={**initial_states}, policy=random_policy_from_keys,
         )
     elif isinstance(policy, int):
         # If docker PORT provided, set as exported brain PORT
@@ -489,9 +526,7 @@ def main(cfg: DictConfig):
         print(f"Connecting to exported brain running at {url}...")
         trained_brain_policy = partial(brain_policy, exported_brain_url=url)
         test_policy(
-            sim=sim,
-            config={**initial_states},
-            policy=trained_brain_policy,
+            sim=sim, config={**initial_states}, policy=trained_brain_policy,
         )
     elif policy == "bonsai":
         if workspace_setup:
@@ -551,9 +586,7 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id,
-                    state=sim.get_state(),
-                    halted=sim.halted(),
+                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(

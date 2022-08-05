@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 import logging
 import numpy as np
 import copy as copy
@@ -124,6 +124,7 @@ class DataClass(object):
 
         self.feature_cols = list(features_df.columns.values)
         self.label_cols = list(label_cols)
+        self.augmented_cols = augmented_cols
         logger.info(f"Feature columns are: {self.feature_cols}")
         logger.info(f"Label columns are: {self.label_cols}")
         # joined_df = df.join(features_df)
@@ -240,6 +241,7 @@ class DataClass(object):
         diff_state: bool = False,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
+        concatenate_var_length: Optional[Dict[str, int]] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -362,6 +364,8 @@ class DataClass(object):
             # Input-state concatenation
             self.concatenated_steps = concatenated_steps
             self.concatenated_zero_padding = concatenated_zero_padding
+            self.concatenate_var_length = concatenate_var_length
+            self.first_pass_concatenate = True
             if self.concatenated_steps > 1:
                 logger.info(
                     f"Using previous {self.concatenated_steps} lags for all features as inputs and using padding: {self.concatenated_zero_padding}"
@@ -785,11 +789,40 @@ class DataClass(object):
         concatenated_steps = self.concatenated_steps
         zero_padding = self.concatenated_zero_padding
 
+        # Only do this once per dataload, otherwise feature_cols will
+        # have already been augmented with the concatenated features.
+        if self.concatenate_var_length and self.first_pass_concatenate:
+            concatenate_var_length = dict(self.concatenate_var_length)
+            for feat in list(concatenate_var_length.keys()):
+                if feat in self.feature_cols:
+                    feat_name = feat
+                    self.first_pass_concatenate = False
+                elif "prev_" + feat in self.feature_cols:
+                    feat_name = "prev_" + feat
+                    concatenate_var_length[feat_name] = concatenate_var_length.pop(feat)
+                    self.first_pass_concatenate = False
+                else:
+                    raise ValueError(f"Feature '{feat}' not found in feature_cols.")
+            max_value_concatenate = max(list(concatenate_var_length.values()))
+            vars_to_concatenate = list(concatenate_var_length.keys())
+            self.concatenate_var_length = concatenate_var_length
+        elif not self.first_pass_concatenate and self.concatenate_var_length:
+            concatenate_var_length = copy.deepcopy(self.concatenate_var_length)
+            max_value_concatenate = max(list(concatenate_var_length.values()))
+            vars_to_concatenate = list(concatenate_var_length.keys())
+        else:
+            max_value_concatenate = concatenated_steps
+            vars_to_concatenate = self.feature_cols
+            concatenate_var_length = {
+                feat: concatenated_steps for feat in self.feature_cols
+            }
+
         # Drop episode if number of iterations is lower than number of desired concatenated steps.
         # - Dropped no matter if zero_padding is enabled or disabled -
-        if len(df) < concatenated_steps:
+        # if len(df) < concatenated_steps:
+        if len(df) < max_value_concatenate:
             logger.error(
-                f"Concatenated inputs enabled, attempting to concatenate {concatenated_steps} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({concatenated_steps}). Please lower or turn of concatenated steps to use dataset."
+                f"Concatenated inputs enabled, attempting to concatenate {max_value_concatenate} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({max_value_concatenate}). Please lower or turn of concatenated steps to use dataset."
             )
             raise ValueError("Not enough data to use with concatenated lagged features")
 
@@ -800,11 +833,16 @@ class DataClass(object):
         if not self.original_features:
             self.original_features = copy.deepcopy(self.feature_cols)
             # Note, naming convention needs to honor the way it is done in the subsequent loop
-            self.feature_cols = [
+            lagged_feature_cols = [
                 feat + f"_{i}"
-                for i in range(1, concatenated_steps + 1)
-                for feat in self.original_features
+                for feat in vars_to_concatenate
+                for i in range(1, concatenate_var_length[feat] + 1)
             ]
+            no_lag_feature_cols = [
+                feat for feat in self.feature_cols if feat not in vars_to_concatenate
+            ]
+            self.original_features = no_lag_feature_cols + lagged_feature_cols
+            self.feature_cols = self.original_features
             logger.info(
                 f"Features after incorporating lagged features: {self.feature_cols}"
             )
@@ -815,12 +853,12 @@ class DataClass(object):
 
         self.concatenated_feature_list = []
 
-        for feat in self.original_features:
-            for i in range(1, concatenated_steps + 1):
+        for feat, conc_steps in concatenate_var_length.items():
+            for i in range(1, conc_steps + 1):
                 concat_feat = feat + f"_{i}"
                 self.concatenated_feature_list.append(concat_feat)
 
-                # Concatenate steps >> i == 1: has the newest value; i == concatenated_steps: has the oldest value
+                # Concatenate steps >> i == 1: has the newest value; i == conc_steps: has the oldest value
                 if i == 1:
                     feat_array = df[feat].values
                 else:
@@ -831,16 +869,16 @@ class DataClass(object):
 
         # Removing zero padded rows, if padding with zeros is disabled.
         if not zero_padding:
-            df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
+            df.drop(df.head(max_value_concatenate - 1).index, axis=0, inplace=True)
 
         # Store information on transformation performed on debugger.
         if zero_padding:
             logger.debug(
-                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. no rows have been lost."
+                f"concatenated inputs enabled, concatenating {max_value_concatenate} steps. zero_padding: {zero_padding}. no rows have been lost."
             )
         else:
             logger.debug(
-                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
+                f"concatenated inputs enabled, concatenating {max_value_concatenate} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
             )
 
         return df

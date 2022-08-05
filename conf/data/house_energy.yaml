@@ -19,10 +19,14 @@ data:
     - hvacON
   iteration_order: -1
   scale_data: True
-  concatenated_steps: 4
-  concatenated_zero_padding: True
   episode_col: episode
   iteration_col: iteration
   max_rows: -1
   diff_state: False
   test_perc: 0.2
+  concatenated_steps: 4
+  concatenated_zero_padding: True
+  concatenate_length:
+    Tin: 2
+    Tout: 4
+    hvacON: 4

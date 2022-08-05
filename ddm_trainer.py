@@ -33,6 +33,7 @@ def main(cfg: DictConfig) -> None:
     delta_state = cfg["data"]["diff_state"]
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
+    concatenate_var_length = cfg["data"]["concatenate_length"]
 
     # common model args
     save_path = cfg["model"]["saver"]["filename"]
@@ -78,6 +79,7 @@ def main(cfg: DictConfig) -> None:
         diff_state=delta_state,
         concatenated_steps=concatenated_steps,
         concatenated_zero_padding=concatenated_zero_padding,
+        concatenate_var_length=concatenate_var_length,
     )
 
     logger.info(

@@ -186,6 +186,7 @@ class BaseModel(abc.ABC):
         diff_state: bool = False,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
+        concatenate_var_length: Optional[Dict[str, int]] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -239,6 +240,7 @@ class BaseModel(abc.ABC):
             diff_state=diff_state,
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
+            concatenate_var_length=concatenate_var_length,
         )
 
         # Transferring key features in between classes for easier access
@@ -351,8 +353,7 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self,
-        X: Union[None, np.ndarray] = None,
+        self, X: Union[None, np.ndarray] = None,
     ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 
