@@ -80,7 +80,8 @@ class Simulator(BaseModel):
             self.non_lagged_feature_cols = list(
                 set(self.features) - set(list(self.concatenate_var_length.keys()))
             )
-            # TODO: AAA, need to verify order here
+            # need to verify order here
+            # this matches dataclass when concatenating inputs
             self.features = self.non_lagged_feature_cols + self.lagged_feature_cols
         elif self.lagged_inputs > 1:
             logger.info(f"Using {self.lagged_inputs} lagged inputs as features")
@@ -293,6 +294,7 @@ class Simulator(BaseModel):
                 if key in self.signals:
                     self.all_data.update({key: self.current_signals[key]})
 
+        # MAKE SURE THIS IS SORTED ACCORDING TO THE ORDER USED IN TRAINING
         ddm_input = {k: self.all_data[k] for k in self.features}
 
         # input_list = [

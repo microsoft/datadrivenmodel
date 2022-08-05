@@ -29,8 +29,14 @@ data:
   episode_col: episode
   iteration_col: iteration
   max_rows: -1
+  test_perc: 0.25
   scale_data: True
   diff_state: False
   concatenated_steps: 5
   concatenated_zero_padding: True
-  test_perc: 0.25
+  concatenate_length:
+    cart_position: 5
+    cart_velocity: 5
+    pole_angle: 5
+    pole_angular_velocity: 5
+    command: 3
