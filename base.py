@@ -468,7 +468,8 @@ class BaseModel(abc.ABC):
                 # when grouped, X has shape {episode_count, iteration_count, feature_count}
                 it_per_episode = np.inf
 
-            num_of_episodes = int(np.shape(X_grouped)[0])
+            # num_of_episodes = int(np.shape(X_grouped)[0])
+            num_of_episodes = len(X_grouped)
 
             preds_grouped = []
             labels_grouped = []
@@ -476,7 +477,8 @@ class BaseModel(abc.ABC):
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
 
-                n_iterations = len(X_grouped[i])
+                # n_iterations = len(X_grouped[i])
+                n_iterations = X_grouped[i].shape[0]
                 if it_per_episode >= n_iterations:
                     preds_aux = self.predict_sequentially_all(X_grouped[i])
                     if y_grouped is not None:

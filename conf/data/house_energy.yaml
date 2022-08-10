@@ -27,6 +27,10 @@ data:
   concatenated_steps: 4
   concatenated_zero_padding: True
   concatenate_length:
-    Tin: 2
-    Tout: 4
-    hvacON: 4
+    Tin: 4
+    Tout: 6
+    hvacON: 5
+  moving_average_length:
+    Tin: 4
+    Tout: 6
+    hvacON: 5

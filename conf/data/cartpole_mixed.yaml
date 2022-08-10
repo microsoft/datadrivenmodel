@@ -33,10 +33,14 @@ data:
   scale_data: True
   diff_state: False
   concatenated_steps: 5
+  # Set to true if you want previous history to be 0
+  # If set to False, it will use the same values as t0
+  # e.g., at time = 1, True means: cart_position(t1,t2) = [0, 0]
+  # if False: cart_position(t1,t2) = [0.05, 0.05] (depending on the sample)
   concatenated_zero_padding: True
   concatenate_length:
-    cart_position: 5
-    cart_velocity: 5
-    pole_angle: 5
-    pole_angular_velocity: 5
-    command: 3
+    cart_position: 2
+    cart_velocity: 2
+    pole_angle: 3
+    pole_angular_velocity: 10
+    command: 4

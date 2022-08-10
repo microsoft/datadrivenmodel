@@ -541,6 +541,7 @@ class DataClass(object):
 
     def get_test_set(self):
         # Prepares X and y training dataset, and retrieves after aggregation
+        logger.info(f"Features: {self.feature_cols}")
         if self._X_test is None or self._y_test is None:
             self._X_test = []
             self._y_test = []
@@ -645,18 +646,30 @@ class DataClass(object):
         else:
             label_cols = self.label_cols
 
-        # Modify the current state (features), with the updated states
-        for feat in feats_list:
-
-            # Move the concatenated states forward by 1 step (higher number == least recent)
-            if self.concatenated_steps > 1:
-                for i in range(1, self.concatenated_steps):
+        if self.concatenate_var_length:
+            for feat, conc_steps in self.concatenate_var_length.items():
+                for i in range(1, conc_steps):
                     concat_feat = feat + f"_{i}"
                     next_concat_feat = feat + f"_{i+1}"
                     self.last_X_d[next_concat_feat] = self.last_X_d[concat_feat]
+        else:
+            # Modify the current state (features), with the updated states
+            for feat in feats_list:
 
+                # Move the concatenated states forward by 1 step (higher number == least recent)
+                if self.concatenated_steps > 1:
+                    for i in range(1, self.concatenated_steps):
+                        concat_feat = feat + f"_{i}"
+                        next_concat_feat = feat + f"_{i+1}"
+                        self.last_X_d[next_concat_feat] = self.last_X_d[concat_feat]
+
+        for feat in feats_list:
             # Select the target feature to store the received values at
-            if self.concatenated_steps > 1:
+            if self.concatenate_var_length and feat in list(
+                self.concatenate_var_length.keys()
+            ):
+                target_feat = feat + "_1"
+            elif self.concatenated_steps > 1 and not self.concatenate_var_length:
                 target_feat = feat + "_1"
             else:
                 target_feat = feat
@@ -829,20 +842,20 @@ class DataClass(object):
         # Redefine input states to ensure input state names are unique
         # - Note, state names are used on predict_sequentially_all method (and possibly others)
 
-        # TODO: we shouldn't lag the augmented cols?
         if not self.original_features:
             self.original_features = copy.deepcopy(self.feature_cols)
             # Note, naming convention needs to honor the way it is done in the subsequent loop
-            lagged_feature_cols = [
+            self.lagged_feature_cols = [
                 feat + f"_{i}"
                 for feat in vars_to_concatenate
                 for i in range(1, concatenate_var_length[feat] + 1)
             ]
-            no_lag_feature_cols = [
+            self.no_lag_feature_cols = [
                 feat for feat in self.feature_cols if feat not in vars_to_concatenate
             ]
-            self.original_features = no_lag_feature_cols + lagged_feature_cols
-            self.feature_cols = self.original_features
+            # leave self.original_features alone!
+            # self.original_features = no_lag_feature_cols + lagged_feature_cols
+            self.feature_cols = self.no_lag_feature_cols + self.lagged_feature_cols
             logger.info(
                 f"Features after incorporating lagged features: {self.feature_cols}"
             )
