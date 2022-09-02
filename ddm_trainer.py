@@ -8,6 +8,9 @@ from math import floor
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from sklearn.metrics import r2_score
 
+# TODO: use the model yaml to get the metric
+# use the other metrics: MAE and MADE
+
 logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -42,12 +45,22 @@ def main(cfg: DictConfig) -> None:
     split_strategy = cfg["model"]["sweep"]["split_strategy"]
     results_csv_path = cfg["model"]["sweep"]["results_csv_path"]
 
+    ts_model = False
     if model_name.lower() == "pytorch":
         from all_models import available_models
+    elif model_name.lower() in ["nhits", "tftmodel", "varima", "ets", "sfarima"]:
+        from timeseriesclass import darts_models as available_models
+
+        ts_model = True
     else:
         from model_loader import available_models
 
-    Model = available_models[model_name]
+    if ts_model:
+        from timeseriesclass import TimeSeriesDarts
+
+        Model = TimeSeriesDarts
+    else:
+        Model = available_models[model_name]
 
     # TODO, decide whether to always save to outputs directory
     if cfg["data"]["full_or_relative"] == "relative":
@@ -63,24 +76,36 @@ def main(cfg: DictConfig) -> None:
         augmented_cols = list(augmented_cols)
 
     model = Model()
+
     # Add extra preprocessing step inside load_csv
     # should be done before concatenate_steps
-    X_train, y_train, X_test, y_test = model.load_csv(
-        dataset_path=dataset_path,
-        input_cols=input_cols,
-        augm_cols=augmented_cols,
-        output_cols=output_cols,
-        iteration_order=iteration_order,
-        episode_col=episode_col,
-        iteration_col=iteration_col,
-        # drop_nulls: bool = True,
-        max_rows=max_rows,
-        test_perc=test_perc,
-        diff_state=delta_state,
-        concatenated_steps=concatenated_steps,
-        concatenated_zero_padding=concatenated_zero_padding,
-        concatenate_var_length=concatenate_var_length,
-    )
+    if ts_model:
+        train_df, test_df = model.load_from_csv(
+            dataset_path,
+            episode_col,
+            iteration_col,
+            output_cols,
+            augmented_cols,
+            0.2,
+            return_ts=False,
+        )
+    else:
+        X_train, y_train, X_test, y_test = model.load_csv(
+            dataset_path=dataset_path,
+            input_cols=input_cols,
+            augm_cols=augmented_cols,
+            output_cols=output_cols,
+            iteration_order=iteration_order,
+            episode_col=episode_col,
+            iteration_col=iteration_col,
+            # drop_nulls: bool = True,
+            max_rows=max_rows,
+            test_perc=test_perc,
+            diff_state=delta_state,
+            concatenated_steps=concatenated_steps,
+            concatenated_zero_padding=concatenated_zero_padding,
+            concatenate_var_length=concatenate_var_length,
+        )
 
     logger.info(
         f"From the full dataset, {test_perc * 100}% will be used for test, while {(1 - test_perc) * 100}% for training/sweeping"

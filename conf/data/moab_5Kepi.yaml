@@ -11,3 +11,13 @@ data:
   scale_data: True
   diff_state: True
   test_perc: 0.25
+  concatenated_steps: 4
+  concatenated_zero_padding: True
+  concatenate_length:
+    action_input_roll: 2
+    action_input_pitch: 2
+    state_ball_x: 3
+    state_ball_y: 3
+    state_ball_vel_x: 2
+    state_ball_vel_y: 2
+

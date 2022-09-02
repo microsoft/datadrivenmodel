@@ -646,7 +646,7 @@ class DataClass(object):
         else:
             label_cols = self.label_cols
 
-        if self.concatenate_var_length:
+        if type(self.concatenate_var_length) == dict:
             for feat, conc_steps in self.concatenate_var_length.items():
                 for i in range(1, conc_steps):
                     concat_feat = feat + f"_{i}"
@@ -665,10 +665,9 @@ class DataClass(object):
 
         for feat in feats_list:
             # Select the target feature to store the received values at
-            if self.concatenate_var_length and feat in list(
-                self.concatenate_var_length.keys()
-            ):
-                target_feat = feat + "_1"
+            if type(self.concatenate_var_length) == dict:
+                if feat in list(self.concatenate_var_length.keys()):
+                    target_feat = feat + "_1"
             elif self.concatenated_steps > 1 and not self.concatenate_var_length:
                 target_feat = feat + "_1"
             else:
@@ -835,7 +834,7 @@ class DataClass(object):
         # if len(df) < concatenated_steps:
         if len(df) < max_value_concatenate:
             logger.error(
-                f"Concatenated inputs enabled, attempting to concatenate {max_value_concatenate} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({max_value_concatenate}). Please lower or turn of concatenated steps to use dataset."
+                f"Concatenated inputs enabled, attempting to concatenate {max_value_concatenate} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({max_value_concatenate}). Please lower or turn off concatenated steps to use dataset."
             )
             raise ValueError("Not enough data to use with concatenated lagged features")
 
