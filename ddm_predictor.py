@@ -455,7 +455,8 @@ def main(cfg: DictConfig):
     policy = cfg["simulator"]["policy"]
     # logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
-    scale_data = cfg["model"]["build_params"]["scale_data"]
+    # scale_data = cfg["model"]["build_params"]["scale_data"]
+    scale_data = cfg["data"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
@@ -476,14 +477,23 @@ def main(cfg: DictConfig):
 
     input_cols = input_cols + augmented_cols
 
+    ts_model = False
     logger.info(f"Using DDM with {policy} policy")
     if model_name.lower() == "pytorch":
         from all_models import available_models
+    elif model_name.lower() in ["nhits", "tftmodel", "varima", "ets", "sfarima"]:
+        from timeseriesclass import darts_models as available_models
+
+        ts_model = True
     else:
         from model_loader import available_models
 
     Model = available_models[model_name]
-    model = Model()
+    if not ts_model:
+        model = Model()
+    else:
+        model = Model()
+        model.build_model()
 
     model.load_model(filename=save_path, scale_data=scale_data)
     # model.build_model(**cfg["model"]["build_params"])

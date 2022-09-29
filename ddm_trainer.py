@@ -59,8 +59,10 @@ def main(cfg: DictConfig) -> None:
         from timeseriesclass import TimeSeriesDarts
 
         Model = TimeSeriesDarts
+        fit_params = cfg["model"]["fit_params"]
     else:
         Model = available_models[model_name]
+        fit_params = None
 
     # TODO, decide whether to always save to outputs directory
     if cfg["data"]["full_or_relative"] == "relative":
@@ -80,13 +82,15 @@ def main(cfg: DictConfig) -> None:
     # Add extra preprocessing step inside load_csv
     # should be done before concatenate_steps
     if ts_model:
+        feature_cols = augmented_cols
+        label_cols = output_cols
         train_df, test_df = model.load_from_csv(
             dataset_path,
             episode_col,
             iteration_col,
-            output_cols,
-            augmented_cols,
-            0.2,
+            label_cols,
+            feature_cols,
+            test_perc,
             return_ts=False,
         )
     else:
@@ -117,16 +121,23 @@ def main(cfg: DictConfig) -> None:
     save_data_path = os.path.join(os.getcwd(), "data")
     if not os.path.exists(save_data_path):
         pathlib.Path(save_data_path).mkdir(parents=True, exist_ok=True)
-    logger.info(f"Saving data to {os.path.abspath(save_data_path)}")
-    np.save(os.path.join(save_data_path, "x_train.npy"), X_train)
-    np.save(os.path.join(save_data_path, "y_train.npy"), y_train)
-    np.save(os.path.join(save_data_path, "x_test.npy"), X_test)
-    np.save(os.path.join(save_data_path, "y_test.npy"), y_test)
+    if not ts_model:
+        logger.info(f"Saving data to {os.path.abspath(save_data_path)}")
+        np.save(os.path.join(save_data_path, "x_train.npy"), X_train)
+        np.save(os.path.join(save_data_path, "y_train.npy"), y_train)
+        np.save(os.path.join(save_data_path, "x_test.npy"), X_test)
+        np.save(os.path.join(save_data_path, "y_test.npy"), y_test)
 
     logger.info("Building model...")
-    model.build_model(**cfg["model"]["build_params"])
+    if ts_model:
+        model.build_model(
+            model_type=cfg["model"]["name"], build_params=cfg["model"]["build_params"]
+        )
+    else:
+        model.build_model(**cfg["model"]["build_params"])
 
     if run_sweep:
+        # TODO: implement sweep for darts class
         params = OmegaConf.to_container(cfg["model"]["sweep"]["params"])
         logger.info(f"Sweeping with parameters: {params}")
 
@@ -143,26 +154,37 @@ def main(cfg: DictConfig) -> None:
         logger.info(f"Sweep results: {sweep_df}")
     else:
         logger.info("Fitting model...")
-        model.fit(X_train, y_train)
+        if not ts_model:
+            model.fit(X_train, y_train)
+        else:
+            model.fit(train_df, fit_params)
 
-    y_pred = model.predict(X_test)
-    logger.info(f"R^2 score is {r2_score(y_test,y_pred)} for test set.")
-    logger.info(f"Saving model to {save_path}")
-    model.save_model(filename=save_path)
+    if not ts_model:
+        y_pred = model.predict(X_test)
+        logger.info(f"R^2 score is {r2_score(y_test,y_pred)} for test set.")
+        logger.info(f"Saving model to {save_path}")
+        model.save_model(filename=save_path)
 
-    ## save datasets
-    pd.DataFrame(X_train, columns=model.feature_cols).to_csv(
-        os.path.join(save_data_path, "x_train.csv")
-    )
-    pd.DataFrame(X_test, columns=model.feature_cols).to_csv(
-        os.path.join(save_data_path, "x_test.csv")
-    )
-    pd.DataFrame(y_train, columns=model.label_cols).to_csv(
-        os.path.join(save_data_path, "y_train.csv")
-    )
-    pd.DataFrame(y_test, columns=model.label_cols).to_csv(
-        os.path.join(save_data_path, "y_test.csv")
-    )
+        ## save datasets
+        pd.DataFrame(X_train, columns=model.feature_cols).to_csv(
+            os.path.join(save_data_path, "x_train.csv")
+        )
+        pd.DataFrame(X_test, columns=model.feature_cols).to_csv(
+            os.path.join(save_data_path, "x_test.csv")
+        )
+        pd.DataFrame(y_train, columns=model.label_cols).to_csv(
+            os.path.join(save_data_path, "y_train.csv")
+        )
+        pd.DataFrame(y_test, columns=model.label_cols).to_csv(
+            os.path.join(save_data_path, "y_test.csv")
+        )
+
+    else:
+        y_pred = model.predict(test_df, {"n": 1})
+        # ts_preds = model.predict(test_df, {"n": 1})
+        # y_pred = []
+        # for i in range(len(ts_preds)):
+        #     y_pred.append(ts_preds[i].all_values().flatten())
 
 
 if __name__ == "__main__":

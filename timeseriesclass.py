@@ -15,11 +15,14 @@ from darts.models.forecasting.exponential_smoothing import ExponentialSmoothing
 # over multiple time horizons
 # need a separate class for model fitting
 
-# input_chunk_length should be set to <= the min number of past_covariates
+# input_chunk_length should be set to <= the min number of past_covariates,
+# i.e., your minimum episode length (or we'll have to pad which is not implemented yet)
 
 # designing the data for prediction:
 # we will typically only take a `output_chunk_length` to be 1
 # and then continuously feed the predicted value into past_covariates
+# you can certainly predict longer horizons, but then it will treat
+# your past_covariates fixed (including actions)
 
 darts_models = {
     "nhits": NHiTSModel,
@@ -110,7 +113,7 @@ class TimeSeriesDarts(BaseModel):
         )
 
     def predict(
-        self, df, predict_params: Dict = {},
+        self, df, predict_params: Dict = {"n": 1},
     ):
 
         if not self.model:
@@ -118,11 +121,15 @@ class TimeSeriesDarts(BaseModel):
 
         covariates, series = self._ts_group(df)
 
-        yhat = self.model.predict(
+        ts_preds = self.model.predict(
             series=series, past_covariates=covariates, **predict_params
         )
 
-        return yhat
+        y_pred = []
+        for i in range(len(ts_preds)):
+            y_pred.append(ts_preds[i].all_values().flatten())
+
+        return y_pred
 
     def predict_sequentially(self, df, predict_params: Dict = {}, horizon: int = 50):
 
@@ -177,14 +184,26 @@ if __name__ == "__main__":
     )
 
     nhits_params = {
-        "input_chunk_length": 1,
+        "input_chunk_length": 7,
+        # input_chunk_length resolves to how far back to look during training
+        # should be greater than the smallest
+        # number of iterations across episodes
         "output_chunk_length": 1,
         # "pl_trainer_kwargs": {"accelerator": "gpu", "gpus": -1, "auto_select_gpus": True}
     }
+
+    tft_params = {
+        "input_chunk_length": 1,
+        "output_chunk_length": 1,
+        "add_relative_index": True,
+    }
+
     fit_params = {"epochs": 1}
     predict_params = {"n": 1}
 
     darts_model.build_model(model_type="nhits", build_params=nhits_params)
+    # darts_model.build_model(model_type="tftmodel", build_params=tft_params)
+
     darts_model.fit(train_df, fit_params)
     yhat = darts_model.predict(test_df, predict_params)
 

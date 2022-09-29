@@ -1,8 +1,10 @@
 defaults:
-  - data: house_energy.yaml
+  # - data: house_energy.yaml
   # - data: cartpole_mixed.yaml
+  - data: cartpole_st_at.yaml
   # - data: quanser_rand.yaml
-  - model: xgboost.yaml
+  - model: nhits.yaml
+  # - model: xgboost.yaml
   # - model: lightgbm.yaml
   # - model: SVR.yaml
   # - model: torch.yaml
