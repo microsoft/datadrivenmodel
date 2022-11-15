@@ -171,7 +171,10 @@ class Simulator(BaseModel):
             # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
             # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
-            self.config = {k: random.random() for k in self.config_keys}
+            if self.config_keys:
+                self.config = {k: random.random() for k in self.config_keys}
+            else:
+                self.config = None
 
         # update state with initial_state values if
         # provided by config
@@ -181,7 +184,7 @@ class Simulator(BaseModel):
 
         # Grab signal params pertaining to specific format of key_parameter from Inkling
         self.config_signals = {}
-        if new_config and self.signal_builder is not None:
+        if new_config and self.signal_builder:
             for k, v in self.signal_builder["signal_params"].items():
                 for key, value in new_config.items():
                     if k in key:
@@ -235,17 +238,23 @@ class Simulator(BaseModel):
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
-        self.all_data = {**self.state, **self.action, **self.config}
+        if self.config:
+            self.all_data = {**self.state, **self.action, **self.config}
+        else:
+            self.all_data = {**self.state, **self.action}
 
         ## if you're using lagged_features, we need to initialize them
-        if self.lagged_inputs > 1:
+        ## will initially be set to the same value, which is either 0
+        ## or the initial value of the state depending on zero_padding
+        ## and gets updated during each episode step
+        if self.lagged_inputs > 1 or self.concatenate_var_length:
             self.lagged_all_data = {
                 k: self.all_data["_".join(k.split("_")[:-1])]
                 if not self.lagged_padding
                 else 0
                 for k in self.lagged_feature_cols
             }
-        self.all_data = {**self.all_data, **self.lagged_all_data}
+            self.all_data = {**self.all_data, **self.lagged_all_data}
 
         # if self.concatenate_var_length:
         #     all_data = {
@@ -266,12 +275,18 @@ class Simulator(BaseModel):
         # set current action to action_1
         # all other actions get pushed back one value to action_{i+1}
         if self.concatenate_var_length:
-            lagged_action = {
-                f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
-                for k, v in action.items()
-                for i in range(1, self.concatenate_var_length[k] + 1)
-            }
-            action = lagged_action
+            # only create lagged action if they were provided in
+            # concatenate_var_length
+            actions_to_lag = list(
+                set(list(self.concatenate_var_length.keys())) & set(list(action.keys()))
+            )
+            if actions_to_lag:
+                lagged_action = {
+                    f"{k}_{i}": action[k] if i == 1 else self.all_data[f"{k}_{i-1}"]
+                    for k in actions_to_lag
+                    for i in range(1, self.concatenate_var_length[k] + 1)
+                }
+                action = lagged_action
         elif self.lagged_inputs > 1:
             lagged_action = {
                 f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
@@ -334,8 +349,16 @@ class Simulator(BaseModel):
         self.all_data.update(ddm_output)
 
         # current state is just the first value
-        if self.lagged_inputs > 1:
+        states_lagged = list(
+            set(list(self.concatenate_var_length.keys())) & set(self.state_keys)
+        )
+        if self.lagged_inputs > 1 and not self.concatenate_var_length:
             self.state = {k: self.all_data[f"{k}_1"] for k in self.state_keys}
+        elif self.concatenate_var_length:
+            self.state = {
+                k: self.all_data[f"{k}_1"] if k in states_lagged else self.all_data[k]
+                for k in self.state_keys
+            }
         else:
             self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
@@ -445,8 +468,9 @@ def test_policy(
 def main(cfg: DictConfig):
 
     save_path = cfg["model"]["saver"]["filename"]
-    if cfg["data"]["full_or_relative"] == "relative":
-        save_path = os.path.join(dir_path, save_path)
+    # if cfg["data"]["full_or_relative"] == "relative":
+    # SAVE PATH IS ALWAYS RELATIVE
+    save_path = os.path.join(dir_path, save_path)
     model_name = cfg["model"]["name"]
     states = cfg["simulator"]["states"]
     actions = cfg["simulator"]["actions"]
@@ -529,7 +553,9 @@ def main(cfg: DictConfig):
     if policy == "random":
         random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
         test_policy(
-            sim=sim, config={**initial_states}, policy=random_policy_from_keys,
+            sim=sim,
+            config={**initial_states},
+            policy=random_policy_from_keys,
         )
     elif isinstance(policy, int):
         # If docker PORT provided, set as exported brain PORT
@@ -538,7 +564,9 @@ def main(cfg: DictConfig):
         print(f"Connecting to exported brain running at {url}...")
         trained_brain_policy = partial(brain_policy, exported_brain_url=url)
         test_policy(
-            sim=sim, config={**initial_states}, policy=trained_brain_policy,
+            sim=sim,
+            config={**initial_states},
+            policy=trained_brain_policy,
         )
     elif policy == "bonsai":
         if workspace_setup:
@@ -598,7 +626,9 @@ def main(cfg: DictConfig):
             while True:
                 # Advance by the new state depending on the event type
                 sim_state = SimulatorState(
-                    sequence_id=sequence_id, state=sim.get_state(), halted=sim.halted(),
+                    sequence_id=sequence_id,
+                    state=sim.get_state(),
+                    halted=sim.halted(),
                 )
                 try:
                     event = client.session.advance(

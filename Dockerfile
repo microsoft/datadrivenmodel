@@ -11,7 +11,11 @@ RUN apt-get update && \
 WORKDIR /src
 
 # Copy simulator files to /src
-COPY . /src
+# COPY . /src
+COPY *.py /src/
+COPY requirements.txt /src/
+COPY ./models/ /src/models/
+COPY ./conf/ /src/conf/
 
 # Install simulator dependencies
 RUN pip3 install -r requirements.txt

@@ -34,6 +34,7 @@ def test_fit():
     torch_model.fit(X, y)
 
 
+@pytest.mark.skip(reason="Too slow")
 def test_sweep():
 
     torch_model.build_model()

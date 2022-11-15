@@ -366,7 +366,7 @@ class DataClass(object):
             self.concatenated_zero_padding = concatenated_zero_padding
             self.concatenate_var_length = concatenate_var_length
             self.first_pass_concatenate = True
-            if self.concatenated_steps > 1:
+            if self.concatenated_steps > 1 or self.concatenate_var_length:
                 logger.info(
                     f"Using previous {self.concatenated_steps} lags for all features as inputs and using padding: {self.concatenated_zero_padding}"
                 )
@@ -408,7 +408,8 @@ class DataClass(object):
         # Create a lagged dataframe for capturing inputs and outputs
         df_per_episode = df.groupby(by=self.episode_col, as_index=False)
         # Remove indexer, and get only df list
-        df_per_episode = list(map(lambda x: x[1], df_per_episode))
+        # df_per_episode = list(map(lambda x: x[1], df_per_episode))
+        df_per_episode = [df_per_episode.get_group(x) for x in df_per_episode.groups]
 
         self.df_per_episode = df_per_episode
 
@@ -828,6 +829,10 @@ class DataClass(object):
             concatenate_var_length = {
                 feat: concatenated_steps for feat in self.feature_cols
             }
+            # save it so you don't repeat the calculation after feature_cols
+            # are updated to include lagged_feature_cols
+            self.concatenate_var_length = concatenate_var_length
+            self.first_pass_concatenate = False
 
         # Drop episode if number of iterations is lower than number of desired concatenated steps.
         # - Dropped no matter if zero_padding is enabled or disabled -

@@ -85,4 +85,4 @@ def test_xgb_eval():
     eval_out = xgboost_model.evaluate(eval_metric, y_hat, y_test)
 
     # Add evaluation metric check to test changes to model
-    assert round(eval_out, 10) == round(0.10077187689939525, 10)
+    assert round(eval_out, 2) == round(0.10077187689939525, 2)

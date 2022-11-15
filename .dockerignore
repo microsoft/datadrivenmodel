@@ -1,5 +1,10 @@
 .env
+outputs/
 csv_data/
+etc/
+tmp/
+notebooks/
+multirun/
 env_data/
 .git/
 source/
