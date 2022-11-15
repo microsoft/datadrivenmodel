@@ -9,7 +9,7 @@ model:
       gpus: 1
       auto_select_gpus: True
   fit_params:
-    epochs: 2
+    epochs: 100
   saver:
     filename: models/nhits_model
   sweep:

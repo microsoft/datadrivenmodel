@@ -10,7 +10,9 @@ model:
     scale_data: True
     max_depth: 6
   saver:
-    filename: models/xgboost_models/house_energy
+    # filename: models/xgboost_models/house_energy
+    # filename: /home/alizaidi/bonsai/bonsai-hvac/models/b44/xgboost
+    filename: models/b44/xgboost
   sweep:
     run: False
     split_strategy: timeseries
