@@ -669,6 +669,8 @@ class DataClass(object):
             if type(self.concatenate_var_length) == dict:
                 if feat in list(self.concatenate_var_length.keys()):
                     target_feat = feat + "_1"
+                else:
+                    target_feat = feat
             elif self.concatenated_steps > 1 and not self.concatenate_var_length:
                 target_feat = feat + "_1"
             else:
