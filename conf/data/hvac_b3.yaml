@@ -1,5 +1,5 @@
 data:
-  path: "/home/alizaidi/bonsai/bonsai-hvac/data/Dataset_RedwestJ_v1_CHL1_DeltaSTPTs.csv"
+  path: "../data/building3.csv"
   full_or_relative: full
   inputs:
     [

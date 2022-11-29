@@ -1,5 +1,5 @@
 data:
-  path: "/home/alizaidi/bonsai/bonsai-hvac/data/plant.csv"
+  path: "../data/building2.csv"
   full_or_relative: full
   inputs:
     [

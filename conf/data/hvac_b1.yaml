@@ -1,6 +1,6 @@
 data:
-  path: "/home/alizaidi/bonsai/bonsai-hvac/data/Dataset_B44P_v7_CHL_2or3.csv"
-  full_or_relative: full
+  path: "../data/building1.csv"
+  full_or_relative: relative
   inputs:
     ['state.OAT',
     'state.WBT',
