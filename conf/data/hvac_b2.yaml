@@ -3,45 +3,45 @@ data:
   full_or_relative: full
   inputs:
     [
-    'state.OAT',
-    'state.WBT',
-    'state.CDW_RWT',
-    'state.CHW_SWT',
-    'state.CHW_GPM',
-    'state.CHW_RWT',
-    'state.CHW_TONS',
-    'state.CHL_Product',
-    'state.PCT_of_Valves>90PCT',
-    'state.Count_of_Valves>90PCT',
-    'state.Total_KW',
-    'state.Plant_kW_Ton_Efficiency'
+      "state.OAT",
+      "state.WBT",
+      "state.CDW_RWT",
+      "state.CHW_SWT",
+      "state.CHW_GPM",
+      "state.CHW_RWT",
+      "state.CHW_TONS",
+      "state.CHL_Product",
+      "state.PCT_of_Valves>90PCT",
+      "state.Count_of_Valves>90PCT",
+      "state.Total_KW",
+      "state.Plant_kW_Ton_Efficiency",
     ]
   outputs:
     [
-    'state.OAT',
-    'state.WBT',
-    'state.CDW_RWT',
-    'state.CHW_SWT',
-    'state.CHW_GPM',
-    'state.CHW_RWT',
-    'state.CHW_TONS',
-    'state.CHL_Product',
-    'state.PCT_of_Valves>90PCT',
-    'state.Count_of_Valves>90PCT',
-    'state.Total_KW',
-    'state.Plant_kW_Ton_Efficiency'
+      "state.OAT",
+      "state.WBT",
+      "state.CDW_RWT",
+      "state.CHW_SWT",
+      "state.CHW_GPM",
+      "state.CHW_RWT",
+      "state.CHW_TONS",
+      "state.CHL_Product",
+      "state.PCT_of_Valves>90PCT",
+      "state.Count_of_Valves>90PCT",
+      "state.Total_KW",
+      "state.Plant_kW_Ton_Efficiency",
     ]
-  augmented_cols: 
+  augmented_cols:
     [
-    'action.CDW_GPM_Flow',
-    'action.CDW_SWS',
-    'action.CHW_DPSP',
-    'action.CHW_SWS',
-    'action.CHW_SWS_OAT_Delta',
-    'action.CDW_SWS_WBT_Delta',
-    'action.CHW_SWS_RWT_Delta',
-    'action.CDW_SWS_RWT_Delta',
-    'action.Count_of_Active_CHL'
+      "action.CDW_GPM_Flow",
+      "action.CDW_SWS",
+      "action.CHW_DPSP",
+      "action.CHW_SWS",
+      "action.CHW_SWS_OAT_Delta",
+      "action.CDW_SWS_WBT_Delta",
+      "action.CHW_SWS_RWT_Delta",
+      "action.CDW_SWS_RWT_Delta",
+      "action.Count_of_Active_CHL",
     ]
   iteration_order: -1
   episode_col: episode
