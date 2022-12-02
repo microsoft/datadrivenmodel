@@ -1,4 +1,4 @@
-aame: ddm 
+name: ddm 
 channels:
   - pytorch
   - defaults
@@ -22,6 +22,7 @@ dependencies:
       - microsoft-bonsai-api==0.1.4
       - bonsai-cli==1.0.9
       - pandas==1.5.2
+      - numpy==1.23.3
       - pyaml==21.10.1
       - pytest==7.2.0
       - scipy==1.8.1
