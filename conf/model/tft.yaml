@@ -1,24 +1,23 @@
-model:
-  name: tftmodel
-  build_params:
-    # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tft_model.html#darts.models.forecasting.tft_model.TFTModel.predict
-    input_chunk_length: 7
-    output_chunk_length: 1
-    # relative index is necessary in order to train without having future covariates
-    add_relative_index: True
-    pl_trainer_kwargs:
-      accelerator: gpu
-      gpus: 1
-      auto_select_gpus: True
-  fit_params:
-    epochs: 2
-  saver:
-    filename: models/tft_model
-  sweep:
-    run: False
-    search_algorithm: bayesian
-    split_strategy: timeseries
-    num_trials: 3
-    scoring_func: r2
-    early_stopping: False
-    results_csv_path: torch/search_results.csv
+name: tftmodel
+build_params:
+  # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tft_model.html#darts.models.forecasting.tft_model.TFTModel.predict
+  input_chunk_length: 7
+  output_chunk_length: 1
+  # relative index is necessary in order to train without having future covariates
+  add_relative_index: True
+  pl_trainer_kwargs:
+    accelerator: gpu
+    gpus: 1
+    auto_select_gpus: True
+fit_params:
+  epochs: 2
+saver:
+  filename: models/tft_model
+sweep:
+  run: False
+  search_algorithm: bayesian
+  split_strategy: timeseries
+  num_trials: 3
+  scoring_func: r2
+  early_stopping: False
+  results_csv_path: torch/search_results.csv

@@ -20,7 +20,8 @@ from sklearn.model_selection import (
 
 from base import BaseModel
 import logging
-import mlflow
+
+# import mlflow
 
 logger = logging.getLogger(__name__)
 
@@ -221,8 +222,8 @@ class PyTorchModel(BaseModel):
             raise NotImplementedError(
                 "Search algorithm should be one of grid, hyperopt, bohb, optuna, bayesian, or random"
             )
-        with mlflow.start_run() as run:
-            search.fit(X, y)
+        # with mlflow.start_run() as run:
+        search.fit(X, y)
         self.model = search.best_estimator_
 
         # set path back to initial

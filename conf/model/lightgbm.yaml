@@ -1,34 +1,33 @@
-model:
-  name: lightgbm
-  build_params:
-    model_type: lightgbm
-    fit_separate: False
-    halt_model: False
-    objective: reg:squarederror
-    scale_data: True
-    num_leaves: 10
-    n_estimators: 100
-    learning_rate: 0.3
-    max_depth: 6
-  saver:
-    filename: models/boost/lightgbm
-  sweep:
-    run: True
-    # can be any of bayesian, bohb, hyperopt, optuna, grid or random
-    search_algorithm: bayesian
-    split_strategy: timeseries
-    num_trials: 5
-    scoring_func: r2
-    early_stopping: False
-    results_csv_path: lightgbm/search_results.csv
-    params:
-      # all parameters should be prefixed with estimator__
-      # see the list of available parameters:
-      # https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMModel.html
-      estimator__max_depth: [-1, 5, 10, 25]
-      estimator__learning_rate: [0.01, 0.05, 0.1, 0.25]
-      estimator__num_leaves: [10, 31, 50]
-      # estimator__n_estimators: [10, 100, 250]
-      # estimator__boosting_type: ["gbdt", "dart", "goss"]
-      # estimator__reg_alpha: [0, 0.01, 0.05, 0.1]
-      # estimator__reg_lambda: [0, 0.01, 0.05, 0.1]
+name: lightgbm
+build_params:
+  model_type: lightgbm
+  fit_separate: False
+  halt_model: False
+  objective: reg:squarederror
+  scale_data: True
+  num_leaves: 10
+  n_estimators: 100
+  learning_rate: 0.3
+  max_depth: 6
+saver:
+  filename: models/boost/lightgbm
+sweep:
+  run: True
+  # can be any of bayesian, bohb, hyperopt, optuna, grid or random
+  search_algorithm: bayesian
+  split_strategy: timeseries
+  num_trials: 5
+  scoring_func: r2
+  early_stopping: False
+  results_csv_path: lightgbm/search_results.csv
+  params:
+    # all parameters should be prefixed with estimator__
+    # see the list of available parameters:
+    # https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMModel.html
+    estimator__max_depth: [-1, 5, 10, 25]
+    estimator__learning_rate: [0.01, 0.05, 0.1, 0.25]
+    estimator__num_leaves: [10, 31, 50]
+    # estimator__n_estimators: [10, 100, 250]
+    # estimator__boosting_type: ["gbdt", "dart", "goss"]
+    # estimator__reg_alpha: [0, 0.01, 0.05, 0.1]
+    # estimator__reg_lambda: [0, 0.01, 0.05, 0.1]

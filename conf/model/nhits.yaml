@@ -1,22 +1,21 @@
-model:
-  name: nhits
-  build_params:
-    # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nhits.html
-    input_chunk_length: 7
-    output_chunk_length: 1
-    pl_trainer_kwargs:
-      accelerator: gpu
-      gpus: 1
-      auto_select_gpus: True
-  fit_params:
-    epochs: 100
-  saver:
-    filename: models/nhits_model
-  sweep:
-    run: False
-    search_algorithm: bayesian
-    split_strategy: timeseries
-    num_trials: 3
-    scoring_func: r2
-    early_stopping: False
-    results_csv_path: torch/search_results.csv
+name: nhits
+build_params:
+  # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nhits.html
+  input_chunk_length: 7
+  output_chunk_length: 1
+  pl_trainer_kwargs:
+    accelerator: gpu
+    gpus: 1
+    auto_select_gpus: True
+fit_params:
+  epochs: 100
+saver:
+  filename: models/nhits_model
+sweep:
+  run: False
+  search_algorithm: bayesian
+  split_strategy: timeseries
+  num_trials: 3
+  scoring_func: r2
+  early_stopping: False
+  results_csv_path: torch/search_results.csv
