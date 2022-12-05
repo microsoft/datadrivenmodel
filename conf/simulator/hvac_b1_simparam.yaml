@@ -9,27 +9,30 @@ states:
   'state.PCT_of_Valves>90PCT',
   'state.Count_of_Valves>90PCT',
   'state.Total_KW',
-  'state.Plant_kW_Ton_Efficiency']
+  'state.Plant_kW_Ton_Efficiency',
+  'state.PCT_Design_CDW_FLOW_STPT',
+  'state.Max_Design_CDW_GPM_FLOW_STPT',
+  'state.CHL_1_Active',
+  'state.CHL_2_Active',
+  'state.CHL_3_Active',
+  'state.Count_of_Active_CHL',
+  'state.CDW_SWT',
+  'state.CHW_SWT',
+  ]
   # ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
 actions:
   # ["command"]
   [
   'action.CDW_GPM_Flow',
-  'action.PCT_Design_CDW_FLOW_STPT',
-  'action.Max_Design_CDW_GPM_FLOW_STPT',
   'action.CDW_SWS',
   'action.CHW_DPSP',
   'action.CHW_SWS',
-  'action.CHW_SWS_OAT_Delta',
-  'action.CDW_SWS_WBT_Delta',
-  'action.CHW_SWS_RWT_Delta',
-  'action.CDW_SWS_RWT_Delta',
-  'action.CHL_1_Active',
-  'action.CHL_2_Active',
-  'action.CHL_3_Active',
-  'action.Count_of_Active_CHL',
-  'action.CDW_SWT',
-  'action.CHW_SWT'
+  # 'action.CHW_SWS_OAT_Delta',
+  # 'action.CDW_SWS_WBT_Delta',
+  # 'action.CHW_SWS_RWT_Delta',
+  # 'action.CDW_SWS_RWT_Delta',
+  # 'action.CDW_SWT',
+  # 'action.CHW_SWT'
   ]
 configs: 
 # include here all config variables initializations

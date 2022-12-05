@@ -1,4 +1,5 @@
 name: tftmodel
+scale_data: True
 build_params:
   # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tft_model.html#darts.models.forecasting.tft_model.TFTModel.predict
   input_chunk_length: 7

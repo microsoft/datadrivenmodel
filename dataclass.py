@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 import logging
 import numpy as np
 import copy as copy
@@ -239,6 +239,8 @@ class DataClass(object):
         test_perc: float = 0.15,
         debug: bool = False,
         diff_state: bool = False,
+        prep_pipeline: Optional[Callable] = None,
+        var_rename: Optional[Dict[str, str]] = None,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
         concatenate_var_length: Optional[Dict[str, int]] = None,
@@ -292,6 +294,14 @@ class DataClass(object):
             if max_rows < 0:
                 max_rows = None
             df = pd.read_csv(dataset_path, nrows=max_rows)
+            if var_rename:
+                logger.info(f"Renaming dataset using mapper: {var_rename}")
+                df = df.rename(var_rename, axis=1)
+            if prep_pipeline:
+                from preprocess import pipeline
+
+                logger.info(f"Applying preprocessing steps from pipeline.py")
+                df = pipeline(df)
             if drop_nulls:
                 df = df[~df.isnull().any(axis=1)]
             if type(input_cols) == str:

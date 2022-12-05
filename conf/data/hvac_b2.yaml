@@ -47,7 +47,6 @@ episode_col: episode
 iteration_col: iteration
 max_rows: -1
 test_perc: 0.25
-scale_data: True
 diff_state: False
 concatenated_steps: 0
 concatenated_zero_padding: False

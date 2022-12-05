@@ -3,7 +3,7 @@ full_or_relative: relative
 # mapping from names in dataset (keys) to new names (values)
 var_rename:
   state.OAT: state.OAT
-  state.WBT: sate.WBT
+  state.WBT: state.WBT
   state.CDW_RWT: state.CDW_RWT
   state.CHW_RWT: state.CHW_RWT
   state.CHW_TONS: state.CHW_TONS
@@ -19,14 +19,14 @@ var_rename:
   action.CHL_3_Active: state.CHL_3_Active
   action.Count_of_Active_CHL: state.Count_of_Active_CHL
   action.CDW_SWT: state.CDW_SWT
-  action.CHW_SWT: state.CDW_SWT
+  action.CHW_SWT: state.CHW_SWT
   action.CDW_GPM_Flow: action.CDW_GPM_Flow
   action.CDW_SWS: action.CDW_SWS
   action.CHW_DPSP: action.CHW_DPSP
   action.CHW_SWS: action.CHW_SWS
   action.CHW_SWS_OAT_Delta: action.CHW_SWS_OAT_Delta
   action.CDW_SWS_WBT_Delta: action.CDW_SWS_WBT_Delta
-  action.CHW_SWS_RWT_Delta: action.CHW_SWS_OAT_Delta
+  action.CHW_SWS_RWT_Delta: action.CHW_SWS_RWT_Delta
   action.CDW_SWS_RWT_Delta: action.CDW_SWS_RWT_Delta
 inputs:
   [
@@ -40,6 +40,14 @@ inputs:
     "state.Count_of_Valves>90PCT",
     "state.Total_KW",
     "state.Plant_kW_Ton_Efficiency",
+    "state.PCT_Design_CDW_FLOW_STPT",
+    "state.Max_Design_CDW_GPM_FLOW_STPT",
+    "state.CHL_1_Active",
+    "state.CHL_2_Active",
+    "state.CHL_3_Active",
+    "state.Count_of_Active_CHL",
+    "state.CDW_SWT",
+    "state.CHW_SWT",
   ]
 outputs:
   [
@@ -53,12 +61,12 @@ outputs:
     "state.Count_of_Valves>90PCT",
     "state.Total_KW",
     "state.Plant_kW_Ton_Efficiency",
+    "state.CDW_SWT",
+    "state.CHW_SWT",
   ]
 augmented_cols:
   [
     "action.CDW_GPM_Flow",
-    "action.PCT_Design_CDW_FLOW_STPT",
-    "action.Max_Design_CDW_GPM_FLOW_STPT",
     "action.CDW_SWS",
     "action.CHW_DPSP",
     "action.CHW_SWS",
@@ -66,19 +74,13 @@ augmented_cols:
     "action.CDW_SWS_WBT_Delta",
     "action.CHW_SWS_RWT_Delta",
     "action.CDW_SWS_RWT_Delta",
-    "action.CHL_1_Active",
-    "action.CHL_2_Active",
-    "action.CHL_3_Active",
-    "action.Count_of_Active_CHL",
-    "action.CDW_SWT",
-    "action.CHW_SWT",
   ]
+preprocess: pipeline.py
 iteration_order: -1
 episode_col: episode
 iteration_col: iteration
 max_rows: -1
 test_perc: 0.25
-scale_data: True
 diff_state: False
 concatenated_steps: 0
 concatenated_zero_padding: False
@@ -93,3 +95,5 @@ concatenate_length:
   state.Count_of_Valves>90PCT: 1
   state.Total_KW: 5
   state.Plant_kW_Ton_Efficiency: 5
+  state.CDW_SWT: 5
+  state.CHW_SWT: 5

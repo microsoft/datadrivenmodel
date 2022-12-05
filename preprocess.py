@@ -10,7 +10,7 @@ def calculate_deltas(df):
 
     df["action.CDW_SWS_RWT_Delta"] = df["state.CDW_RWT"] - df["action.CDW_SWS"]
     df["action.CDW_SWS_WBT_Delta"] = df["state.WBT"] - df["action.CDW_SWS"]
-    df["CHW_SWS_RWT_Delta"] = df["state.CHW_RWT"] - df["action.CHW_SWS"]
+    df["action.CHW_SWS_RWT_Delta"] = df["state.CHW_RWT"] - df["action.CHW_SWS"]
     df["action.CHW_SWS_OAT_Delta"] = df["state.OAT"] - df["action.CHW_SWS"]
 
     return df

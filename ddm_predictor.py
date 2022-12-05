@@ -2,7 +2,7 @@ import logging
 import os
 import random
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from omegaconf import ListConfig
 from functools import partial
 from policies import random_policy, brain_policy
@@ -53,6 +53,7 @@ class Simulator(BaseModel):
         lagged_inputs: int = 1,
         lagged_padding: bool = False,
         concatenate_var_length: Optional[Dict[str, int]] = None,
+        prep_pipeline: Optional[Callable] = None,
     ):
 
         self.model = model
@@ -69,6 +70,7 @@ class Simulator(BaseModel):
         self.lagged_inputs = lagged_inputs
         self.lagged_padding = lagged_padding
         self.concatenate_var_length = concatenate_var_length
+        self.prep_pipeline = prep_pipeline
 
         if self.concatenate_var_length:
             logger.info(f"Using variable length lags: {self.concatenate_var_length}")
@@ -116,7 +118,7 @@ class Simulator(BaseModel):
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
 
-    def episode_start(self, config: Dict[str, Any] = None):
+    def episode_start(self, config: Optional[Dict[str, Any]] = None):
         """Initialize DDM. This could include initializations of configs
         as well as initial values for states.
 
@@ -242,6 +244,10 @@ class Simulator(BaseModel):
             self.all_data = {**self.state, **self.action, **self.config}
         else:
             self.all_data = {**self.state, **self.action}
+        if self.prep_pipeline:
+            from preprocess import pipeline
+
+            self.all_data = pipeline(self.all_data)
 
         ## if you're using lagged_features, we need to initialize them
         ## will initially be set to the same value, which is either 0
@@ -295,6 +301,10 @@ class Simulator(BaseModel):
             }
             action = lagged_action
         self.all_data.update(action)
+        if self.prep_pipeline:
+            from preprocess import pipeline
+
+            self.all_data = pipeline(self.all_data)
         self.iteration_counter += 1
 
         # Use the signal builder's value as input to DDM if specified
@@ -479,8 +489,13 @@ def main(cfg: DictConfig):
     policy = cfg["simulator"]["policy"]
     # logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
-    # scale_data = cfg["model"]["build_params"]["scale_data"]
-    scale_data = cfg["data"]["scale_data"]
+
+    ts_model = model_name.lower() in ["nhits", "tftmodel", "varima", "ets", "sfarima"]
+    if ts_model:
+        scale_data = cfg["model"]["scale_data"]
+    else:
+        scale_data = cfg["model"]["build_params"]["scale_data"]
+    # scale_data = cfg["data"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
@@ -492,6 +507,7 @@ def main(cfg: DictConfig):
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
+    prep_pipeline = cfg["data"]["preprocess"]
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)
     if type(output_cols) == ListConfig:
@@ -545,6 +561,7 @@ def main(cfg: DictConfig):
         concatenated_steps,
         concatenated_zero_padding,
         concatenate_var_length,
+        prep_pipeline=prep_pipeline,
     )
 
     # do a random action to get initial state

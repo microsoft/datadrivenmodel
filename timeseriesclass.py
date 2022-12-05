@@ -1,3 +1,4 @@
+import logging
 import os
 import pandas as pd
 from base import BaseModel
@@ -24,6 +25,9 @@ from darts.models.forecasting.exponential_smoothing import ExponentialSmoothing
 # you can certainly predict longer horizons, but then it will treat
 # your past_covariates fixed (including actions)
 
+logger = logging.getLogger("tsclass")
+logger.setLevel(logging.INFO)
+
 darts_models = {
     "nhits": NHiTSModel,
     "tftmodel": TFTModel,
@@ -43,6 +47,7 @@ class TimeSeriesDarts(BaseModel):
         feature_cols,
         test_perc: float = 0.2,
         return_ts: bool = True,
+        var_rename: Optional[Dict[str, str]] = None,
     ):
 
         self.episode_col = episode_col
@@ -51,6 +56,9 @@ class TimeSeriesDarts(BaseModel):
         self.feature_cols = feature_cols
 
         pandas_df = pd.read_csv(dataset_path)
+        if var_rename:
+            logger.info(f"Renaming dataset using mapper: {var_rename}")
+            pandas_df = pandas_df.rename(var_rename, axis=1)
         test_ep_start = pandas_df[episode_col].max() - floor(
             pandas_df[episode_col].max() * test_perc
         )
@@ -100,7 +108,9 @@ class TimeSeriesDarts(BaseModel):
         self.model = model
 
     def fit(
-        self, df, fit_params: Dict = {},
+        self,
+        df,
+        fit_params: Dict = {},
     ):
 
         if not self.model:
@@ -113,7 +123,9 @@ class TimeSeriesDarts(BaseModel):
         )
 
     def predict(
-        self, df, predict_params: Dict = {"n": 1},
+        self,
+        df,
+        predict_params: Dict = {"n": 1},
     ):
 
         if not self.model:
@@ -241,4 +253,3 @@ if __name__ == "__main__":
     # nhits_model = NHiTSModel(input_chunk_length=1, output_chunk_length=1)
     # nhits_model.fit(series=train_labels, past_covariates=train_features)
     # yhat = nhits_model.predict(series=test_labels, past_covariates=test_features, n=1)
-

@@ -5,7 +5,7 @@ import os
 import pathlib
 import pickle
 from collections import OrderedDict
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Tuple, Union, Optional, Callable
 from omegaconf.listconfig import ListConfig
 
 import matplotlib
@@ -184,6 +184,8 @@ class BaseModel(abc.ABC):
         test_perc: float = 0.15,
         debug: bool = False,
         diff_state: bool = False,
+        prep_pipeline: Optional[Callable] = None,
+        var_rename: Optional[Dict[str, str]] = None,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
         concatenate_var_length: Optional[Dict[str, int]] = None,
@@ -238,6 +240,8 @@ class BaseModel(abc.ABC):
             test_perc=test_perc,
             debug=debug,
             diff_state=diff_state,
+            prep_pipeline=prep_pipeline,
+            var_rename=var_rename,
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
@@ -353,7 +357,8 @@ class BaseModel(abc.ABC):
             return preds_df
 
     def predict_sequentially_all(
-        self, X: Union[None, np.ndarray] = None,
+        self,
+        X: Union[None, np.ndarray] = None,
     ):
         """Make predictions sequentially for provided iterations. All iterations are run sequentially until the end.
 

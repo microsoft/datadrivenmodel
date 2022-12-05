@@ -1,12 +1,12 @@
 name: xgboost
 build_params:
   model_type: xgboost
+  scale_data: True
   fit_separate: False
   halt_model: False
   n_estimators: 100
   objective: reg:squarederror
   learning_rate: 0.3
-  scale_data: True
   max_depth: 6
 saver:
   filename: models/b1/xgboost

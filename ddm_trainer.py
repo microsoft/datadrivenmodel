@@ -32,11 +32,12 @@ def main(cfg: DictConfig) -> None:
     dataset_path = cfg["data"]["path"]
     max_rows = cfg["data"]["max_rows"]
     test_perc = cfg["data"]["test_perc"]
-    scale_data = cfg["data"]["scale_data"]
     delta_state = cfg["data"]["diff_state"]
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
     concatenate_var_length = cfg["data"]["concatenate_length"]
+    pipeline = cfg["data"]["preprocess"]
+    var_rename = cfg["data"]["var_rename"]
 
     # common model args
     save_path = cfg["model"]["saver"]["filename"]
@@ -92,6 +93,7 @@ def main(cfg: DictConfig) -> None:
             feature_cols,
             test_perc,
             return_ts=False,
+            var_rename=var_rename,
         )
     else:
         X_train, y_train, X_test, y_test = model.load_csv(
@@ -106,6 +108,8 @@ def main(cfg: DictConfig) -> None:
             max_rows=max_rows,
             test_perc=test_perc,
             diff_state=delta_state,
+            prep_pipeline=pipeline,
+            var_rename=var_rename,
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
@@ -131,7 +135,9 @@ def main(cfg: DictConfig) -> None:
     logger.info("Building model...")
     if ts_model:
         model.build_model(
-            model_type=cfg["model"]["name"], build_params=cfg["model"]["build_params"]
+            model_type=cfg["model"]["name"],
+            scale_data=cfg["model"]["scale_data"],
+            build_params=cfg["model"]["build_params"],
         )
     else:
         model.build_model(**cfg["model"]["build_params"])
