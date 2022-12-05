@@ -10,6 +10,7 @@ states:
   'state.CHL_Product',
   'state.PCT_of_Valves>90PCT',
   'state.Count_of_Valves>90PCT',
+  'state.Count_of_Active_CHL',
   'state.Total_KW',
   'state.Plant_kW_Ton_Efficiency'
   ]
@@ -21,11 +22,11 @@ actions:
   'action.CDW_SWS',
   'action.CHW_DPSP',
   'action.CHW_SWS',
-  'action.CHW_SWS_OAT_Delta',
-  'action.CDW_SWS_WBT_Delta',
-  'action.CHW_SWS_RWT_Delta',
-  'action.CDW_SWS_RWT_Delta',
-  'action.Count_of_Active_CHL'
+  # 'action.CHW_SWS_OAT_Delta',
+  # 'action.CDW_SWS_WBT_Delta',
+  # 'action.CHW_SWS_RWT_Delta',
+  # 'action.CDW_SWS_RWT_Delta',
+  # 'action.Count_of_Active_CHL'
   ]
 configs: 
 # include here all config variables initializations

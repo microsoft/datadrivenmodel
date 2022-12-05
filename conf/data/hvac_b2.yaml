@@ -1,5 +1,7 @@
 path: "../data/building2.csv"
-full_or_relative: full
+full_or_relative: relative
+var_rename:
+    action.Count_of_Active_CHL: state.Count_of_Active_CHL
 inputs:
   [
     "state.OAT",
@@ -12,6 +14,7 @@ inputs:
     "state.CHL_Product",
     "state.PCT_of_Valves>90PCT",
     "state.Count_of_Valves>90PCT",
+    "state.Count_of_Active_CHL",
     "state.Total_KW",
     "state.Plant_kW_Ton_Efficiency",
   ]
@@ -27,6 +30,7 @@ outputs:
     "state.CHL_Product",
     "state.PCT_of_Valves>90PCT",
     "state.Count_of_Valves>90PCT",
+    "state.Count_of_Active_CHL",
     "state.Total_KW",
     "state.Plant_kW_Ton_Efficiency",
   ]
@@ -39,9 +43,9 @@ augmented_cols:
     "action.CHW_SWS_OAT_Delta",
     "action.CDW_SWS_WBT_Delta",
     "action.CHW_SWS_RWT_Delta",
-    "action.CDW_SWS_RWT_Delta",
-    "action.Count_of_Active_CHL",
+    "action.CDW_SWS_RWT_Delta"
   ]
+preprocess: pipeline.py
 iteration_order: -1
 episode_col: episode
 iteration_col: iteration
@@ -61,3 +65,6 @@ concatenate_length:
   state.Count_of_Valves>90PCT: 1
   state.Total_KW: 5
   state.Plant_kW_Ton_Efficiency: 5
+  state.CHW_SWT: 5
+  state.Count_of_Active_CHL: 3
+  state.CHW_GPM: 3
