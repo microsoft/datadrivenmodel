@@ -4,12 +4,9 @@ import logging
 import os
 import pathlib
 import pickle
-from collections import OrderedDict
 from typing import Dict, List, Tuple, Union, Optional, Callable
 from omegaconf.listconfig import ListConfig
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from natsort import natsorted
@@ -26,7 +23,6 @@ from sklearn.preprocessing import StandardScaler
 from dataclass import DataClass
 
 logger = logging.getLogger(__name__)
-matplotlib.rcParams["figure.figsize"] = [12, 10]
 
 
 class BaseModel(abc.ABC):
@@ -823,6 +819,10 @@ class BaseModel(abc.ABC):
         return pd.DataFrame(results.items(), columns=["var", "score"])
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
+
+        import matplotlib
+        import matplotlib.pyplot as plt
+        matplotlib.rcParams["figure.figsize"] = [12, 10]
 
         test_halt_preds = self.predict_halt_classifier(halt_x)
         halt_fpr, halt_tpr, _ = roc_curve(halt_y, test_halt_preds)
