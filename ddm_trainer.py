@@ -75,6 +75,8 @@ def main(cfg: DictConfig) -> None:
         input_cols = list(input_cols)
     if type(output_cols) == ListConfig:
         output_cols = list(output_cols)
+    elif type(output_cols) == DictConfig:
+        output_cols = list(output_cols.keys())
     if type(augmented_cols) == ListConfig:
         augmented_cols = list(augmented_cols)
 

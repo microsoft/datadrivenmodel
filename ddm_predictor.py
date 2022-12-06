@@ -2,7 +2,7 @@ import logging
 import os
 import random
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 from omegaconf import ListConfig
 from functools import partial
 from policies import random_policy, brain_policy
@@ -37,6 +37,26 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
 
 
+def type_conversion(obj, type, minimum, maximum):
+
+    if type == "str":
+        return str(obj)
+    elif type == "int":
+        if obj <= minimum:
+            return int(minimum)
+        elif obj >= maximum:
+            return int(maximum)
+        else:
+            return int(obj)
+    elif type == "float":
+        if obj <= minimum:
+            return float(minimum)
+        elif obj >= maximum:
+            return float(maximum)
+        else:
+            return float(obj)
+
+
 class Simulator(BaseModel):
     def __init__(
         self,
@@ -45,7 +65,7 @@ class Simulator(BaseModel):
         actions: List[str],
         configs: List[str],
         inputs: List[str],
-        outputs: List[str],
+        outputs: Union[List[str], Dict[str, str]],
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
         signal_builder: Dict[str, float],
@@ -60,6 +80,14 @@ class Simulator(BaseModel):
         # self.features = states + configs + actions
         # self.labels = states
         self.features = inputs
+        if type(outputs) == ListConfig:
+            outputs = list(outputs)
+            self.label_types = None
+        elif type(outputs) == DictConfig:
+            output_types = outputs
+            outputs = list(outputs.keys())
+            self.label_types = output_types
+
         self.labels = outputs
         self.config_keys = configs
         self.episode_inits = episode_inits
@@ -383,6 +411,26 @@ class Simulator(BaseModel):
         return dict(self.state)
 
     def get_state(self) -> Dict:
+
+        if hasattr(self, "label_types"):
+            for key, val_type in self.label_types.items():
+                state_val = self.state[key]
+                val_type = val_type.split(" ")
+                if len(val_type) < 2:
+                    bottom = state_val - 10
+                    top = state_val + 10
+                    val_type = val_type[0]
+                elif len(val_type) == 2:
+                    # val_type, val_range = val_type.split(" ")
+                    val_range = val_type[1]
+                    val_type = val_type[0]
+                    val_range = val_range.split(",")
+                    bottom = float(val_range[0])
+                    top = float(val_range[1])
+                else:
+                    raise ValueError(f"Invalid label type provided: {type(val_type)}")
+                state_val = type_conversion(state_val, val_type, bottom, top)
+                self.state[key] = state_val
 
         if self.signal_builder:
             state_plus_signals = {**self.state, **self.current_signals}
