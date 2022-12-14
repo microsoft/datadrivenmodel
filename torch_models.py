@@ -9,7 +9,6 @@ import torch.nn.functional as F
 from skorch import NeuralNetRegressor
 from skorch.callbacks import LRScheduler
 from torch.optim.lr_scheduler import CyclicLR
-from tune_sklearn import TuneSearchCV
 from sklearn.model_selection import (
     GridSearchCV,
     GroupShuffleSplit,
@@ -194,6 +193,7 @@ class PyTorchModel(BaseModel):
         if any(
             [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
         ):
+            from tune_sklearn import TuneSearchCV
             search = TuneSearchCV(
                 self.model,
                 params,

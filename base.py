@@ -822,6 +822,7 @@ class BaseModel(abc.ABC):
 
         import matplotlib
         import matplotlib.pyplot as plt
+
         matplotlib.rcParams["figure.figsize"] = [12, 10]
 
         test_halt_preds = self.predict_halt_classifier(halt_x)
@@ -943,7 +944,6 @@ class BaseModel(abc.ABC):
 
         # early stopping only supported for learners that have a
         # `partial_fit` method
-        from tune_sklearn import TuneSearchCV
         import mlflow
         import time
 
@@ -958,6 +958,8 @@ class BaseModel(abc.ABC):
         if any(
             [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
         ):
+            from tune_sklearn import TuneSearchCV
+
             search = TuneSearchCV(
                 self.model,
                 params,

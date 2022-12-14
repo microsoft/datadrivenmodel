@@ -96,7 +96,8 @@ class DataClass(object):
         lagged_df = df.groupby(by=episode_col, as_index=False).shift(
             iteration_order * -1
         )
-        lagged_df = lagged_df.drop([iteration_col], axis=1)
+        if iteration_col not in feature_cols:
+            lagged_df = lagged_df.drop([iteration_col], axis=1)
 
         # if iteration order is less than 1
         # then the actions, configs should not be lagged
@@ -128,8 +129,10 @@ class DataClass(object):
         logger.info(f"Feature columns are: {self.feature_cols}")
         logger.info(f"Label columns are: {self.label_cols}")
         # joined_df = df.join(features_df)
-        vars_to_keep = (
-            [episode_col, iteration_col] + self.feature_cols + self.label_cols
+        # in case iteration is in feature_cols, we don't want duplicated elements
+        # so we convert to a unique list
+        vars_to_keep = list(
+            set([episode_col, iteration_col] + self.feature_cols + self.label_cols)
         )
         if iteration_order < 0:
             labels_df = df[[episode_col, iteration_col] + self.label_cols]
@@ -137,6 +140,9 @@ class DataClass(object):
             labels_df = df[[episode_col, iteration_col]].join(
                 lagged_df[self.label_cols]
             )
+        # drop iteration from labels if it exists in features_df as well
+        if iteration_col in labels_df.columns and iteration_col in features_df.columns:
+            labels_df = labels_df.drop([iteration_col], axis=1)
         return labels_df.join(features_df)[vars_to_keep]
 
     def read(

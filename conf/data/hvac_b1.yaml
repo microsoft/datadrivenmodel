@@ -47,6 +47,8 @@ inputs:
   - state.Count_of_Active_CHL
   - state.CDW_SWT
   - state.CHW_SWT
+  # including iteration as a proxy for seasonality (daily)
+  - iteration
 outputs:
   # if you know and want to specify the types, use a dictionary object below mapping each out
   # output to a type, and use a space if you want to specify a range
@@ -84,10 +86,11 @@ episode_col: episode
 iteration_col: iteration
 max_rows: -1
 test_perc: 0.25
-diff_state: False
+diff_state: True
 concatenated_steps: 0
 concatenated_zero_padding: False
 concatenate_length:
+  # action.CDW_SWS: 5
   state.OAT: 3
   state.WBT: 3
   state.CDW_RWT: 5

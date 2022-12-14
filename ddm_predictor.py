@@ -74,6 +74,7 @@ class Simulator(BaseModel):
         lagged_padding: bool = False,
         concatenate_var_length: Optional[Dict[str, int]] = None,
         prep_pipeline: Optional[Callable] = None,
+        iteration_col: Optional[str] = None,
     ):
 
         self.model = model
@@ -99,6 +100,7 @@ class Simulator(BaseModel):
         self.lagged_padding = lagged_padding
         self.concatenate_var_length = concatenate_var_length
         self.prep_pipeline = prep_pipeline
+        self.iteration_col = iteration_col
 
         if self.concatenate_var_length:
             logger.info(f"Using variable length lags: {self.concatenate_var_length}")
@@ -277,6 +279,12 @@ class Simulator(BaseModel):
 
             self.all_data = pipeline(self.all_data)
 
+        if self.iteration_col:
+            self.all_data[self.iteration_col] = self.iteration_counter
+            logger.info(
+                f"Iteration used as a feature. Iteration #: {self.iteration_counter}"
+            )
+
         ## if you're using lagged_features, we need to initialize them
         ## will initially be set to the same value, which is either 0
         ## or the initial value of the state depending on zero_padding
@@ -334,6 +342,10 @@ class Simulator(BaseModel):
 
             self.all_data = pipeline(self.all_data)
         self.iteration_counter += 1
+        if self.iteration_col:
+            logger.info(
+                f"Iteration used as a feature. Iteration #: {self.iteration_counter}"
+            )
 
         # Use the signal builder's value as input to DDM if specified
         if self.signal_builder:
@@ -385,6 +397,8 @@ class Simulator(BaseModel):
             }
             ddm_output = lagged_ddm_output
         self.all_data.update(ddm_output)
+        if self.iteration_col:
+            self.all_data[self.iteration_col] = self.iteration_counter
 
         # current state is just the first value
         states_lagged = list(
@@ -526,8 +540,6 @@ def test_policy(
 def main(cfg: DictConfig):
 
     save_path = cfg["model"]["saver"]["filename"]
-    # if cfg["data"]["full_or_relative"] == "relative":
-    # SAVE PATH IS ALWAYS RELATIVE
     save_path = os.path.join(dir_path, save_path)
     model_name = cfg["model"]["name"]
     states = cfg["simulator"]["states"]
@@ -556,6 +568,8 @@ def main(cfg: DictConfig):
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
     prep_pipeline = cfg["data"]["preprocess"]
+    iteration_col = cfg["data"]["iteration_col"]
+    iteration_col = iteration_col if iteration_col in input_cols else None
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)
     if type(output_cols) == ListConfig:
@@ -610,6 +624,7 @@ def main(cfg: DictConfig):
         concatenated_zero_padding,
         concatenate_var_length,
         prep_pipeline=prep_pipeline,
+        iteration_col=iteration_col,
     )
 
     # do a random action to get initial state
