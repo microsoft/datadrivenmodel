@@ -48,6 +48,7 @@ class TimeSeriesDarts(BaseModel):
         test_perc: float = 0.2,
         return_ts: bool = True,
         var_rename: Optional[Dict[str, str]] = None,
+        exogeneous_variables: Optional[List[str]] = None,
     ):
 
         self.episode_col = episode_col
@@ -64,6 +65,9 @@ class TimeSeriesDarts(BaseModel):
         )
         train_df = pandas_df[pandas_df[episode_col] < test_ep_start]
         test_df = pandas_df[pandas_df[episode_col] >= test_ep_start]
+
+        if exogeneous_variables:
+            raise NotImplementedError("Exogeneous variables not implemented yet!")
 
         if return_ts:
 

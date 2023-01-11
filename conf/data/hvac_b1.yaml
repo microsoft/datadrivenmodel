@@ -53,8 +53,8 @@ outputs:
   # if you know and want to specify the types, use a dictionary object below mapping each out
   # output to a type, and use a space if you want to specify a range
   # if you don't know the types or don't want to specify/enforce them, just specify a list
-  state.OAT: float
-  state.WBT: float
+  # state.OAT: float
+  # state.WBT: float
   state.CDW_RWT: float
   state.CHW_RWT: float
   state.CHW_TONS: float
@@ -81,6 +81,14 @@ augmented_cols:
   - action.CHW_SWS_RWT_Delta
   - action.CDW_SWS_RWT_Delta
 preprocess: pipeline.py
+# list the variables that are exogenous to the model
+# this means their trajectories will be saved
+# and during brain prediction, the model will be fed these values
+# rather than receive them from inkling or as outputs from the model
+exogeneous_variables:
+  - state.OAT
+  - state.WBT
+path_exogoenous_variables: "building1_exogenous_vars.csv"
 iteration_order: -1
 episode_col: episode
 iteration_col: iteration

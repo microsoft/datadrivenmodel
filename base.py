@@ -185,6 +185,7 @@ class BaseModel(abc.ABC):
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
         concatenate_var_length: Optional[Dict[str, int]] = None,
+        exogeneous_variables: Optional[List[str]] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -210,6 +211,10 @@ class BaseModel(abc.ABC):
         concatenated_zero_padding : bool, optional
             true: initial state padding made with zeroes
             false: initial state padding made copying initial sample 'concatenated_steps' times
+        concatenate_var_length : Optional[Dict[str, int]], optional
+            dictionary of variable names and their length to be concatenated. If None, ignored
+        exogeneous_variables : Optional[List[str]], optional
+            List of exogeneous variables which are read and saved to CSV with episode and iteration IDS. If None, ignored
 
         Returns
         -------
@@ -241,6 +246,7 @@ class BaseModel(abc.ABC):
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
+            exogeneous_variables=exogeneous_variables,
         )
 
         # Transferring key features in between classes for easier access

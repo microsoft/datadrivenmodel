@@ -75,6 +75,7 @@ class Simulator(BaseModel):
         concatenate_var_length: Optional[Dict[str, int]] = None,
         prep_pipeline: Optional[Callable] = None,
         iteration_col: Optional[str] = None,
+        exogeneous_variables: Optional[List[str]] = None,
     ):
 
         self.model = model
@@ -88,6 +89,15 @@ class Simulator(BaseModel):
             output_types = outputs
             outputs = list(outputs.keys())
             self.label_types = output_types
+        
+        # if you're using exogeneous variables these will be looked up
+        # from a saved dataset and appended during episode_step
+        if exogeneous_variables:
+            fname, ext = os.path.splitext(dataset_path)
+            exogeneous_save_path = f"{fname}_exogeneous_vars{ext}"
+            logger.info(
+                f"Saving exogeneous variables with episode and iteration indices to {exogeneous_save_path}"
+                )
 
         self.labels = outputs
         self.config_keys = configs
@@ -560,6 +570,7 @@ def main(cfg: DictConfig):
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
     concatenate_var_length = cfg["data"]["concatenate_length"]
+    exogeneous_variables = cfg["data"]["exogeneous_variables"]
 
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
@@ -625,6 +636,7 @@ def main(cfg: DictConfig):
         concatenate_var_length,
         prep_pipeline=prep_pipeline,
         iteration_col=iteration_col,
+        exogeneous_variables=exogeneous_variables,
     )
 
     # do a random action to get initial state

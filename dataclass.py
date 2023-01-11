@@ -8,6 +8,7 @@ import random
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
 from omegaconf.listconfig import ListConfig
+from pathlib import Path
 
 logger = logging.getLogger("data_class")
 logger.setLevel(logging.INFO)
@@ -250,6 +251,7 @@ class DataClass(object):
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
         concatenate_var_length: Optional[Dict[str, int]] = None,
+        exogeneous_variables: Optional[List[str]] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -278,6 +280,10 @@ class DataClass(object):
         concatenated_zero_padding : bool, optional
             true: initial state padding made with zeroes
             false: initial state padding made copying initial sample 'concatenated_steps' times
+        concatenate_var_length : Optional[Dict[str, int]], optional
+            dictionary of variable names and their length to be concatenated. If None, ignored
+        exogeneous_variables : Optional[List[str]], optional
+            List of exogeneous variables which are read and saved to CSV with episode and iteration IDS. If None, ignored
 
         Returns
         -------
@@ -359,6 +365,16 @@ class DataClass(object):
                 iteration_col=iteration_col,
                 augmented_cols=augm_features,
             )
+
+            if exogeneous_variables:
+                fname, ext = os.path.splitext(dataset_path)
+                exogeneous_save_path = f"{fname}_exogeneous_vars{ext}"
+                logger.info(
+                    f"Saving exogeneous variables with episode and iteration indices to {exogeneous_save_path}"
+                )
+                df[[episode_col, iteration_col] + exogeneous_variables].to_csv(
+                    exogeneous_save_path
+                )
 
             # store episode_id to group_per_episode
             self.episode_col = episode_col
