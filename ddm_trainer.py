@@ -38,6 +38,8 @@ def main(cfg: DictConfig) -> None:
     concatenate_var_length = cfg["data"]["concatenate_length"]
     pipeline = cfg["data"]["preprocess"]
     var_rename = cfg["data"]["var_rename"]
+    exogeneous_variables = cfg["data"]["exogeneous_variables"]
+    exogeneous_path = cfg["data"]["path_exogeneous_variables"]
 
     # common model args
     save_path = cfg["model"]["saver"]["filename"]
@@ -96,6 +98,8 @@ def main(cfg: DictConfig) -> None:
             test_perc,
             return_ts=False,
             var_rename=var_rename,
+            exogeneous_variables=exogeneous_variables,
+            exogeneous_path=exogeneous_path,
         )
     else:
         X_train, y_train, X_test, y_test = model.load_csv(
@@ -115,6 +119,8 @@ def main(cfg: DictConfig) -> None:
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
+            exogeneous_variables=exogeneous_variables,
+            exogeneous_path=exogeneous_path,
         )
 
     logger.info(
