@@ -71,7 +71,6 @@ outputs:
   state.Count_of_Active_CHL: int 0,3
   state.CDW_SWT: float
   state.CHW_SWT: float
-  terminal: bool
 augmented_cols:
   - action.CDW_GPM_Flow
   - action.CDW_SWS
