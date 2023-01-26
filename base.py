@@ -186,6 +186,8 @@ class BaseModel(abc.ABC):
         concatenated_zero_padding: bool = True,
         concatenate_var_length: Optional[Dict[str, int]] = None,
         exogeneous_variables: Optional[List[str]] = None,
+        exogeneous_save_path: Optional[str] = None,
+        initial_values_save_path: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -215,6 +217,11 @@ class BaseModel(abc.ABC):
             dictionary of variable names and their length to be concatenated. If None, ignored
         exogeneous_variables : Optional[List[str]], optional
             List of exogeneous variables which are read and saved to CSV with episode and iteration IDS. If None, ignored
+        exogeneous_save_path : Optional[str], optional
+            Path to save exogeneous variables to. If None, ignored
+        initial_values_save_path : Optional[str], optional
+            Path to save initial values to. If None, ignored and no initial values are saved
+
 
         Returns
         -------
@@ -247,6 +254,9 @@ class BaseModel(abc.ABC):
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
             exogeneous_variables=exogeneous_variables,
+            exogeneous_save_path=exogeneous_save_path,
+            reindex_iterations=exogeneous_variables is not None,
+            initial_values_save_path=initial_values_save_path,
         )
 
         # Transferring key features in between classes for easier access

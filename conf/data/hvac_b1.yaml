@@ -71,6 +71,7 @@ outputs:
   state.Count_of_Active_CHL: int 0,3
   state.CDW_SWT: float
   state.CHW_SWT: float
+  terminal: bool
 augmented_cols:
   - action.CDW_GPM_Flow
   - action.CDW_SWS
@@ -88,13 +89,14 @@ preprocess: pipeline.py
 exogeneous_variables:
   - state.OAT
   - state.WBT
-path_exogoenous_variables: "building1_exogenous_vars.csv"
+exogeneous_save_path: "building1_exogenous_vars.csv"
+initial_values_save_path: "building1_initial_values.csv"
 iteration_order: -1
 episode_col: episode
 iteration_col: iteration
 max_rows: -1
 test_perc: 0.25
-diff_state: True
+diff_state: False
 concatenated_steps: 0
 concatenated_zero_padding: False
 concatenate_length:

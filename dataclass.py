@@ -156,7 +156,7 @@ class DataClass(object):
         label_cols: List[str] = ["state_x_position"],
         augmented_cols: List[str] = ["action_command"],
     ):
-        """Read episodic data where each row contains either inputs and its preceding output output or the causal inputs/outputs relationship
+        """Read episodic data where each row contains either inputs and its preceding output or the causal inputs/outputs relationship
 
         Parameters
         ----------
@@ -252,6 +252,9 @@ class DataClass(object):
         concatenated_zero_padding: bool = True,
         concatenate_var_length: Optional[Dict[str, int]] = None,
         exogeneous_variables: Optional[List[str]] = None,
+        exogeneous_save_path: Optional[str] = None,
+        reindex_iterations: Optional[bool] = False,
+        initial_values_save_path: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -284,6 +287,12 @@ class DataClass(object):
             dictionary of variable names and their length to be concatenated. If None, ignored
         exogeneous_variables : Optional[List[str]], optional
             List of exogeneous variables which are read and saved to CSV with episode and iteration IDS. If None, ignored
+        exogeneous_save_path : Optional[str], optional
+            Path to save exogeneous variables to. If None, ignored
+        reindex_iterations : Optional[bool], optional
+            If True, reindex iterations to start at 0 for each episode. If False, ignore
+        initial_values_save_path : Optional[str], optional
+            Path to save initial values to. If None, ignored and no initial values are saved
 
         Returns
         -------
@@ -306,6 +315,16 @@ class DataClass(object):
             if max_rows < 0:
                 max_rows = None
             df = pd.read_csv(dataset_path, nrows=max_rows)
+            if df[episode_col].dtype != int:
+                logger.info(
+                    f"Episode column {episode_col} is not integer. Attempting to convert to integer"
+                )
+                df[episode_col], _ = pd.factorize(df[episode_col])
+            if reindex_iterations:
+                logger.warn(
+                    "Re-indexing iterations to start at 1 and increment by 1 for each episode"
+                )
+                df[iteration_col] = df.groupby(episode_col).cumcount() + 1
             if var_rename:
                 logger.info(f"Renaming dataset using mapper: {var_rename}")
                 df = df.rename(var_rename, axis=1)
@@ -314,6 +333,19 @@ class DataClass(object):
 
                 logger.info(f"Applying preprocessing steps from pipeline.py")
                 df = pipeline(df)
+
+            if initial_values_save_path:
+                if os.path.dirname(initial_values_save_path) == "":
+                    initial_values_save_path = os.path.join(
+                        os.path.dirname(__file__), initial_values_save_path
+                    )
+                logger.info(
+                    f"Saving initial episode values to {initial_values_save_path}"
+                )
+                # group by episode and take first row
+                initial_values = df.groupby(episode_col).first().reset_index()
+                initial_values.to_csv(initial_values_save_path, index=False)
+
             if drop_nulls:
                 df = df[~df.isnull().any(axis=1)]
             if type(input_cols) == str:
@@ -367,13 +399,18 @@ class DataClass(object):
             )
 
             if exogeneous_variables:
-                fname, ext = os.path.splitext(dataset_path)
-                exogeneous_save_path = f"{fname}_exogeneous_vars{ext}"
+                if not exogeneous_save_path:
+                    fname, ext = os.path.splitext(dataset_path)
+                    exogeneous_save_path = f"{fname}_exogeneous_vars{ext}"
+                if os.path.dirname(exogeneous_save_path) == "":
+                    exogeneous_save_path = os.path.join(
+                        os.path.dirname(__file__), exogeneous_save_path
+                    )
                 logger.info(
                     f"Saving exogeneous variables with episode and iteration indices to {exogeneous_save_path}"
                 )
                 df[[episode_col, iteration_col] + exogeneous_variables].to_csv(
-                    exogeneous_save_path
+                    exogeneous_save_path, index=False
                 )
 
             # store episode_id to group_per_episode

@@ -39,7 +39,8 @@ def main(cfg: DictConfig) -> None:
     pipeline = cfg["data"]["preprocess"]
     var_rename = cfg["data"]["var_rename"]
     exogeneous_variables = cfg["data"]["exogeneous_variables"]
-    exogeneous_path = cfg["data"]["path_exogeneous_variables"]
+    exogeneous_path = cfg["data"]["exogeneous_save_path"]
+    initial_values_save_path = cfg["data"]["initial_values_save_path"]
 
     # common model args
     save_path = cfg["model"]["saver"]["filename"]
@@ -120,7 +121,8 @@ def main(cfg: DictConfig) -> None:
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
             exogeneous_variables=exogeneous_variables,
-            exogeneous_path=exogeneous_path,
+            exogeneous_save_path=exogeneous_path,
+            initial_values_save_path=initial_values_save_path,
         )
 
     logger.info(

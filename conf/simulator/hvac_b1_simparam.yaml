@@ -18,6 +18,7 @@ states:
   'state.Count_of_Active_CHL',
   'state.CDW_SWT',
   'state.CHW_SWT',
+  'terminal'
   ]
   # ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
 actions:
