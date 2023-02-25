@@ -50,7 +50,6 @@ class TimeSeriesDarts(BaseModel):
         var_rename: Optional[Dict[str, str]] = None,
         exogeneous_variables: Optional[List[str]] = None,
     ):
-
         self.episode_col = episode_col
         self.iteration_col = iteration_col
         self.label_cols = label_cols
@@ -70,7 +69,6 @@ class TimeSeriesDarts(BaseModel):
             raise NotImplementedError("Exogeneous variables not implemented yet!")
 
         if return_ts:
-
             train_features, train_labels = self._ts_group(train_df)
             test_features, test_labels = self._ts_group(test_df)
 
@@ -79,7 +77,6 @@ class TimeSeriesDarts(BaseModel):
             return train_df, test_df
 
     def _ts_group(self, df):
-
         from darts import timeseries as ts
 
         features = ts.TimeSeries.from_group_dataframe(
@@ -103,7 +100,6 @@ class TimeSeriesDarts(BaseModel):
         model_type: str = "nhits",
         build_params: Dict = {},
     ):
-
         self.scale_data = scale_data
         self.halt_model = halt_model
 
@@ -116,7 +112,6 @@ class TimeSeriesDarts(BaseModel):
         df,
         fit_params: Dict = {},
     ):
-
         if not self.model:
             raise ValueError("Build model first before fit")
 
@@ -131,7 +126,6 @@ class TimeSeriesDarts(BaseModel):
         df,
         predict_params: Dict = {"n": 1},
     ):
-
         if not self.model:
             raise ValueError("Model not yet fitted")
 
@@ -148,7 +142,6 @@ class TimeSeriesDarts(BaseModel):
         return y_pred
 
     def predict_sequentially(self, df, predict_params: Dict = {}, horizon: int = 50):
-
         # For multi-step prediction, we can either predict a single-step ahead
         # using the predict method and feed the value back into the covariates
         # and predict again, or, create a forward looking matrix for past_covariates
@@ -173,7 +166,6 @@ class TimeSeriesDarts(BaseModel):
 
 
 if __name__ == "__main__":
-
     dataset_path = os.path.join("csv_data", "cartpole_at_st.csv")
     data_df = pd.read_csv(dataset_path)
 

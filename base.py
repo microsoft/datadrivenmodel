@@ -32,7 +32,6 @@ class BaseModel(abc.ABC):
         model=None,
         model_mapper: Optional[Dict[str, str]] = None,
     ):
-
         self.logs_dir = log_dirs
         self.model = model
         self.halt_model = None
@@ -279,7 +278,6 @@ class BaseModel(abc.ABC):
     def load_numpy(
         self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy"
     ) -> Tuple:
-
         X = np.load(os.path.join(dataset_path, X_path))
         y = np.load(os.path.join(dataset_path, y_path))
         self.input_dim = X.shape[1]
@@ -288,14 +286,12 @@ class BaseModel(abc.ABC):
         return X, y
 
     def load_pickle_data(self, x_path: str, y_path: str):
-
         X = pickle.load(open(x_path, "rb"))
         y = pickle.load(open(y_path, "rb"))
 
         return X, y
 
     def scalar(self, X, y):
-
         self.xscalar = StandardScaler()
         self.yscalar = StandardScaler()
 
@@ -305,12 +301,10 @@ class BaseModel(abc.ABC):
         return X_scaled, y_scaled
 
     def build_model(self, scale_data: bool = False, halt_model: bool = False):
-
         self.scale_data = scale_data
         self.halt_model = halt_model
 
     def fit(self, X, y):
-
         if not self.model and not self.model_mapper:
             raise ValueError("Please build or load the model first")
 
@@ -323,11 +317,9 @@ class BaseModel(abc.ABC):
             self.model._fit(X, y)
 
     def _fit(self, X, y):
-
         raise NotImplementedError
 
     def _fit_multiple_models(self, X, y):
-
         self.models = {k: None for k in self.model_mapper.keys()}
         # if self.var_names:
         # logger.info(
@@ -345,7 +337,6 @@ class BaseModel(abc.ABC):
         #     self.models[key] = value.fit(X, y)
 
     def fit_halt_classifier(self, X, y):
-
         if not self.halt_model:
             raise ValueError("Please build or load the halted model first")
         if self.scale_data:
@@ -353,7 +344,6 @@ class BaseModel(abc.ABC):
         self.halt_model.fit(X, y)
 
     def predict(self, X, label_col_names: List[str] = None):
-
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
@@ -394,7 +384,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
-
             if X is None:
                 X, y_test = self.get_test_set(grouped_per_episode=False)
 
@@ -493,7 +482,6 @@ class BaseModel(abc.ABC):
 
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
-
                 # n_iterations = len(X_grouped[i])
                 n_iterations = X_grouped[i].shape[0]
                 if it_per_episode >= n_iterations:
@@ -543,11 +531,9 @@ class BaseModel(abc.ABC):
                 return preds_grouped, labels_grouped
 
     def predict_halt_classifier(self, X: np.ndarray):
-
         if not self.halt_model:
             raise ValueError("Please build or load the model first")
         else:
-
             if self.scale_data:
                 X = self.xscalar.transform(X)
             halts = self.halt_model.predict(X)
@@ -555,7 +541,6 @@ class BaseModel(abc.ABC):
         return halts
 
     def save_model(self, filename, dump_attributes: bool = False):
-
         if not any([s in filename for s in [".pkl", ".pickle"]]):
             filename += ".pkl"
         parent_dir = pathlib.Path(filename).parent
@@ -591,7 +576,6 @@ class BaseModel(abc.ABC):
             pickle.dump(self.model, open(filename, "wb"))
 
     def save_halt_model(self, dir_path: str = "models"):
-
         filename = os.path.join(dir_path, "halted_classifier.pkl")
         if not pathlib.Path(filename).parent.exists():
             pathlib.Path(filename).parent.mkdir(parents=True)
@@ -600,7 +584,6 @@ class BaseModel(abc.ABC):
     def load_model(
         self, filename: str, scale_data: bool = False, separate_models: bool = False
     ):
-
         self.separate_models = separate_models
         self.scale_data = scale_data
 
@@ -623,7 +606,6 @@ class BaseModel(abc.ABC):
             self.model = pickle.load(open(filename, "rb"))
 
     def _load_multimodels(self, filename: str, scale_data: bool):
-
         all_models = os.listdir(filename)
         all_models = natsorted(all_models)
         if self.scale_data:
@@ -637,7 +619,6 @@ class BaseModel(abc.ABC):
         self.models = models
 
     def load_halt_classifier(self, filename: str):
-
         self.halt_model = pickle.load(open(filename, "rb"))
 
     def evaluate(
@@ -656,7 +637,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
-
             if not marginal:
                 return metric(y_test, y_hat)
             else:
@@ -710,7 +690,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
-
             if X_grouped is None:
                 X_grouped, y_grouped = self.get_test_set(grouped_per_episode=True)
 
@@ -761,7 +740,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
-
             if X_test is None:
                 X_test, y_test = self.get_test_set(grouped_per_episode=False)
 
@@ -835,7 +813,6 @@ class BaseModel(abc.ABC):
         return pd.DataFrame(results.items(), columns=["var", "score"])
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
-
         import matplotlib
         import matplotlib.pyplot as plt
 
@@ -939,7 +916,6 @@ class BaseModel(abc.ABC):
         test_indices: Union[None, List[int]] = None,
         num_splits: int = 5,
     ) -> pd.DataFrame:
-
         if self.scale_data:
             X, y = self.scalar(X, y)
 
@@ -1028,7 +1004,6 @@ class BaseModel(abc.ABC):
 
 
 def plot_parallel_coords(results_df: pd.DataFrame):
-
     import plotly.express as px
 
     cols_keep = [col for col in results_df if "param_" in col]
@@ -1055,7 +1030,6 @@ def plot_parallel_coords(results_df: pd.DataFrame):
 
 
 if __name__ == "__main__":
-
     multi_models = {
         "state_MHW Mean Weight": "xgboost",
         "state_MHW Weigher Speed (setting)": "xgboost",

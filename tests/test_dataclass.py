@@ -34,7 +34,6 @@ def dataclass_obj():
 
 
 def test_cartpole_at_st1(dataclass_obj):
-
     cp_df = dataclass_obj.read(
         df, iteration_order=-1, feature_cols=features, label_cols=labels
     )
@@ -46,7 +45,6 @@ def test_cartpole_at_st1(dataclass_obj):
 
 
 def test_cartpole_at_st(dataclass_obj):
-
     cp2_df = dataclass_obj.read(
         df2, feature_cols=features, label_cols=labels, iteration_order=1
     )

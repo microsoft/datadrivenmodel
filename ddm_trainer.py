@@ -17,7 +17,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-
     logger.info("Configuration: ")
     logger.info(f"\n{OmegaConf.to_yaml(cfg)}")
 
@@ -204,5 +203,4 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-
     main()

@@ -30,7 +30,6 @@ class GBoostModel(BaseModel):
         max_depth: int = 6,
         num_leaves: int = 10,
     ):
-
         self.scale_data = scale_data
         if model_type == "xgboost":
             self.single_model = XGBRegressor(
@@ -63,7 +62,6 @@ class GBoostModel(BaseModel):
         self.separate_models = fit_separate
 
     def fit(self, X, y):
-
         if self.scale_data:
             X, y = self.scalar(X, y)
 
@@ -71,7 +69,6 @@ class GBoostModel(BaseModel):
             logger.warn(f"Fitting {y.shape[1]} separate models for each output")
             self.models = []
             for i in range(y.shape[1]):
-
                 boost_model = self.single_model
                 # if self.model_type == "xgboost":
                 #     boost_model = XGBRegressor()
@@ -86,14 +83,12 @@ class GBoostModel(BaseModel):
             self.model.fit(X, y)
 
     def partial_fit(self, X, y):
-
         if not self.model:
             raise NotFittedError("No model found")
         else:
             self.model.partial_fit(X, y)
 
     def predict(self, X: np.ndarray):
-
         if len(X.shape) == 1:
             X = X.reshape(1, -1)
 
@@ -118,7 +113,6 @@ class GBoostModel(BaseModel):
         return preds
 
     def save_model(self, filename):
-
         if not self.separate_models:
             if not any([s in filename for s in [".pkl", ".pickle"]]):
                 filename += ".pkl"
@@ -191,7 +185,6 @@ class GBoostModel(BaseModel):
 
 
 if __name__ == "__main__":
-
     xgm = GBoostModel()
     X, y = xgm.load_csv(
         dataset_path="csv_data/cartpole-log.csv",

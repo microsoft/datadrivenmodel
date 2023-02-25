@@ -725,7 +725,6 @@ class DataClass(object):
         else:
             # Modify the current state (features), with the updated states
             for feat in feats_list:
-
                 # Move the concatenated states forward by 1 step (higher number == least recent)
                 if self.concatenated_steps > 1:
                     for i in range(1, self.concatenated_steps):
@@ -804,7 +803,6 @@ class DataClass(object):
 
         # Compute difference values for each label
         for label in self.original_labels:
-
             diff_label = "diff_" + label
             diff_values = None
 
@@ -821,7 +819,6 @@ class DataClass(object):
             # If no feature has been matched, compute the difference between rows
             # > Note, the first row will have to be removed later
             if diff_values is None:
-
                 if len(df) < 2:
                     log_message = f"Matching feature not found for label '{label}'."
                     log_message += f" And not enough rows to compute diff (minimum 2, but {len(df)} were given)."
@@ -973,7 +970,6 @@ class DataClass(object):
 
 
 if __name__ == "__main__":
-
     data_dir = "csv_data"
     logger.info(f"Using data saved in directory {data_dir}")
 

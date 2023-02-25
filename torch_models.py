@@ -45,7 +45,6 @@ class MVRegressor(nn.Module):
         self.output = nn.Linear(num_units, self.output_dim)
 
     def forward(self, X, **kwargs):
-
         X = self.dense0(X)
         for _ in range(self.n_layers):
             X = F.relu(X)
@@ -67,7 +66,6 @@ class PyTorchModel(BaseModel):
         num_epochs: int = 10,
         batch_size: int = 128,
     ):
-
         self.scale_data = scale_data
         self.num_layers = num_layers
         self.num_units = num_units
@@ -76,7 +74,6 @@ class PyTorchModel(BaseModel):
         self.batch_size = batch_size
 
         if not all([hasattr(self, "input_dim"), hasattr(self, "output_dim")]):
-
             raise ValueError("Please load dataset first to obtain proper sizes")
 
         if device == "cpu":
@@ -84,7 +81,7 @@ class PyTorchModel(BaseModel):
         else:
             use_cuda = torch.cuda.is_available()
             self.device = torch.device("cuda" if use_cuda else "cpu")
-        
+
         # For more information about this class configs, you can see the following link:
         # https://skorch.readthedocs.io/en/stable/regressor.html
         self.model = NeuralNetRegressor(
@@ -111,7 +108,6 @@ class PyTorchModel(BaseModel):
         )
 
     def fit(self, X, y, **fit_params):
-
         if self.scale_data:
             X, y = self.scalar(X, y)
 
@@ -128,7 +124,6 @@ class PyTorchModel(BaseModel):
         filename: str,
         scale_data: bool = False,
     ):
-
         self.scale_data = scale_data
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -136,7 +131,6 @@ class PyTorchModel(BaseModel):
         self.model = pickle.load(open(filename, "rb"))
 
     def predict(self, X):
-
         if self.scale_data:
             X = self.xscalar.transform(X)
         X = torch.tensor(X).float().to(device=self.device)
@@ -160,7 +154,6 @@ class PyTorchModel(BaseModel):
         splitting_criteria: str = "timeseries",
         num_splits: int = 5,
     ):
-
         start_dir = str(pathlib.Path(os.getcwd()).parent)
         module_dir = str(pathlib.Path(__file__).parent)
         # temporarily change directory to file directory and then reset
@@ -196,6 +189,7 @@ class PyTorchModel(BaseModel):
             [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
         ):
             from tune_sklearn import TuneSearchCV
+
             search = TuneSearchCV(
                 self.model,
                 params,
@@ -248,7 +242,6 @@ class PyTorchModel(BaseModel):
 
 
 if __name__ == "__main__":
-
     pytorch_model = PyTorchModel()
     X, y = pytorch_model.load_csv(
         dataset_path="csv_data/cartpole-log.csv",

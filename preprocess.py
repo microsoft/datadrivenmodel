@@ -7,7 +7,6 @@ Define as many functions as you want, and chain them together in the pipeline fu
 
 
 def calculate_deltas(df):
-
     df["action.CDW_SWS_RWT_Delta"] = df["state.CDW_RWT"] - df["action.CDW_SWS"]
     df["action.CDW_SWS_WBT_Delta"] = df["state.WBT"] - df["action.CDW_SWS"]
     df["action.CHW_SWS_RWT_Delta"] = df["state.CHW_RWT"] - df["action.CHW_SWS"]
@@ -17,5 +16,4 @@ def calculate_deltas(df):
 
 
 def pipeline(df):
-
     return calculate_deltas(df)

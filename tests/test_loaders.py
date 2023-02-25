@@ -32,7 +32,6 @@ def csv_reader():
 
 
 def test_cartpole_at_st1(csv_reader):
-
     cp_df = csv_reader.read(
         df, iteration_order=-1, feature_cols=features, label_cols=labels
     )
@@ -44,7 +43,6 @@ def test_cartpole_at_st1(csv_reader):
 
 
 def test_cartpole_at_st(csv_reader):
-
     cp2_df = csv_reader.read(
         df2, feature_cols=features, label_cols=labels, iteration_order=1
     )
@@ -58,7 +56,6 @@ def test_cartpole_at_st(csv_reader):
 
 
 def test_base_reader():
-
     base_model = BaseModel()
     X, y, _, _ = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "cartpole_st1_at.csv"),
@@ -73,7 +70,6 @@ def test_base_reader():
 
 
 def test_diff_names():
-
     base_model = BaseModel()
     X, y, _, _ = base_model.load_csv(
         dataset_path=os.path.join(data_dir, "off_names.csv"),

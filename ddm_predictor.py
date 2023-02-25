@@ -40,7 +40,6 @@ env_name = "DDM"
 
 
 def type_conversion(obj, type, minimum, maximum):
-
     if type == "str":
         return str(obj)
     elif type == "int":
@@ -59,6 +58,7 @@ def type_conversion(obj, type, minimum, maximum):
             return float(obj)
     elif type == "bool":
         return obj
+
 
 class Simulator(BaseModel):
     def __init__(
@@ -82,7 +82,6 @@ class Simulator(BaseModel):
         exogeneous_save_path: Optional[str] = None,
         initial_values_save_path: Optional[str] = None,
     ):
-
         self.model = model
         # self.features = states + configs + actions
         # self.labels = states
@@ -371,7 +370,6 @@ class Simulator(BaseModel):
         #     }
 
     def episode_step(self, action: Dict[str, int]) -> Dict:
-
         # load design matrix for self.model.predict
         # should match the shape of conf.data.inputs
         # make dict of D={states, actions, configs}
@@ -504,7 +502,6 @@ class Simulator(BaseModel):
         return dict(self.state)
 
     def get_state(self) -> Dict:
-
         if hasattr(self, "label_types"):
             for key, val_type in self.label_types.items():
                 state_val = self.state[key]
@@ -534,7 +531,6 @@ class Simulator(BaseModel):
             return dict(self.state)
 
     def halted(self):
-
         pass
 
 
@@ -586,7 +582,6 @@ def test_policy(
     """
 
     def _config_clean(in_config):
-
         new_config = {}
         for k, v in in_config.items():
             if type(v) in [DictConfig, dict]:
@@ -620,7 +615,6 @@ def test_policy(
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig):
-
     save_path = cfg["model"]["saver"]["filename"]
     save_path = os.path.join(dir_path, save_path)
     model_name = cfg["model"]["name"]
@@ -882,5 +876,4 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-
     main()
