@@ -25,3 +25,4 @@ scikit-learn==1.1.3
 # tensorboard==2.11.0
 # tune-sklearn==0.4.5
 xgboost==1.7.1
+

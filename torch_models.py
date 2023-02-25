@@ -84,7 +84,9 @@ class PyTorchModel(BaseModel):
         else:
             use_cuda = torch.cuda.is_available()
             self.device = torch.device("cuda" if use_cuda else "cpu")
-
+        
+        # For more information about this class configs, you can see the following link:
+        # https://skorch.readthedocs.io/en/stable/regressor.html
         self.model = NeuralNetRegressor(
             network,
             device=self.device,
