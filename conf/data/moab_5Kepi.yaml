@@ -1,13 +1,22 @@
-data:
-  path: csv_data/moab_sim_5KepiPosVelMinStates.csv
-  full_or_relative: relative
-  inputs: state
-  outputs: state
-  augmented_cols: ["action_input_roll","action_input_pitch"]
-  iteration_order: -1
-  episode_col: episode
-  iteration_col: iteration
-  max_rows: 230000 # 251000 used in LNN to generate 232432 samples of which 200K is trained
-  scale_data: True
-  diff_state: True
-  test_perc: 0.25
+path: csv_data/moab_sim_5KepiPosVelMinStates.csv
+full_or_relative: relative
+inputs: state
+outputs: state
+augmented_cols: ["action_input_roll","action_input_pitch"]
+iteration_order: -1
+episode_col: episode
+iteration_col: iteration
+max_rows: 230000 # 251000 used in LNN to generate 232432 samples of which 200K is trained
+scale_data: True
+diff_state: True
+test_perc: 0.25
+concatenated_steps: 4
+concatenated_zero_padding: True
+concatenate_length:
+  action_input_roll: 2
+  action_input_pitch: 2
+  state_ball_x: 3
+  state_ball_y: 3
+  state_ball_vel_x: 2
+  state_ball_vel_y: 2
+

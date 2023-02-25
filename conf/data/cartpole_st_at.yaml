@@ -1,15 +1,29 @@
-data:
-  path: csv_data/cartpole_st_at.csv
-  full_or_relative: relative
-  inputs: state
-  outputs: state
-  augmented_cols: ["config_length", "config_masspole", "action_command"]
-  iteration_order: 1
-  episode_col: episode
-  iteration_col: iteration
-  max_rows: -1
-  scale_data: True
-  diff_state: False
-  concatenated_steps: 4
-  concatenated_zero_padding: True
-  test_perc: 0.25
+path: csv_data/cartpole_at_st.csv
+full_or_relative: relative
+inputs:
+  - state_x_position
+  - state_x_velocity
+  - state_angle_position
+  - state_angle_velocity
+outputs:
+  - state_x_position
+  - state_x_velocity
+  - state_angle_position
+  - state_angle_velocity
+augmented_cols: ["config_length", "config_masspole", "action_command"]
+iteration_order: 1
+episode_col: episode
+iteration_col: iteration
+max_rows: -1
+scale_data: True
+diff_state: False
+concatenated_steps: 4
+concatenated_zero_padding: True
+test_perc: 0.25
+concatenate_length:
+  cart_position: 0
+  cart_velocity: 0
+  pole_angle: 0
+  pole_angular_velocity: 0
+  command: 0
+

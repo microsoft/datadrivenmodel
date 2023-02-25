@@ -1,5 +1,5 @@
 # this is one of the cached base images available for ACI
-FROM python:3.7.4
+FROM python:3.8.11
 # Install libraries and dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -11,7 +11,12 @@ RUN apt-get update && \
 WORKDIR /src
 
 # Copy simulator files to /src
-COPY . /src
+# COPY . /src
+COPY *.py /src/
+COPY requirements.txt /src/
+COPY ./models/ /src/models/
+COPY ./conf/ /src/conf/
+COPY *.csv /src/
 
 # Install simulator dependencies
 RUN pip3 install -r requirements.txt

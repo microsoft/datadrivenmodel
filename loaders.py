@@ -190,7 +190,6 @@ class CsvReader(object):
 
 
 if __name__ == "__main__":
-
     data_dir = "csv_data"
     logger.info(f"Using data saved in directory {data_dir}")
 

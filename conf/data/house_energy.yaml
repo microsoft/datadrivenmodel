@@ -1,28 +1,35 @@
-data:
-  path: csv_data/house_energy.csv
-  full_or_relative: relative
-  inputs:
-    - Tin
-    - Tout
-  outputs:
-    - Tin
-  augmented_cols:
-    - K # Thermal conductivity
-    - C # Thermal Capacity
-    - Qhvac # Heat flux
-    - horizon
-    - Tset_start
-    - Tset_stop
-    - Tset_transition
-    - Tout_amplitude
-    - Tout_median
-    - hvacON
-  iteration_order: -1
-  scale_data: True
-  concatenated_steps: 4
-  concatenated_zero_padding: True
-  episode_col: episode
-  iteration_col: iteration
-  max_rows: -1
-  diff_state: False
-  test_perc: 0.2
+path: csv_data/house_energy.csv
+full_or_relative: relative
+inputs:
+  - Tin
+  - Tout
+outputs:
+  - Tin
+augmented_cols:
+  - K # Thermal conductivity
+  - C # Thermal Capacity
+  - Qhvac # Heat flux
+  - horizon
+  - Tset_start
+  - Tset_stop
+  - Tset_transition
+  - Tout_amplitude
+  - Tout_median
+  - hvacON
+iteration_order: -1
+scale_data: True
+episode_col: episode
+iteration_col: iteration
+max_rows: -1
+diff_state: False
+test_perc: 0.2
+concatenated_steps: 4
+concatenated_zero_padding: True
+concatenate_length:
+  Tin: 4
+  Tout: 6
+  hvacON: 5
+moving_average_length:
+  Tin: 4
+  Tout: 6
+  hvacON: 5

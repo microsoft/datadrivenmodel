@@ -16,7 +16,6 @@ X_test, y_test = xgboost_model.get_test_set(grouped_per_episode=False)
 
 
 def test_shape():
-
     # TRAIN SET
     assert (
         X.shape[0] == 833 == y.shape[0]
@@ -41,7 +40,6 @@ def test_shape():
 
 
 def test_lgm_train():
-
     if not pathlib.Path("tmp").exists():
         pathlib.Path("tmp").mkdir(parents=True, exist_ok=True)
 
@@ -58,7 +56,6 @@ def test_lgm_train():
 
 
 def test_xgb_train():
-
     xgboost_model.build_model(model_type="xgboost")
     xgboost_model.fit(X, y)
     xgboost_model.save_model(filename="tmp/gbm_pole.pkl")

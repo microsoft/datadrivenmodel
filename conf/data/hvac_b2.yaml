@@ -1,0 +1,70 @@
+path: "../data/building2.csv"
+full_or_relative: relative
+var_rename:
+    action.Count_of_Active_CHL: state.Count_of_Active_CHL
+inputs:
+  [
+    "state.OAT",
+    "state.WBT",
+    "state.CDW_RWT",
+    "state.CHW_SWT",
+    "state.CHW_GPM",
+    "state.CHW_RWT",
+    "state.CHW_TONS",
+    "state.CHL_Product",
+    "state.PCT_of_Valves>90PCT",
+    "state.Count_of_Valves>90PCT",
+    "state.Count_of_Active_CHL",
+    "state.Total_KW",
+    "state.Plant_kW_Ton_Efficiency",
+  ]
+outputs:
+  [
+    "state.OAT",
+    "state.WBT",
+    "state.CDW_RWT",
+    "state.CHW_SWT",
+    "state.CHW_GPM",
+    "state.CHW_RWT",
+    "state.CHW_TONS",
+    "state.CHL_Product",
+    "state.PCT_of_Valves>90PCT",
+    "state.Count_of_Valves>90PCT",
+    "state.Count_of_Active_CHL",
+    "state.Total_KW",
+    "state.Plant_kW_Ton_Efficiency",
+  ]
+augmented_cols:
+  [
+    "action.CDW_GPM_Flow",
+    "action.CDW_SWS",
+    "action.CHW_DPSP",
+    "action.CHW_SWS",
+    "action.CHW_SWS_OAT_Delta",
+    "action.CDW_SWS_WBT_Delta",
+    "action.CHW_SWS_RWT_Delta",
+    "action.CDW_SWS_RWT_Delta"
+  ]
+preprocess: pipeline.py
+iteration_order: -1
+episode_col: episode
+iteration_col: iteration
+max_rows: -1
+test_perc: 0.25
+diff_state: False
+concatenated_steps: 0
+concatenated_zero_padding: False
+concatenate_length:
+  state.OAT: 3
+  state.WBT: 3
+  state.CDW_RWT: 5
+  state.CHW_RWT: 5
+  state.CHW_TONS: 5
+  state.CHL_Product: 5
+  state.PCT_of_Valves>90PCT: 1
+  state.Count_of_Valves>90PCT: 1
+  state.Total_KW: 5
+  state.Plant_kW_Ton_Efficiency: 5
+  state.CHW_SWT: 5
+  state.Count_of_Active_CHL: 3
+  state.CHW_GPM: 3

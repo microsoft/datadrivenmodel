@@ -1,0 +1,57 @@
+states:
+  [
+  'state.OAT',
+  'state.WBT',
+  'state.CHW_SWT',
+  'state.CHW_RWT',
+  'state.CHW_TONS',
+  'state.CHL_Product',
+  'state.PCT_of_Valves>90PCT',
+  'state.Count_of_Valves>90PCT',
+  'state.Total_KW',
+  'state.Plant_kW_Ton_Efficiency'
+  ]
+  # ["cart_position", "cart_velocity", "pole_angle", "pole_angular_velocity"]
+actions:
+  # ["command"]
+  [
+  'action.CDW_GPM_Flow_Setpoint',
+  'action.CDW_SWS',
+  'action.CHW_DPSP',
+  'action.CHW_SWS',
+  'action.CHW_SWS_OAT_Delta',
+  'action.CDW_SWS_WBT_Delta',
+  'action.Count_of_Active_CHL'
+  ]
+configs: 
+# include here all config variables initializations
+# needed if you don't have these variables defined in Inkling scenarios
+# or if are testing using policy=random
+episode_inits:
+# e.g.,:  your simulator may need to know the initial state values
+# before the first episode. Define these here as a dictionary
+# You can include these in your Inkling scenarios during brain training with different names.
+# Specify the inkling name as `inkling_name`
+# If empty they will be initialized as empty values
+# based using the keys in states
+initial_states:
+  # state.OAT:
+  #   inkling_name: initial_state.OAT 
+  #   min: -0.05
+  #   max: 0.05
+  # state.WBT:
+  #   inkling_name: initial_state.WBT
+  #   min: -0.05
+  #   max: 0.05
+  # pole_angle: 
+  #   inkling_name: initial_pole_angle
+  #   min: -0.05
+  #   max: 0.05
+  # pole_angular_velocity:
+  #   inkling_name: initial_angular_velocity
+  #   min: -0.05
+  #   max: 0.05
+signal_builder:
+policy: bonsai
+logging: enable
+workspace_setup: True

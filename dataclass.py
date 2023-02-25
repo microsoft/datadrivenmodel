@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 import logging
 import numpy as np
 import copy as copy
@@ -8,6 +8,7 @@ import random
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
 from omegaconf.listconfig import ListConfig
+from pathlib import Path
 
 logger = logging.getLogger("data_class")
 logger.setLevel(logging.INFO)
@@ -96,7 +97,8 @@ class DataClass(object):
         lagged_df = df.groupby(by=episode_col, as_index=False).shift(
             iteration_order * -1
         )
-        lagged_df = lagged_df.drop([iteration_col], axis=1)
+        if iteration_col not in feature_cols:
+            lagged_df = lagged_df.drop([iteration_col], axis=1)
 
         # if iteration order is less than 1
         # then the actions, configs should not be lagged
@@ -124,11 +126,14 @@ class DataClass(object):
 
         self.feature_cols = list(features_df.columns.values)
         self.label_cols = list(label_cols)
+        self.augmented_cols = augmented_cols
         logger.info(f"Feature columns are: {self.feature_cols}")
         logger.info(f"Label columns are: {self.label_cols}")
         # joined_df = df.join(features_df)
-        vars_to_keep = (
-            [episode_col, iteration_col] + self.feature_cols + self.label_cols
+        # in case iteration is in feature_cols, we don't want duplicated elements
+        # so we convert to a unique list
+        vars_to_keep = list(
+            set([episode_col, iteration_col] + self.feature_cols + self.label_cols)
         )
         if iteration_order < 0:
             labels_df = df[[episode_col, iteration_col] + self.label_cols]
@@ -136,6 +141,9 @@ class DataClass(object):
             labels_df = df[[episode_col, iteration_col]].join(
                 lagged_df[self.label_cols]
             )
+        # drop iteration from labels if it exists in features_df as well
+        if iteration_col in labels_df.columns and iteration_col in features_df.columns:
+            labels_df = labels_df.drop([iteration_col], axis=1)
         return labels_df.join(features_df)[vars_to_keep]
 
     def read(
@@ -148,7 +156,7 @@ class DataClass(object):
         label_cols: List[str] = ["state_x_position"],
         augmented_cols: List[str] = ["action_command"],
     ):
-        """Read episodic data where each row contains either inputs and its preceding output output or the causal inputs/outputs relationship
+        """Read episodic data where each row contains either inputs and its preceding output or the causal inputs/outputs relationship
 
         Parameters
         ----------
@@ -238,8 +246,15 @@ class DataClass(object):
         test_perc: float = 0.15,
         debug: bool = False,
         diff_state: bool = False,
+        prep_pipeline: Optional[Callable] = None,
+        var_rename: Optional[Dict[str, str]] = None,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
+        concatenate_var_length: Optional[Dict[str, int]] = None,
+        exogeneous_variables: Optional[List[str]] = None,
+        exogeneous_save_path: Optional[str] = None,
+        reindex_iterations: Optional[bool] = False,
+        initial_values_save_path: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -268,6 +283,16 @@ class DataClass(object):
         concatenated_zero_padding : bool, optional
             true: initial state padding made with zeroes
             false: initial state padding made copying initial sample 'concatenated_steps' times
+        concatenate_var_length : Optional[Dict[str, int]], optional
+            dictionary of variable names and their length to be concatenated. If None, ignored
+        exogeneous_variables : Optional[List[str]], optional
+            List of exogeneous variables which are read and saved to CSV with episode and iteration IDS. If None, ignored
+        exogeneous_save_path : Optional[str], optional
+            Path to save exogeneous variables to. If None, ignored
+        reindex_iterations : Optional[bool], optional
+            If True, reindex iterations to start at 0 for each episode. If False, ignore
+        initial_values_save_path : Optional[str], optional
+            Path to save initial values to. If None, ignored and no initial values are saved
 
         Returns
         -------
@@ -290,6 +315,37 @@ class DataClass(object):
             if max_rows < 0:
                 max_rows = None
             df = pd.read_csv(dataset_path, nrows=max_rows)
+            if df[episode_col].dtype != int:
+                logger.info(
+                    f"Episode column {episode_col} is not integer. Attempting to convert to integer"
+                )
+                df[episode_col], _ = pd.factorize(df[episode_col])
+            if reindex_iterations:
+                logger.warn(
+                    "Re-indexing iterations to start at 1 and increment by 1 for each episode"
+                )
+                df[iteration_col] = df.groupby(episode_col).cumcount() + 1
+            if var_rename:
+                logger.info(f"Renaming dataset using mapper: {var_rename}")
+                df = df.rename(var_rename, axis=1)
+            if prep_pipeline:
+                from preprocess import pipeline
+
+                logger.info(f"Applying preprocessing steps from pipeline.py")
+                df = pipeline(df)
+
+            if initial_values_save_path:
+                if os.path.dirname(initial_values_save_path) == "":
+                    initial_values_save_path = os.path.join(
+                        os.path.dirname(__file__), initial_values_save_path
+                    )
+                logger.info(
+                    f"Saving initial episode values to {initial_values_save_path}"
+                )
+                # group by episode and take first row
+                initial_values = df.groupby(episode_col).first().reset_index()
+                initial_values.to_csv(initial_values_save_path, index=False)
+
             if drop_nulls:
                 df = df[~df.isnull().any(axis=1)]
             if type(input_cols) == str:
@@ -342,6 +398,21 @@ class DataClass(object):
                 augmented_cols=augm_features,
             )
 
+            if exogeneous_variables:
+                if not exogeneous_save_path:
+                    fname, ext = os.path.splitext(dataset_path)
+                    exogeneous_save_path = f"{fname}_exogeneous_vars{ext}"
+                if os.path.dirname(exogeneous_save_path) == "":
+                    exogeneous_save_path = os.path.join(
+                        os.path.dirname(__file__), exogeneous_save_path
+                    )
+                logger.info(
+                    f"Saving exogeneous variables with episode and iteration indices to {exogeneous_save_path}"
+                )
+                df[[episode_col, iteration_col] + exogeneous_variables].to_csv(
+                    exogeneous_save_path, index=False
+                )
+
             # store episode_id to group_per_episode
             self.episode_col = episode_col
             self.iteration_col = iteration_col
@@ -362,7 +433,9 @@ class DataClass(object):
             # Input-state concatenation
             self.concatenated_steps = concatenated_steps
             self.concatenated_zero_padding = concatenated_zero_padding
-            if self.concatenated_steps > 1:
+            self.concatenate_var_length = concatenate_var_length
+            self.first_pass_concatenate = True
+            if self.concatenated_steps > 1 or self.concatenate_var_length:
                 logger.info(
                     f"Using previous {self.concatenated_steps} lags for all features as inputs and using padding: {self.concatenated_zero_padding}"
                 )
@@ -404,7 +477,8 @@ class DataClass(object):
         # Create a lagged dataframe for capturing inputs and outputs
         df_per_episode = df.groupby(by=self.episode_col, as_index=False)
         # Remove indexer, and get only df list
-        df_per_episode = list(map(lambda x: x[1], df_per_episode))
+        # df_per_episode = list(map(lambda x: x[1], df_per_episode))
+        df_per_episode = [df_per_episode.get_group(x) for x in df_per_episode.groups]
 
         self.df_per_episode = df_per_episode
 
@@ -537,6 +611,7 @@ class DataClass(object):
 
     def get_test_set(self):
         # Prepares X and y training dataset, and retrieves after aggregation
+        logger.info(f"Features: {self.feature_cols}")
         if self._X_test is None or self._y_test is None:
             self._X_test = []
             self._y_test = []
@@ -641,18 +716,30 @@ class DataClass(object):
         else:
             label_cols = self.label_cols
 
-        # Modify the current state (features), with the updated states
-        for feat in feats_list:
-
-            # Move the concatenated states forward by 1 step (higher number == least recent)
-            if self.concatenated_steps > 1:
-                for i in range(1, self.concatenated_steps):
+        if type(self.concatenate_var_length) == dict:
+            for feat, conc_steps in self.concatenate_var_length.items():
+                for i in range(1, conc_steps):
                     concat_feat = feat + f"_{i}"
                     next_concat_feat = feat + f"_{i+1}"
                     self.last_X_d[next_concat_feat] = self.last_X_d[concat_feat]
+        else:
+            # Modify the current state (features), with the updated states
+            for feat in feats_list:
+                # Move the concatenated states forward by 1 step (higher number == least recent)
+                if self.concatenated_steps > 1:
+                    for i in range(1, self.concatenated_steps):
+                        concat_feat = feat + f"_{i}"
+                        next_concat_feat = feat + f"_{i+1}"
+                        self.last_X_d[next_concat_feat] = self.last_X_d[concat_feat]
 
+        for feat in feats_list:
             # Select the target feature to store the received values at
-            if self.concatenated_steps > 1:
+            if type(self.concatenate_var_length) == dict:
+                if feat in list(self.concatenate_var_length.keys()):
+                    target_feat = feat + "_1"
+                else:
+                    target_feat = feat
+            elif self.concatenated_steps > 1 and not self.concatenate_var_length:
                 target_feat = feat + "_1"
             else:
                 target_feat = feat
@@ -716,7 +803,6 @@ class DataClass(object):
 
         # Compute difference values for each label
         for label in self.original_labels:
-
             diff_label = "diff_" + label
             diff_values = None
 
@@ -733,7 +819,6 @@ class DataClass(object):
             # If no feature has been matched, compute the difference between rows
             # > Note, the first row will have to be removed later
             if diff_values is None:
-
                 if len(df) < 2:
                     log_message = f"Matching feature not found for label '{label}'."
                     log_message += f" And not enough rows to compute diff (minimum 2, but {len(df)} were given)."
@@ -785,26 +870,64 @@ class DataClass(object):
         concatenated_steps = self.concatenated_steps
         zero_padding = self.concatenated_zero_padding
 
+        # Only do this once per dataload, otherwise feature_cols will
+        # have already been augmented with the concatenated features.
+        if self.concatenate_var_length and self.first_pass_concatenate:
+            concatenate_var_length = dict(self.concatenate_var_length)
+            for feat in list(concatenate_var_length.keys()):
+                if feat in self.feature_cols:
+                    feat_name = feat
+                    self.first_pass_concatenate = False
+                elif "prev_" + feat in self.feature_cols:
+                    feat_name = "prev_" + feat
+                    concatenate_var_length[feat_name] = concatenate_var_length.pop(feat)
+                    self.first_pass_concatenate = False
+                else:
+                    raise ValueError(f"Feature '{feat}' not found in feature_cols.")
+            max_value_concatenate = max(list(concatenate_var_length.values()))
+            vars_to_concatenate = list(concatenate_var_length.keys())
+            self.concatenate_var_length = concatenate_var_length
+        elif not self.first_pass_concatenate and self.concatenate_var_length:
+            concatenate_var_length = copy.deepcopy(self.concatenate_var_length)
+            max_value_concatenate = max(list(concatenate_var_length.values()))
+            vars_to_concatenate = list(concatenate_var_length.keys())
+        else:
+            max_value_concatenate = concatenated_steps
+            vars_to_concatenate = self.feature_cols
+            concatenate_var_length = {
+                feat: concatenated_steps for feat in self.feature_cols
+            }
+            # save it so you don't repeat the calculation after feature_cols
+            # are updated to include lagged_feature_cols
+            self.concatenate_var_length = concatenate_var_length
+            self.first_pass_concatenate = False
+
         # Drop episode if number of iterations is lower than number of desired concatenated steps.
         # - Dropped no matter if zero_padding is enabled or disabled -
-        if len(df) < concatenated_steps:
+        # if len(df) < concatenated_steps:
+        if len(df) < max_value_concatenate:
             logger.error(
-                f"Concatenated inputs enabled, attempting to concatenate {concatenated_steps} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({concatenated_steps}). Please lower or turn of concatenated steps to use dataset."
+                f"Concatenated inputs enabled, attempting to concatenate {max_value_concatenate} steps. However, input data is of length ({len(df)}) which is lower than number of steps to concatenate ({max_value_concatenate}). Please lower or turn off concatenated steps to use dataset."
             )
             raise ValueError("Not enough data to use with concatenated lagged features")
 
         # Redefine input states to ensure input state names are unique
         # - Note, state names are used on predict_sequentially_all method (and possibly others)
 
-        # TODO: we shouldn't lag the augmented cols?
         if not self.original_features:
             self.original_features = copy.deepcopy(self.feature_cols)
             # Note, naming convention needs to honor the way it is done in the subsequent loop
-            self.feature_cols = [
+            self.lagged_feature_cols = [
                 feat + f"_{i}"
-                for i in range(1, concatenated_steps + 1)
-                for feat in self.original_features
+                for feat in vars_to_concatenate
+                for i in range(1, concatenate_var_length[feat] + 1)
             ]
+            self.no_lag_feature_cols = [
+                feat for feat in self.feature_cols if feat not in vars_to_concatenate
+            ]
+            # leave self.original_features alone!
+            # self.original_features = no_lag_feature_cols + lagged_feature_cols
+            self.feature_cols = self.no_lag_feature_cols + self.lagged_feature_cols
             logger.info(
                 f"Features after incorporating lagged features: {self.feature_cols}"
             )
@@ -815,12 +938,12 @@ class DataClass(object):
 
         self.concatenated_feature_list = []
 
-        for feat in self.original_features:
-            for i in range(1, concatenated_steps + 1):
+        for feat, conc_steps in concatenate_var_length.items():
+            for i in range(1, conc_steps + 1):
                 concat_feat = feat + f"_{i}"
                 self.concatenated_feature_list.append(concat_feat)
 
-                # Concatenate steps >> i == 1: has the newest value; i == concatenated_steps: has the oldest value
+                # Concatenate steps >> i == 1: has the newest value; i == conc_steps: has the oldest value
                 if i == 1:
                     feat_array = df[feat].values
                 else:
@@ -831,23 +954,22 @@ class DataClass(object):
 
         # Removing zero padded rows, if padding with zeros is disabled.
         if not zero_padding:
-            df.drop(df.head(concatenated_steps - 1).index, axis=0, inplace=True)
+            df.drop(df.head(max_value_concatenate - 1).index, axis=0, inplace=True)
 
         # Store information on transformation performed on debugger.
         if zero_padding:
             logger.debug(
-                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. no rows have been lost."
+                f"concatenated inputs enabled, concatenating {max_value_concatenate} steps. zero_padding: {zero_padding}. no rows have been lost."
             )
         else:
             logger.debug(
-                f"concatenated inputs enabled, concatenating {concatenated_steps} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
+                f"concatenated inputs enabled, concatenating {max_value_concatenate} steps. zero_padding: {zero_padding}. initial ({concatenated_steps-1}) rows are dropped."
             )
 
         return df
 
 
 if __name__ == "__main__":
-
     data_dir = "csv_data"
     logger.info(f"Using data saved in directory {data_dir}")
 

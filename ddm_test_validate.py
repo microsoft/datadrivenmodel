@@ -101,7 +101,6 @@ class Simulator(BaseModel):
             self.state = {j: np.random.uniform(-0.1, 0.1) for j in self.state_keys}
 
     def episode_step(self, action: Dict[str, int]):
-
         input_list = [
             list(
                 self.state.values()
@@ -248,7 +247,6 @@ def test_sim_model(
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig):
-
     save_path = cfg["model"]["saver"]["filename"]
     if cfg["data"]["full_or_relative"] == "relative":
         save_path = os.path.join(dir_path, save_path)
@@ -292,5 +290,4 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-
     main()

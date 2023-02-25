@@ -1,27 +1,26 @@
-model:
-  name: xgboost
-  build_params:
-    model_type: xgboost
-    fit_separate: False
-    halt_model: False
-    n_estimators: 100
-    objective: reg:squarederror
-    learning_rate: 0.3
-    scale_data: True
-    max_depth: 6
-  saver:
-    filename: models/xgboost_models/house_energy
-  sweep:
-    run: False
-    split_strategy: timeseries
-    search_algorithm: bayesian
-    num_trials: 15
-    scoring_func: r2
-    early_stopping: False
-    results_csv_path: xgboost_gridsearch/search_results.csv
-    params:
-      # see list of parameters: https://xgboost.readthedocs.io/en/latest/parameter.html
-      estimator__max_depth: [1, 3, 5, 10]
-      estimator__gamma: [0, 0.5, 1, 5]
-      estimator__subsample: [0.1, 0.5, 1]
-      estimator__eta: [0.3, 0.1, 0.5]
+name: xgboost
+build_params:
+  model_type: xgboost
+  scale_data: True
+  fit_separate: False
+  halt_model: False
+  n_estimators: 100
+  objective: reg:squarederror
+  learning_rate: 0.3
+  max_depth: 6
+saver:
+  filename: models/b1/xgboost
+sweep:
+  run: False
+  split_strategy: timeseries
+  search_algorithm: bayesian
+  num_trials: 15
+  scoring_func: r2
+  early_stopping: False
+  results_csv_path: xgboost_gridsearch/search_results.csv
+  params:
+    # see list of parameters: https://xgboost.readthedocs.io/en/latest/parameter.html
+    estimator__max_depth: [1, 3, 5, 10]
+    estimator__gamma: [0, 0.5, 1, 5]
+    estimator__subsample: [0.1, 0.5, 1]
+    estimator__eta: [0.3, 0.1, 0.5]

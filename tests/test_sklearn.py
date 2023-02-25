@@ -12,14 +12,12 @@ X, y, _, _ = skmodel.load_csv(
 
 
 def test_shape():
-
     assert X.shape[0] == 833 == y.shape[0]
     assert X.shape[1] == skmodel.input_dim
     assert y.shape[1] == skmodel.output_dim
 
 
 def test_svm_train():
-
     if not pathlib.Path("tmp").exists():
         pathlib.Path("tmp").mkdir(parents=True, exist_ok=True)
     lsvm = SKModel()
@@ -37,7 +35,6 @@ def test_svm_train():
 
 
 def test_linear_train():
-
     if not pathlib.Path("tmp").exists():
         pathlib.Path("tmp").mkdir(parents=True, exist_ok=True)
     linear = SKModel()
@@ -55,7 +52,6 @@ def test_linear_train():
 
 
 def test_gbr_train():
-
     if not pathlib.Path("tmp").exists():
         pathlib.Path("tmp").mkdir(parents=True, exist_ok=True)
 

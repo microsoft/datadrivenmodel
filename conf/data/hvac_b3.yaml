@@ -1,0 +1,58 @@
+path: "../data/building3.csv"
+full_or_relative: full
+inputs:
+  [
+    "state.OAT",
+    "state.WBT",
+    "state.CHW_SWT",
+    "state.CHW_RWT",
+    "state.CHW_TONS",
+    "state.CHL_Product",
+    "state.PCT_of_Valves>90PCT",
+    "state.Count_of_Valves>90PCT",
+    "state.Total_KW",
+    "state.Plant_kW_Ton_Efficiency",
+  ]
+outputs:
+  [
+    "state.OAT",
+    "state.WBT",
+    "state.CHW_SWT",
+    "state.CHW_RWT",
+    "state.CHW_TONS",
+    "state.CHL_Product",
+    "state.PCT_of_Valves>90PCT",
+    "state.Count_of_Valves>90PCT",
+    "state.Total_KW",
+    "state.Plant_kW_Ton_Efficiency",
+  ]
+augmented_cols:
+  [
+    "action.CDW_GPM_Flow_Setpoint",
+    "action.CDW_SWS",
+    "action.CHW_DPSP",
+    "action.CHW_SWS",
+    "action.CHW_SWS_OAT_Delta",
+    "action.CDW_SWS_WBT_Delta",
+    "action.Count_of_Active_CHL",
+  ]
+iteration_order: -1
+episode_col: episode
+iteration_col: iteration
+max_rows: -1
+test_perc: 0.25
+scale_data: True
+diff_state: False
+concatenated_steps: 0
+concatenated_zero_padding: False
+concatenate_length:
+  state.OAT: 5
+  state.WBT: 5
+  state.CHW_SWT: 5
+  state.CHW_RWT: 5
+  state.CHW_TONS: 5
+  state.CHL_Product: 5
+  state.PCT_of_Valves>90PCT: 5
+  state.Count_of_Valves>90PCT: 5
+  state.Total_KW: 5
+  state.Plant_kW_Ton_Efficiency: 5

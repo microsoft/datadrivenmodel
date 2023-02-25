@@ -2,14 +2,15 @@ import logging
 import os
 import random
 import time
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional, Union
 from omegaconf import ListConfig
 from functools import partial
+
+import pandas as pd
 from policies import random_policy, brain_policy
 from signal_builder import SignalBuilder
 
 import numpy as np
-import pdb
 
 # see reason below for why commented out (UPDATE #comment-out-azure-cli)
 # from azure.core.exceptions import HttpResponseError
@@ -38,6 +39,27 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
 
 
+def type_conversion(obj, type, minimum, maximum):
+    if type == "str":
+        return str(obj)
+    elif type == "int":
+        if obj <= minimum:
+            return int(minimum)
+        elif obj >= maximum:
+            return int(maximum)
+        else:
+            return int(obj)
+    elif type == "float":
+        if obj <= minimum:
+            return float(minimum)
+        elif obj >= maximum:
+            return float(maximum)
+        else:
+            return float(obj)
+    elif type == "bool":
+        return obj
+
+
 class Simulator(BaseModel):
     def __init__(
         self,
@@ -46,19 +68,59 @@ class Simulator(BaseModel):
         actions: List[str],
         configs: List[str],
         inputs: List[str],
-        outputs: List[str],
+        outputs: Union[List[str], Dict[str, str]],
         episode_inits: Dict[str, float],
         initial_states: Dict[str, float],
         signal_builder: Dict[str, float],
         diff_state: bool = False,
         lagged_inputs: int = 1,
         lagged_padding: bool = False,
+        concatenate_var_length: Optional[Dict[str, int]] = None,
+        prep_pipeline: Optional[Callable] = None,
+        iteration_col: Optional[str] = None,
+        exogeneous_variables: Optional[List[str]] = None,
+        exogeneous_save_path: Optional[str] = None,
+        initial_values_save_path: Optional[str] = None,
     ):
-
         self.model = model
         # self.features = states + configs + actions
         # self.labels = states
         self.features = inputs
+        if type(outputs) == ListConfig:
+            outputs = list(outputs)
+            self.label_types = None
+        elif type(outputs) == DictConfig:
+            output_types = outputs
+            outputs = list(outputs.keys())
+            self.label_types = output_types
+
+        # if you're using exogeneous variables these will be looked up
+        # from a saved dataset and appended during episode_step
+        if exogeneous_variables and exogeneous_save_path:
+            if os.path.dirname(exogeneous_save_path) == "":
+                exogeneous_save_path = os.path.join(dir_path, exogeneous_save_path)
+            if not os.path.exists(exogeneous_save_path):
+                raise ValueError(
+                    f"Exogeneous variables not found at {exogeneous_save_path}"
+                )
+            logger.info(f"Reading exogeneous variables from {exogeneous_save_path}")
+            exogeneous_vars_df = pd.read_csv(exogeneous_save_path)
+            self.exogeneous_variables = exogeneous_variables
+            self.exog_df = exogeneous_vars_df
+
+        if initial_values_save_path:
+            if os.path.dirname(initial_values_save_path) == "":
+                initial_values_save_path = os.path.join(
+                    dir_path, initial_values_save_path
+                )
+            if not os.path.exists(initial_values_save_path):
+                raise ValueError(
+                    f"Initial values not found at {initial_values_save_path}"
+                )
+            logger.info(f"Reading initial values from {initial_values_save_path}")
+            initial_values_df = pd.read_csv(initial_values_save_path)
+            self.initial_values_df = initial_values_df
+
         self.labels = outputs
         self.config_keys = configs
         self.episode_inits = episode_inits
@@ -68,8 +130,24 @@ class Simulator(BaseModel):
         self.diff_state = diff_state
         self.lagged_inputs = lagged_inputs
         self.lagged_padding = lagged_padding
+        self.concatenate_var_length = concatenate_var_length
+        self.prep_pipeline = prep_pipeline
+        self.iteration_col = iteration_col
 
-        if self.lagged_inputs > 1:
+        if self.concatenate_var_length:
+            logger.info(f"Using variable length lags: {self.concatenate_var_length}")
+            self.lagged_feature_cols = [
+                feat + f"_{i}"
+                for feat in list(self.concatenate_var_length.keys())
+                for i in range(1, self.concatenate_var_length[feat] + 1)
+            ]
+            self.non_lagged_feature_cols = list(
+                set(self.features) - set(list(self.concatenate_var_length.keys()))
+            )
+            # need to verify order here
+            # this matches dataclass when concatenating inputs
+            self.features = self.non_lagged_feature_cols + self.lagged_feature_cols
+        elif self.lagged_inputs > 1:
             logger.info(f"Using {self.lagged_inputs} lagged inputs as features")
             self.lagged_feature_cols = [
                 feat + f"_{i}"
@@ -99,12 +177,10 @@ class Simulator(BaseModel):
             self.initial_states = initial_states
         self.initial_states_mapper = initial_states_mapper
 
-        # TODO: Add logging
-
         logger.info(f"DDM features: {self.features}")
         logger.info(f"DDM outputs: {self.labels}")
 
-    def episode_start(self, config: Dict[str, Any] = None):
+    def episode_start(self, config: Optional[Dict[str, Any]] = None):
         """Initialize DDM. This could include initializations of configs
         as well as initial values for states.
 
@@ -115,6 +191,37 @@ class Simulator(BaseModel):
         """
 
         self.iteration_counter = 0
+
+        # if you are using both initial values and exogeneous variables, then
+        # make sure to sample a single episode from each and play it through
+        if self.initial_values_df is not None:
+            initial_values_episode = (
+                self.initial_values_df["episode"].sample(1).values[0]
+            )
+            initial_values_data = self.initial_values_df[
+                self.initial_values_df["episode"] == initial_values_episode
+            ]
+            for i in list(self.initial_states.keys()):
+                # terminals are not assumed to be in the lookup dataset
+                # however, we will need to terminate the episdoe when we reach
+                # the end of the dataset so we need a terminal variable in the MDP
+                if i == "terminal":
+                    self.initial_states[i] = False
+                else:
+                    self.initial_states[i] = initial_values_data[i].values[0]
+
+        # if using exogeneous variables
+        # sample from exog df and play it through the episode
+        if self.exog_df is not None:
+            if self.initial_values_df is not None:
+                logger.info(f"Using sampled episode from initial values dataset")
+                exog_episode = initial_values_episode
+            else:
+                exog_episode = self.exog_df["episode"].sample(1).values[0]
+            exog_data = self.exog_df[self.exog_df["episode"] == exog_episode]
+            self.exog_ep = exog_data
+            for i in self.exogeneous_variables:
+                self.initial_states[i] = self.exog_ep[i].values.tolist()[0]
 
         # initialize states based on simulator.yaml
         # we have defined the initial dict in our
@@ -159,7 +266,10 @@ class Simulator(BaseModel):
             # TODO: during ddm_trainer save the ranges of configs (and maybe states too for initial conditions)
             # to a file so we can sample from that range instead of random Gaussians
             # request_continue = input("Are you sure you want to continue with random configs?")
-            self.config = {k: random.random() for k in self.config_keys}
+            if self.config_keys:
+                self.config = {k: random.random() for k in self.config_keys}
+            else:
+                self.config = None
 
         # update state with initial_state values if
         # provided by config
@@ -169,7 +279,7 @@ class Simulator(BaseModel):
 
         # Grab signal params pertaining to specific format of key_parameter from Inkling
         self.config_signals = {}
-        if new_config and self.signal_builder is not None:
+        if new_config and self.signal_builder:
             for k, v in self.signal_builder["signal_params"].items():
                 for key, value in new_config.items():
                     if k in key:
@@ -223,25 +333,66 @@ class Simulator(BaseModel):
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
         # {simulator.state, simulator.action, simulator.config} is a strict subset {data.inputs + data.augmented_cols, self.outputs}
-        self.all_data = {**self.state, **self.action, **self.config}
+        if self.config:
+            self.all_data = {**self.state, **self.action, **self.config}
+        else:
+            self.all_data = {**self.state, **self.action}
+        if self.prep_pipeline:
+            from preprocess import pipeline
 
-        ## if you're using lagged_features, compute it now
-        if self.lagged_inputs > 1:
+            self.all_data = pipeline(self.all_data)
+
+        if self.iteration_col:
+            self.all_data[self.iteration_col] = self.iteration_counter
+            logger.info(
+                f"Iteration used as a feature. Iteration #: {self.iteration_counter}"
+            )
+
+        ## if you're using lagged_features, we need to initialize them
+        ## will initially be set to the same value, which is either 0
+        ## or the initial value of the state depending on zero_padding
+        ## and gets updated during each episode step
+        if self.lagged_inputs > 1 or self.concatenate_var_length:
             self.lagged_all_data = {
-                k: self.all_data["_".join(k.split("_")[:-1])] for k in self.features
+                k: self.all_data["_".join(k.split("_")[:-1])]
+                if not self.lagged_padding
+                else 0
+                for k in self.lagged_feature_cols
             }
-        self.all_data = self.lagged_all_data
+            self.all_data = {**self.all_data, **self.lagged_all_data}
+            self.all_data["terminal"] = False
+
+        # if self.concatenate_var_length:
+        #     all_data = {
+        #         k: self.all_data[k] for k in self.features
+        #         if k not in self.lagged_feature_cols
+        #         else
+        #     }
 
     def episode_step(self, action: Dict[str, int]) -> Dict:
-
         # load design matrix for self.model.predict
         # should match the shape of conf.data.inputs
         # make dict of D={states, actions, configs}
         # ddm_inputs = filter D \ (conf.data.inputs+conf.data.augmented_cols)
         # ddm_outputs = filter D \ conf.data.outputs
-        # update(ddm_state) =
 
-        if self.lagged_inputs > 1:
+        # initialize matrix of all actions
+        # set current action to action_1
+        # all other actions get pushed back one value to action_{i+1}
+        if self.concatenate_var_length:
+            # only create lagged action if they were provided in
+            # concatenate_var_length
+            actions_to_lag = list(
+                set(list(self.concatenate_var_length.keys())) & set(list(action.keys()))
+            )
+            if actions_to_lag:
+                lagged_action = {
+                    f"{k}_{i}": action[k] if i == 1 else self.all_data[f"{k}_{i-1}"]
+                    for k in actions_to_lag
+                    for i in range(1, self.concatenate_var_length[k] + 1)
+                }
+                action = lagged_action
+        elif self.lagged_inputs > 1:
             lagged_action = {
                 f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
                 for k, v in action.items()
@@ -249,7 +400,29 @@ class Simulator(BaseModel):
             }
             action = lagged_action
         self.all_data.update(action)
+        if self.prep_pipeline:
+            from preprocess import pipeline
+
+            self.all_data = pipeline(self.all_data)
         self.iteration_counter += 1
+        if self.iteration_col:
+            logger.info(
+                f"Iteration used as a feature. Iteration #: {self.iteration_counter}"
+            )
+
+        if self.exogeneous_variables:
+            logger.info(
+                f"Updating {self.exogeneous_variables} using next iteration from episode #: {self.exog_ep['episode'].values[0]}"
+            )
+            next_iteration = self.exog_ep[
+                self.exog_ep["iteration"] == self.iteration_counter + 1
+            ]
+            self.all_data.update(
+                next_iteration.reset_index()[self.exogeneous_variables].loc[0].to_dict()
+            )
+            # set terminal to true if at the last iteration
+            if self.iteration_counter == self.exog_ep["iteration"].max() - 1:
+                self.all_data["terminal"] = True
 
         # Use the signal builder's value as input to DDM if specified
         if self.signal_builder:
@@ -263,6 +436,7 @@ class Simulator(BaseModel):
                 if key in self.signals:
                     self.all_data.update({key: self.current_signals[key]})
 
+        # MAKE SURE THIS IS SORTED ACCORDING TO THE ORDER USED IN TRAINING
         ddm_input = {k: self.all_data[k] for k in self.features}
 
         # input_list = [
@@ -285,7 +459,14 @@ class Simulator(BaseModel):
 
         # update lagged values in ddm_output -> which updates self.all_data
         # current predictions become the new t1, everything else is pushed back by 1
-        if self.lagged_inputs > 1:
+        if self.concatenate_var_length:
+            lagged_ddm_output = {
+                f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
+                for k, v in ddm_output.items()
+                for i in range(1, self.concatenate_var_length[k] + 1)
+            }
+            ddm_output = lagged_ddm_output
+        elif self.lagged_inputs > 1:
             lagged_ddm_output = {
                 f"{k}_{i}": v if i == 1 else self.all_data[f"{k}_{i-1}"]
                 for k, v in ddm_output.items()
@@ -293,10 +474,20 @@ class Simulator(BaseModel):
             }
             ddm_output = lagged_ddm_output
         self.all_data.update(ddm_output)
+        if self.iteration_col:
+            self.all_data[self.iteration_col] = self.iteration_counter
 
         # current state is just the first value
-        if self.lagged_inputs > 1:
+        states_lagged = list(
+            set(list(self.concatenate_var_length.keys())) & set(self.state_keys)
+        )
+        if self.lagged_inputs > 1 and not self.concatenate_var_length:
             self.state = {k: self.all_data[f"{k}_1"] for k in self.state_keys}
+        elif self.concatenate_var_length:
+            self.state = {
+                k: self.all_data[f"{k}_1"] if k in states_lagged else self.all_data[k]
+                for k in self.state_keys
+            }
         else:
             self.state = {k: self.all_data[k] for k in self.state_keys}
         # self.state = dict(zip(self.state_keys, preds.reshape(preds.shape[1]).tolist()))
@@ -311,6 +502,25 @@ class Simulator(BaseModel):
         return dict(self.state)
 
     def get_state(self) -> Dict:
+        if hasattr(self, "label_types"):
+            for key, val_type in self.label_types.items():
+                state_val = self.state[key]
+                val_type = val_type.split(" ")
+                if len(val_type) < 2:
+                    bottom = state_val - 10
+                    top = state_val + 10
+                    val_type = val_type[0]
+                elif len(val_type) == 2:
+                    # val_type, val_range = val_type.split(" ")
+                    val_range = val_type[1]
+                    val_type = val_type[0]
+                    val_range = val_range.split(",")
+                    bottom = float(val_range[0])
+                    top = float(val_range[1])
+                else:
+                    raise ValueError(f"Invalid label type provided: {type(val_type)}")
+                state_val = type_conversion(state_val, val_type, bottom, top)
+                self.state[key] = state_val
 
         if self.signal_builder:
             state_plus_signals = {**self.state, **self.current_signals}
@@ -321,7 +531,6 @@ class Simulator(BaseModel):
             return dict(self.state)
 
     def halted(self):
-
         pass
 
 
@@ -360,8 +569,8 @@ def env_setup():
 def test_policy(
     num_episodes: int = 5,
     num_iterations: int = 5,
-    sim: Simulator = None,
-    config: Dict[str, float] = None,
+    sim: Optional[Simulator] = None,
+    config: Optional[Dict[str, float]] = None,
     policy=random_policy,
 ):
     """Test a policy using random actions over a fixed number of episodes
@@ -372,8 +581,7 @@ def test_policy(
         number of iterations to run, by default 10
     """
 
-    def _config_clean(in_config: Dict):
-
+    def _config_clean(in_config):
         new_config = {}
         for k, v in in_config.items():
             if type(v) in [DictConfig, dict]:
@@ -385,9 +593,12 @@ def test_policy(
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        new_config = _config_clean(config)
-        logger.info(f"Configuration: {new_config}")
-        sim.episode_start(new_config)
+        if config:
+            new_config = _config_clean(config)
+            logger.info(f"Configuration: {new_config}")
+            sim.episode_start(new_config)
+        else:
+            sim.episode_start()
         sim_state = sim.get_state()
         while not terminal:
             action = policy(sim_state)
@@ -404,10 +615,8 @@ def test_policy(
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig):
-
     save_path = cfg["model"]["saver"]["filename"]
-    if cfg["data"]["full_or_relative"] == "relative":
-        save_path = os.path.join(dir_path, save_path)
+    save_path = os.path.join(dir_path, save_path)
     model_name = cfg["model"]["name"]
     states = cfg["simulator"]["states"]
     actions = cfg["simulator"]["actions"]
@@ -416,10 +625,20 @@ def main(cfg: DictConfig):
     policy = cfg["simulator"]["policy"]
     # logflag = cfg["simulator"]["logging"]
     # logging not yet implemented
-    scale_data = cfg["model"]["build_params"]["scale_data"]
+
+    ts_model = model_name.lower() in ["nhits", "tftmodel", "varima", "ets", "sfarima"]
+    if ts_model:
+        scale_data = cfg["model"]["scale_data"]
+    else:
+        scale_data = cfg["model"]["build_params"]["scale_data"]
+    # scale_data = cfg["data"]["scale_data"]
     diff_state = cfg["data"]["diff_state"]
     concatenated_steps = cfg["data"]["concatenated_steps"]
     concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
+    concatenate_var_length = cfg["data"]["concatenate_length"]
+    exogeneous_variables = cfg["data"]["exogeneous_variables"]
+    exogeneous_path = cfg["data"]["exogeneous_save_path"]
+    initial_values_save_path = cfg["data"]["initial_values_save_path"]
 
     workspace_setup = cfg["simulator"]["workspace_setup"]
     episode_inits = cfg["simulator"]["episode_inits"]
@@ -427,6 +646,9 @@ def main(cfg: DictConfig):
     input_cols = cfg["data"]["inputs"]
     output_cols = cfg["data"]["outputs"]
     augmented_cols = cfg["data"]["augmented_cols"]
+    prep_pipeline = cfg["data"]["preprocess"]
+    iteration_col = cfg["data"]["iteration_col"]
+    iteration_col = iteration_col if iteration_col in input_cols else None
     if type(input_cols) == ListConfig:
         input_cols = list(input_cols)
     if type(output_cols) == ListConfig:
@@ -436,22 +658,32 @@ def main(cfg: DictConfig):
 
     input_cols = input_cols + augmented_cols
 
+    ts_model = False
     logger.info(f"Using DDM with {policy} policy")
     if model_name.lower() == "pytorch":
         from all_models import available_models
+    elif model_name.lower() in ["nhits", "tftmodel", "varima", "ets", "sfarima"]:
+        from timeseriesclass import darts_models as available_models
+
+        ts_model = True
     else:
         from model_loader import available_models
 
     Model = available_models[model_name]
-    model = Model()
+    if not ts_model:
+        model = Model()
+    else:
+        model = Model()
+        model.build_model()
 
     model.load_model(filename=save_path, scale_data=scale_data)
     # model.build_model(**cfg["model"]["build_params"])
 
     if not initial_states:
-        logger.warn(
-            "No initial values provided, using randomly initialized states which is probably NOT what you want"
-        )
+        if not initial_values_save_path:
+            logger.warn(
+                "No initial values provided, using randomly initialized states which is probably NOT what you want"
+            )
         initial_states = {k: random.random() for k in states}
 
     signal_builder = cfg["simulator"]["signal_builder"]
@@ -470,16 +702,19 @@ def main(cfg: DictConfig):
         diff_state,
         concatenated_steps,
         concatenated_zero_padding,
+        concatenate_var_length,
+        prep_pipeline=prep_pipeline,
+        iteration_col=iteration_col,
+        exogeneous_variables=exogeneous_variables,
+        exogeneous_save_path=exogeneous_path,
+        initial_values_save_path=initial_values_save_path,
     )
-
-    # do a random action to get initial state
-    sim.episode_start()
 
     if policy == "random":
         random_policy_from_keys = partial(random_policy, action_keys=sim.action_keys)
         test_policy(
             sim=sim,
-            config={**initial_states},
+            config=None,
             policy=random_policy_from_keys,
         )
     elif isinstance(policy, int):
@@ -501,6 +736,11 @@ def main(cfg: DictConfig):
         # Configure client to interact with Bonsai service
         config_client = BonsaiClientConfig()
         client = BonsaiClient(config_client)
+
+        # SimulatorInterface needs to be initialized with
+        # existin state attribute
+        # TODO: see if we can move this into constructor method
+        sim.episode_start()
 
         # Create simulator session and init sequence id
         registration_info = SimulatorInterface(
@@ -636,5 +876,4 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-
     main()

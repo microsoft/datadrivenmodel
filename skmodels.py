@@ -42,7 +42,6 @@ class SKModel(BaseModel):
             self.model = MultiOutputRegressor(self.single_model)
 
     def fit(self, X, y):
-
         if self.scale_data:
             X, y = self.scalar(X, y)
 
@@ -60,7 +59,6 @@ class SKModel(BaseModel):
                 logger.info(f"Unable to fit model of type {type(self.model)}")
 
     def predict(self, X):
-
         if self.separate_models:
             pred = []
             if self.scale_data:
@@ -80,7 +78,6 @@ class SKModel(BaseModel):
         return preds
 
     def save_model(self, filename):
-
         if self.scale_data:
             logger.info(f"Scale transformations used, saving to {filename}")
             if not self.separate_models:
@@ -138,7 +135,6 @@ class SKModel(BaseModel):
 
 
 if __name__ == "__main__":
-
     """Example using an sklearn Pipeline with TuneGridSearchCV.
 
     Example taken and modified from

@@ -4,12 +4,9 @@ import logging
 import os
 import pathlib
 import pickle
-from collections import OrderedDict
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Tuple, Union, Optional, Callable
 from omegaconf.listconfig import ListConfig
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from natsort import natsorted
@@ -26,7 +23,6 @@ from sklearn.preprocessing import StandardScaler
 from dataclass import DataClass
 
 logger = logging.getLogger(__name__)
-matplotlib.rcParams["figure.figsize"] = [12, 10]
 
 
 class BaseModel(abc.ABC):
@@ -36,7 +32,6 @@ class BaseModel(abc.ABC):
         model=None,
         model_mapper: Optional[Dict[str, str]] = None,
     ):
-
         self.logs_dir = log_dirs
         self.model = model
         self.halt_model = None
@@ -184,8 +179,14 @@ class BaseModel(abc.ABC):
         test_perc: float = 0.15,
         debug: bool = False,
         diff_state: bool = False,
+        prep_pipeline: Optional[Callable] = None,
+        var_rename: Optional[Dict[str, str]] = None,
         concatenated_steps: int = 1,
         concatenated_zero_padding: bool = True,
+        concatenate_var_length: Optional[Dict[str, int]] = None,
+        exogeneous_variables: Optional[List[str]] = None,
+        exogeneous_save_path: Optional[str] = None,
+        initial_values_save_path: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Read CSV data into two datasets for modeling
 
@@ -211,6 +212,15 @@ class BaseModel(abc.ABC):
         concatenated_zero_padding : bool, optional
             true: initial state padding made with zeroes
             false: initial state padding made copying initial sample 'concatenated_steps' times
+        concatenate_var_length : Optional[Dict[str, int]], optional
+            dictionary of variable names and their length to be concatenated. If None, ignored
+        exogeneous_variables : Optional[List[str]], optional
+            List of exogeneous variables which are read and saved to CSV with episode and iteration IDS. If None, ignored
+        exogeneous_save_path : Optional[str], optional
+            Path to save exogeneous variables to. If None, ignored
+        initial_values_save_path : Optional[str], optional
+            Path to save initial values to. If None, ignored and no initial values are saved
+
 
         Returns
         -------
@@ -237,8 +247,15 @@ class BaseModel(abc.ABC):
             test_perc=test_perc,
             debug=debug,
             diff_state=diff_state,
+            prep_pipeline=prep_pipeline,
+            var_rename=var_rename,
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
+            concatenate_var_length=concatenate_var_length,
+            exogeneous_variables=exogeneous_variables,
+            exogeneous_save_path=exogeneous_save_path,
+            reindex_iterations=exogeneous_variables is not None,
+            initial_values_save_path=initial_values_save_path,
         )
 
         # Transferring key features in between classes for easier access
@@ -261,7 +278,6 @@ class BaseModel(abc.ABC):
     def load_numpy(
         self, dataset_path: str, X_path: str = "x_set.npy", y_path: str = "y_set.npy"
     ) -> Tuple:
-
         X = np.load(os.path.join(dataset_path, X_path))
         y = np.load(os.path.join(dataset_path, y_path))
         self.input_dim = X.shape[1]
@@ -270,14 +286,12 @@ class BaseModel(abc.ABC):
         return X, y
 
     def load_pickle_data(self, x_path: str, y_path: str):
-
         X = pickle.load(open(x_path, "rb"))
         y = pickle.load(open(y_path, "rb"))
 
         return X, y
 
     def scalar(self, X, y):
-
         self.xscalar = StandardScaler()
         self.yscalar = StandardScaler()
 
@@ -287,12 +301,10 @@ class BaseModel(abc.ABC):
         return X_scaled, y_scaled
 
     def build_model(self, scale_data: bool = False, halt_model: bool = False):
-
         self.scale_data = scale_data
         self.halt_model = halt_model
 
     def fit(self, X, y):
-
         if not self.model and not self.model_mapper:
             raise ValueError("Please build or load the model first")
 
@@ -305,11 +317,9 @@ class BaseModel(abc.ABC):
             self.model._fit(X, y)
 
     def _fit(self, X, y):
-
         raise NotImplementedError
 
     def _fit_multiple_models(self, X, y):
-
         self.models = {k: None for k in self.model_mapper.keys()}
         # if self.var_names:
         # logger.info(
@@ -327,7 +337,6 @@ class BaseModel(abc.ABC):
         #     self.models[key] = value.fit(X, y)
 
     def fit_halt_classifier(self, X, y):
-
         if not self.halt_model:
             raise ValueError("Please build or load the halted model first")
         if self.scale_data:
@@ -335,7 +344,6 @@ class BaseModel(abc.ABC):
         self.halt_model.fit(X, y)
 
     def predict(self, X, label_col_names: List[str] = None):
-
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
@@ -376,7 +384,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise ValueError("Please build or load the model first")
         else:
-
             if X is None:
                 X, y_test = self.get_test_set(grouped_per_episode=False)
 
@@ -467,15 +474,16 @@ class BaseModel(abc.ABC):
                 # when grouped, X has shape {episode_count, iteration_count, feature_count}
                 it_per_episode = np.inf
 
-            num_of_episodes = int(np.shape(X_grouped)[0])
+            # num_of_episodes = int(np.shape(X_grouped)[0])
+            num_of_episodes = len(X_grouped)
 
             preds_grouped = []
             labels_grouped = []
 
             # iterate per as many episodes as selected
             for i in range(num_of_episodes):
-
-                n_iterations = len(X_grouped[i])
+                # n_iterations = len(X_grouped[i])
+                n_iterations = X_grouped[i].shape[0]
                 if it_per_episode >= n_iterations:
                     preds_aux = self.predict_sequentially_all(X_grouped[i])
                     if y_grouped is not None:
@@ -523,11 +531,9 @@ class BaseModel(abc.ABC):
                 return preds_grouped, labels_grouped
 
     def predict_halt_classifier(self, X: np.ndarray):
-
         if not self.halt_model:
             raise ValueError("Please build or load the model first")
         else:
-
             if self.scale_data:
                 X = self.xscalar.transform(X)
             halts = self.halt_model.predict(X)
@@ -535,7 +541,6 @@ class BaseModel(abc.ABC):
         return halts
 
     def save_model(self, filename, dump_attributes: bool = False):
-
         if not any([s in filename for s in [".pkl", ".pickle"]]):
             filename += ".pkl"
         parent_dir = pathlib.Path(filename).parent
@@ -571,7 +576,6 @@ class BaseModel(abc.ABC):
             pickle.dump(self.model, open(filename, "wb"))
 
     def save_halt_model(self, dir_path: str = "models"):
-
         filename = os.path.join(dir_path, "halted_classifier.pkl")
         if not pathlib.Path(filename).parent.exists():
             pathlib.Path(filename).parent.mkdir(parents=True)
@@ -580,7 +584,6 @@ class BaseModel(abc.ABC):
     def load_model(
         self, filename: str, scale_data: bool = False, separate_models: bool = False
     ):
-
         self.separate_models = separate_models
         self.scale_data = scale_data
 
@@ -603,7 +606,6 @@ class BaseModel(abc.ABC):
             self.model = pickle.load(open(filename, "rb"))
 
     def _load_multimodels(self, filename: str, scale_data: bool):
-
         all_models = os.listdir(filename)
         all_models = natsorted(all_models)
         if self.scale_data:
@@ -617,7 +619,6 @@ class BaseModel(abc.ABC):
         self.models = models
 
     def load_halt_classifier(self, filename: str):
-
         self.halt_model = pickle.load(open(filename, "rb"))
 
     def evaluate(
@@ -636,7 +637,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
-
             if not marginal:
                 return metric(y_test, y_hat)
             else:
@@ -690,7 +690,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
-
             if X_grouped is None:
                 X_grouped, y_grouped = self.get_test_set(grouped_per_episode=True)
 
@@ -741,7 +740,6 @@ class BaseModel(abc.ABC):
         if not self.model:
             raise Exception("No model found, please run fit first")
         else:
-
             if X_test is None:
                 X_test, y_test = self.get_test_set(grouped_per_episode=False)
 
@@ -815,6 +813,10 @@ class BaseModel(abc.ABC):
         return pd.DataFrame(results.items(), columns=["var", "score"])
 
     def plot_roc_auc(self, halt_x: np.ndarray, halt_y: np.ndarray):
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        matplotlib.rcParams["figure.figsize"] = [12, 10]
 
         test_halt_preds = self.predict_halt_classifier(halt_x)
         halt_fpr, halt_tpr, _ = roc_curve(halt_y, test_halt_preds)
@@ -914,7 +916,6 @@ class BaseModel(abc.ABC):
         test_indices: Union[None, List[int]] = None,
         num_splits: int = 5,
     ) -> pd.DataFrame:
-
         if self.scale_data:
             X, y = self.scalar(X, y)
 
@@ -935,7 +936,6 @@ class BaseModel(abc.ABC):
 
         # early stopping only supported for learners that have a
         # `partial_fit` method
-        from tune_sklearn import TuneSearchCV
         import mlflow
         import time
 
@@ -950,6 +950,8 @@ class BaseModel(abc.ABC):
         if any(
             [search_algorithm.lower() in ["bohb", "bayesian", "hyperopt", "optuna"]]
         ):
+            from tune_sklearn import TuneSearchCV
+
             search = TuneSearchCV(
                 self.model,
                 params,
@@ -1002,7 +1004,6 @@ class BaseModel(abc.ABC):
 
 
 def plot_parallel_coords(results_df: pd.DataFrame):
-
     import plotly.express as px
 
     cols_keep = [col for col in results_df if "param_" in col]
@@ -1029,7 +1030,6 @@ def plot_parallel_coords(results_df: pd.DataFrame):
 
 
 if __name__ == "__main__":
-
     multi_models = {
         "state_MHW Mean Weight": "xgboost",
         "state_MHW Weigher Speed (setting)": "xgboost",

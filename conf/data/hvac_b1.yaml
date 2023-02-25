@@ -1,0 +1,120 @@
+path: "../data/building1.csv"
+full_or_relative: relative
+# mapping from names in dataset (keys) to new names (values)
+var_rename:
+  state.OAT: state.OAT
+  state.WBT: state.WBT
+  state.CDW_RWT: state.CDW_RWT
+  state.CHW_RWT: state.CHW_RWT
+  state.CHW_TONS: state.CHW_TONS
+  state.CHL_Product: state.CHL_Product
+  state.PCT_of_Valves>90PCT: state.PCT_of_Valves>90PCT
+  state.Count_of_Valves>90PCT: state.Count_of_Valves>90PCT
+  state.Total_KW: state.Total_KW
+  state.Plant_kW_Ton_Efficiency: state.Plant_kW_Ton_Efficiency
+  action.PCT_Design_CDW_FLOW_STPT: state.PCT_Design_CDW_FLOW_STPT
+  action.Max_Design_CDW_GPM_FLOW_STPT: state.Max_Design_CDW_GPM_FLOW_STPT
+  action.CHL_1_Active: state.CHL_1_Active
+  action.CHL_2_Active: state.CHL_2_Active
+  action.CHL_3_Active: state.CHL_3_Active
+  action.Count_of_Active_CHL: state.Count_of_Active_CHL
+  action.CDW_SWT: state.CDW_SWT
+  action.CHW_SWT: state.CHW_SWT
+  action.CDW_GPM_Flow: action.CDW_GPM_Flow
+  action.CDW_SWS: action.CDW_SWS
+  action.CHW_DPSP: action.CHW_DPSP
+  action.CHW_SWS: action.CHW_SWS
+  action.CHW_SWS_OAT_Delta: action.CHW_SWS_OAT_Delta
+  action.CDW_SWS_WBT_Delta: action.CDW_SWS_WBT_Delta
+  action.CHW_SWS_RWT_Delta: action.CHW_SWS_RWT_Delta
+  action.CDW_SWS_RWT_Delta: action.CDW_SWS_RWT_Delta
+inputs:
+  - state.OAT
+  - state.WBT
+  - state.CDW_RWT
+  - state.CHW_RWT
+  - state.CHW_TONS
+  - state.CHL_Product
+  - state.PCT_of_Valves>90PCT
+  - state.Count_of_Valves>90PCT
+  - state.Total_KW
+  - state.Plant_kW_Ton_Efficiency
+  - state.PCT_Design_CDW_FLOW_STPT
+  - state.Max_Design_CDW_GPM_FLOW_STPT
+  - state.CHL_1_Active
+  - state.CHL_2_Active
+  - state.CHL_3_Active
+  - state.Count_of_Active_CHL
+  - state.CDW_SWT
+  - state.CHW_SWT
+  # including iteration as a proxy for seasonality (daily)
+  - iteration
+outputs:
+  # if you know and want to specify the types, use a dictionary object below mapping each out
+  # output to a type, and use a space if you want to specify a range
+  # if you don't know the types or don't want to specify/enforce them, just specify a list
+  # state.OAT: float
+  # state.WBT: float
+  state.CDW_RWT: float
+  state.CHW_RWT: float
+  state.CHW_TONS: float
+  state.CHL_Product: float
+  state.PCT_of_Valves>90PCT: float 0,1
+  state.Count_of_Valves>90PCT: int
+  state.Total_KW: float
+  state.Plant_kW_Ton_Efficiency: float
+  state.PCT_Design_CDW_FLOW_STPT: float 0,1
+  state.Max_Design_CDW_GPM_FLOW_STPT: float
+  state.CHL_1_Active: int 0,1
+  state.CHL_2_Active: int 0,1
+  state.CHL_3_Active: int 0,1
+  state.Count_of_Active_CHL: int 0,3
+  state.CDW_SWT: float
+  state.CHW_SWT: float
+augmented_cols:
+  - action.CDW_GPM_Flow
+  - action.CDW_SWS
+  - action.CHW_DPSP
+  - action.CHW_SWS
+  - action.CHW_SWS_OAT_Delta
+  - action.CDW_SWS_WBT_Delta
+  - action.CHW_SWS_RWT_Delta
+  - action.CDW_SWS_RWT_Delta
+preprocess: pipeline.py
+# list the variables that are exogenous to the model
+# this means their trajectories will be saved
+# and during brain prediction, the model will be fed these values
+# rather than receive them from inkling or as outputs from the model
+exogeneous_variables:
+  - state.OAT
+  - state.WBT
+exogeneous_save_path: "building1_exogenous_vars.csv"
+initial_values_save_path: "building1_initial_values.csv"
+iteration_order: -1
+episode_col: episode
+iteration_col: iteration
+max_rows: -1
+test_perc: 0.25
+diff_state: False
+concatenated_steps: 0
+concatenated_zero_padding: False
+concatenate_length:
+  # action.CDW_SWS: 5
+  state.OAT: 3
+  state.WBT: 3
+  state.CDW_RWT: 5
+  state.CHW_RWT: 5
+  state.CHW_TONS: 5
+  state.CHL_Product: 5
+  state.PCT_of_Valves>90PCT: 1
+  state.Count_of_Valves>90PCT: 1
+  state.Total_KW: 5
+  state.Plant_kW_Ton_Efficiency: 5
+  state.CDW_SWT: 5
+  state.CHW_SWT: 5
+  state.PCT_Design_CDW_FLOW_STPT: 3
+  state.Max_Design_CDW_GPM_FLOW_STPT: 3
+  state.CHL_1_Active: 3
+  state.CHL_2_Active: 3
+  state.CHL_3_Active: 3
+  state.Count_of_Active_CHL: 3
