@@ -15,31 +15,43 @@ logger = logging.getLogger("datamodeler")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
+# helper function that return None if element is not present in config
+def hydra_read_config_var(cfg: DictConfig, level: str, key_name: str):
+    """Reads the config file and returns the config as a dictionary"""
+
+    return cfg[level][key_name] if key_name in cfg[level] else None
+
+
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
     logger.info("Configuration: ")
     logger.info(f"\n{OmegaConf.to_yaml(cfg)}")
 
     # for readability, read common data args into variables
-    input_cols = cfg["data"]["inputs"]
-    output_cols = cfg["data"]["outputs"]
-    augmented_cols = cfg["data"]["augmented_cols"]
+    input_cols = hydra_read_config_var(cfg, "data", "inputs")
+    output_cols = hydra_read_config_var(cfg, "data", "outputs")
+    augmented_cols = hydra_read_config_var(cfg, "data", "augmented_cols")
 
-    iteration_order = cfg["data"]["iteration_order"]
-    episode_col = cfg["data"]["episode_col"]
-    iteration_col = cfg["data"]["iteration_col"]
-    dataset_path = cfg["data"]["path"]
-    max_rows = cfg["data"]["max_rows"]
-    test_perc = cfg["data"]["test_perc"]
-    delta_state = cfg["data"]["diff_state"]
-    concatenated_steps = cfg["data"]["concatenated_steps"]
-    concatenated_zero_padding = cfg["data"]["concatenated_zero_padding"]
-    concatenate_var_length = cfg["data"]["concatenate_length"]
-    pipeline = cfg["data"]["preprocess"]
-    var_rename = cfg["data"]["var_rename"]
-    exogeneous_variables = cfg["data"]["exogeneous_variables"]
-    exogeneous_path = cfg["data"]["exogeneous_save_path"]
-    initial_values_save_path = cfg["data"]["initial_values_save_path"]
+    iteration_order = hydra_read_config_var(cfg, "data", "iteration_order")
+    episode_col = hydra_read_config_var(cfg, "data", "episode_col")
+    iteration_col = hydra_read_config_var(cfg, "data", "iteration_col")
+    dataset_path = hydra_read_config_var(cfg, "data", "path")
+    max_rows = hydra_read_config_var(cfg, "data", "max_rows")
+    test_perc = hydra_read_config_var(cfg, "data", "test_perc")
+
+    diff_state = hydra_read_config_var(cfg, "data", "diff_state")
+    concatenated_steps = hydra_read_config_var(cfg, "data", "concatenated_steps")
+    concatenated_zero_padding = hydra_read_config_var(
+        cfg, "data", "concatenated_zero_padding"
+    )
+    concatenate_var_length = hydra_read_config_var(cfg, "data", "concatenate_length")
+    preprocess = hydra_read_config_var(cfg, "data", "preprocess")
+    var_rename = hydra_read_config_var(cfg, "data", "var_rename")
+    exogeneous_variables = hydra_read_config_var(cfg, "data", "exogeneous_variables")
+    exogeneous_save_path = hydra_read_config_var(cfg, "data", "exogeneous_save_path")
+    initial_values_save_path = hydra_read_config_var(
+        cfg, "data", "initial_values_save_path"
+    )
 
     # common model args
     save_path = cfg["model"]["saver"]["filename"]
@@ -99,7 +111,7 @@ def main(cfg: DictConfig) -> None:
             return_ts=False,
             var_rename=var_rename,
             exogeneous_variables=exogeneous_variables,
-            exogeneous_path=exogeneous_path,
+            exogeneous_path=exogeneous_save_path,
         )
     else:
         X_train, y_train, X_test, y_test = model.load_csv(
@@ -113,14 +125,14 @@ def main(cfg: DictConfig) -> None:
             # drop_nulls: bool = True,
             max_rows=max_rows,
             test_perc=test_perc,
-            diff_state=delta_state,
-            prep_pipeline=pipeline,
+            diff_state=diff_state,
+            prep_pipeline=preprocess,
             var_rename=var_rename,
             concatenated_steps=concatenated_steps,
             concatenated_zero_padding=concatenated_zero_padding,
             concatenate_var_length=concatenate_var_length,
             exogeneous_variables=exogeneous_variables,
-            exogeneous_save_path=exogeneous_path,
+            exogeneous_save_path=exogeneous_save_path,
             initial_values_save_path=initial_values_save_path,
         )
 
