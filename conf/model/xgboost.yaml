@@ -9,7 +9,7 @@ build_params:
   learning_rate: 0.3
   max_depth: 6
 saver:
-  filename: models/b1/xgboost
+  filename: models/cartpole-mixed/xgboost
 sweep:
   run: False
   split_strategy: timeseries
