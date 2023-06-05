@@ -606,7 +606,7 @@ def run_gym_aml(
                 }
             )
             self.action_space = gym.spaces.Dict(
-                {k: Box(low=-10, high=10, dtype=np.int32) for k in self.sim.action_keys}
+                {k: Box(low=-1, high=1, dtype=np.int32) for k in self.sim.action_keys}
             )
             self.max_iter = 10
 
