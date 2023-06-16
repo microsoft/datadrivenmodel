@@ -697,7 +697,7 @@ def run_gym_aml(
             print("head node detected")
             ray.init(address="auto")
             print(ray.cluster_resources())
-            train(args.test_local)
+            train()
         else:
             print("in worker node")
 

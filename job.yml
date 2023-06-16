@@ -6,8 +6,8 @@ command: >-
 environment: azureml:ray-ddm@latest
 # your compute name should have `azureml:` prefix
 compute: azureml:cpu
-display_name: ray-ddm
-experiment_name: ray-ddm
+display_name: ray-ddm-cpole-mixed
+experiment_name: ray-ddm-cpole-mixed
 description: Integrating DDM with AML.
 distribution:
    type: mpi

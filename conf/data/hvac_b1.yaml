@@ -1,4 +1,4 @@
-path: "../data/building1.csv"
+path: "csv_data/building1.csv"
 full_or_relative: relative
 # mapping from names in dataset (keys) to new names (values)
 var_rename:
