@@ -587,23 +587,30 @@ class BaseModel(abc.ABC):
         self.separate_models = separate_models
         self.scale_data = scale_data
 
-        if scale_data:
-            if not self.separate_models:
-                path_name = str(pathlib.Path(filename).parent)
+        try:
+            if scale_data:
+                if not self.separate_models:
+                    path_name = str(pathlib.Path(filename).parent)
+                else:
+                    path_name = filename
+                self.xscalar = pickle.load(
+                    open(os.path.join(path_name, "xscalar.pkl"), "rb")
+                )
+                self.yscalar = pickle.load(
+                    open(os.path.join(path_name, "yscalar.pkl"), "rb")
+                )
+            if separate_models:
+                self._load_multimodels(filename, scale_data)
             else:
-                path_name = filename
-            self.xscalar = pickle.load(
-                open(os.path.join(path_name, "xscalar.pkl"), "rb")
-            )
-            self.yscalar = pickle.load(
-                open(os.path.join(path_name, "yscalar.pkl"), "rb")
-            )
-        if separate_models:
-            self._load_multimodels(filename, scale_data)
-        else:
-            if not any([s in filename for s in [".pkl", ".pickle"]]):
-                filename += ".pkl"
-            self.model = pickle.load(open(filename, "rb"))
+                if not any([s in filename for s in [".pkl", ".pickle"]]):
+                    filename += ".pkl"
+                self.model = pickle.load(open(filename, "rb"))
+        
+        except FileNotFoundError as e:
+            error_msg = "Could not load your model files. Remember to always run `python ddm_trainer.py` prior to training your RL agent."
+            error_msg += f"\nError: {e}"
+            logging.error(error_msg)
+
 
     def _load_multimodels(self, filename: str, scale_data: bool):
         all_models = os.listdir(filename)
