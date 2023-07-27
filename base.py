@@ -605,12 +605,11 @@ class BaseModel(abc.ABC):
                 if not any([s in filename for s in [".pkl", ".pickle"]]):
                     filename += ".pkl"
                 self.model = pickle.load(open(filename, "rb"))
-        
+
         except FileNotFoundError as e:
             error_msg = "Could not load your model files. Remember to always run `python ddm_trainer.py` prior to training your RL agent."
             error_msg += f"\nError: {e}"
             logging.error(error_msg)
-
 
     def _load_multimodels(self, filename: str, scale_data: bool):
         all_models = os.listdir(filename)
