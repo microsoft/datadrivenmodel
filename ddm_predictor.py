@@ -593,7 +593,10 @@ def flatten_structure(structure):
 
 
 def run_gym_aml(
-    simulator: Simulator, config: Optional[Dict[str, float]] = None, local: bool = False
+    simulator: Simulator,
+    config: Optional[Dict[str, float]] = None,
+    local: bool = False,
+    num_iters: int = 1_000_000,
 ):
     class GymWrapper(gym.Env):
         def __init__(self, config):
@@ -663,8 +666,9 @@ def run_gym_aml(
     # Register the simulation as an RLlib environment.
     register_env("GymWrapper", lambda config: GymWrapper(config))
 
-    def train():
+    def train(num_iters: int = num_iters):
         # Define the algo for training the agent
+        # os.chdir(dir_path)
         algo = (
             PPOConfig()
             # Modify also instance_count in job definition to use more than one worker
@@ -677,7 +681,7 @@ def run_gym_aml(
             .build()
         )
         # Train for 10 iterations
-        for i in range(10):
+        for i in range(num_iters):
             result = algo.train()
             print(pretty_print(result))
 
@@ -697,15 +701,19 @@ def run_gym_aml(
             print("head node detected")
             # ray.init(address="auto", runtime_env="")
             client = ray.init(
-                # f"ray://{ray_on_aml.headnode_private_ip}:1000/labe1",
+                # f"ray://{ray_on_aml.headnode_private_ip}:10001",
+                address="auto",
                 runtime_env={
                     # "py_modules": [dir_path]}
-                    "working_dir": ".",
+                    "working_dir": dir_path,
                     "excludes": [".git", "/outputs/", "/data/", "/csv_data/"],
                 },
             )
             print(f"Cluster resources: {ray.cluster_resources()}")
-            os.chdir(dir_path)
+            print(f"current working directory: {os.getcwd()}")
+            print(f"current directory contents: {os.listdir()}")
+            print(f"directory contents three folders up: {os.listdir('../../../')}")
+            print(f"Directory at {dir_path}: {os.listdir(dir_path)}")
             train()
             client.disconnect()
         else:
@@ -902,7 +910,8 @@ def main(cfg: DictConfig):
     elif policy == "ray-local":
         run_gym_aml(sim, config=None, local=True)
     elif policy == "ray-aml":
-        run_gym_aml(sim, config=None, local=False)
+        train_iters = int(cfg["simulator"]["training_iters"])
+        run_gym_aml(sim, config=None, local=False, num_iters=train_iters)
     elif isinstance(policy, int):
         # If docker PORT provided, set as exported brain PORT
         port = policy

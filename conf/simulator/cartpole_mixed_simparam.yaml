@@ -45,4 +45,5 @@ initial_states:
 signal_builder:
 policy: ray-local
 logging: enable
+training_iters: 1_000_000
 workspace_setup: True
