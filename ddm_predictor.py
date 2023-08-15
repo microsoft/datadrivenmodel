@@ -695,9 +695,19 @@ def run_gym_aml(
 
         if ray:
             print("head node detected")
-            ray.init(address="auto")
-            print(ray.cluster_resources())
+            # ray.init(address="auto", runtime_env="")
+            client = ray.init(
+                # f"ray://{ray_on_aml.headnode_private_ip}:1000/labe1",
+                runtime_env={
+                    # "py_modules": [dir_path]}
+                    "working_dir": ".",
+                    "excludes": [".git", "/outputs/", "/data/", "/csv_data/"],
+                },
+            )
+            print(f"Cluster resources: {ray.cluster_resources()}")
+            os.chdir(dir_path)
             train()
+            client.disconnect()
         else:
             print("in worker node")
 
