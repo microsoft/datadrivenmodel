@@ -662,6 +662,8 @@ def run_gym_aml(
     from ray.rllib.algorithms.ppo import PPOConfig
     from ray.tune.logger import pretty_print
     from ray.tune.registry import register_env
+    from ray.tune import Tuner
+    from ray.air import RunConfig
 
     # Register the simulation as an RLlib environment.
     register_env("GymWrapper", lambda config: GymWrapper(config))
@@ -669,7 +671,7 @@ def run_gym_aml(
     def train(num_iters: int = num_iters):
         # Define the algo for training the agent
         # os.chdir(dir_path)
-        algo = (
+        algo_config = (
             PPOConfig()
             # Modify also instance_count in job definition to use more than one worker
             # Setting workers to zero allows using breakpoints in sim for debugging
@@ -678,16 +680,27 @@ def run_gym_aml(
             # Set the training batch size to the appropriate number of steps
             .training(train_batch_size=4_000)
             .environment(env="GymWrapper")
-            .build()
         )
-        # Train for 10 iterations
-        for i in range(num_iters):
-            result = algo.train()
-            print(pretty_print(result))
+        # Define the stopping criteria for your job.
+        stopping_criteria = {
+            "training_iteration": num_iters,
+        }
+        # Build the algorithm from the config and pass it to the tune.Tuner constructor
+        tuner = Tuner(
+            "PPO",
+            param_space=algo_config,
+            run_config=RunConfig(
+                stop=stopping_criteria,
+                # Folder where you want outputs to be stored.
+                # `outputs` can be found in AML Studio under the "Outputs + Logs" tab of your job
+                # - note, latest versions of ray call this `storage_path` instead of `local_dir` -
+                local_dir="./outputs/ray_results",
+                verbose=2,
+            ),
+        )
 
-        # outputs can be found in AML Studio under the "Outputs + Logs" tab of your job
-        checkpoint_dir = algo.save(checkpoint_dir="./outputs")
-        print(f"Checkpoint saved in directory {checkpoint_dir}")
+        results = tuner.fit()
+        print(pretty_print(results))
 
     if local:
         train()
