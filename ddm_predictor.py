@@ -340,7 +340,7 @@ class Simulator(BaseModel):
                     {key: float(self.signals[key].get_current_signal())}
                 )
         else:
-            print("No signal builder used")
+            logger.info(f"No signal builder used")
 
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
@@ -459,7 +459,7 @@ class Simulator(BaseModel):
 
         # input_array = [item for subl in input_list for item in subl]
         input_array = list(ddm_input.values())
-        X = np.array(input_array).reshape(1, -1)
+        X = np.array(input_array, dtype=object).reshape(1, -1)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.model.predict(
                 X
