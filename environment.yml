@@ -38,9 +38,9 @@ dependencies:
       - pyaml==21.10.1
       - python-dotenv==0.21.0
       - pytest==7.2.0
-      - ray==2.3.0
-      - ray[data]==2.3.0
-      - ray[rllib]==2.3.0
+      - ray==2.5.0
+      - ray[data]==2.5.0
+      - ray[rllib]==2.5.0
       - ray-on-aml
       - rich==10.16.2
       - scikit-image==0.20.0

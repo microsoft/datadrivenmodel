@@ -692,10 +692,15 @@ def run_gym_aml(
             param_space=algo_config,
             run_config=RunConfig(
                 stop=stopping_criteria,
+                # This will store the best performing checkpoints.
+                checkpoint_config=CheckpointConfig(
+                    num_to_keep=20,
+                    checkpoint_score_attribute="episode_reward_mean",
+                    checkpoint_score_order="max",
+                ),
                 # Folder where you want outputs to be stored.
                 # `outputs` can be found in AML Studio under the "Outputs + Logs" tab of your job
-                # - note, latest versions of ray call this `storage_path` instead of `local_dir` -
-                local_dir="./outputs/ray_results",
+                storage_path="./outputs/ray_results",
                 verbose=2,
             ),
         )
