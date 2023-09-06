@@ -663,7 +663,7 @@ def run_gym_aml(
     from ray.tune.logger import pretty_print
     from ray.tune.registry import register_env
     from ray.tune import Tuner
-    from ray.air import RunConfig
+    from ray_tools import CurriculumCallback
 
     # Register the simulation as an RLlib environment.
     register_env("GymWrapper", lambda config: GymWrapper(config))
@@ -677,6 +677,7 @@ def run_gym_aml(
             # Setting workers to zero allows using breakpoints in sim for debugging
             .rollouts(num_rollout_workers=1 if not local else 0)
             .resources(num_gpus=0)
+            .callbacks(CurriculumCallback)
             # Set the training batch size to the appropriate number of steps
             .training(train_batch_size=4_000)
             .environment(env="GymWrapper")
