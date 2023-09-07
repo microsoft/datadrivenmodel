@@ -43,6 +43,7 @@ initial_states:
     min: -0.05
     max: 0.05
 signal_builder:
-policy: bonsai
+policy: ray-local
 logging: enable
+training_iters: 1_000_000
 workspace_setup: True

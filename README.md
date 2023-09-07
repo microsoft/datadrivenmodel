@@ -140,6 +140,41 @@ If you're having trouble running locally, chances are you need to set up your wo
 python ddm_predictor.py simulator.workspace_setup=True
 ```
 
+### Training your RL agent using RAY RLLIB
+
+#### A. Training Your Agent Locally
+
+The schema for your simulator resides in [`conf/simulator`](./conf/simulator). After defining your states, actions, and configs, you can run the simulator as follows:
+
+```bash
+python ddm_predictor.py simulator=$YOUR_SIM_CONFIG simulator.policy=ray-local
+```
+
+> NOTE: If wanting to train with aml, set the policy to `ray-aml` as follows `simulator.policy=ray-aml`.
+
+
+#### B. Training Your Agent in AML
+
+- Install the Azure CLI on your machine:
+```
+pip install azure-cli
+```
+- Add the ML extension:
+```
+az extension add -n ml
+```
+- [Create an AML workspace and compute cluster](https://azure.github.io/plato/#create-azure-resources)
+- Create an AML environment using the conda file provided: ``conda.yml`` by running the following command:
+
+```bash
+az ml environment create --name ray-ddm --conda-file environment.yml --image mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04 --resource-group $YOUR_RESOURCE_GROUP --workspace-name $YOUR_WORKSPACE
+```
+- Submit the job to AML:
+```bash
+az ml job create -f job.yml --resource-group juan-test1 --workspace-name juan-aml-bonsai1
+```
+
+
 ## Signal Builder
 
 Sometimes there are variables that need to be provided from the simulator for brain training, but we don't necessarily want a ddm model to predict it. A `SignalBuilder` class in `signal_builder.py` can be used to create signals with different types such as `step_function`, `ramp`, and `sinewave`. You can configure signals in the `conf/simulator` file by adding a key and a the desired signal type. The horizon is the length of episode. The signal will be created and the current signal will be provided as it is indexed through an episode in `ddm_predictor.py`.

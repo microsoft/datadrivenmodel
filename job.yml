@@ -1,0 +1,16 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+code: .
+command: >-
+  python ddm_predictor.py simulator.policy=ray-aml hydra.job.chdir=False
+# your enviornment name should include the `azureml` prefix and the `@<version-name>` suffix
+environment: azureml:ray-ddm@latest
+# your compute name should have `azureml:` prefix
+compute: azureml:cpu
+display_name: ray-ddm-cpole-mixed-auto-ip
+experiment_name: ray-ddm-cpole-mixed
+description: Integrating DDM with AML.
+distribution:
+   type: mpi
+# Modify the following and num_rollout_workers in main to use more workers
+resources:
+  instance_count: 4

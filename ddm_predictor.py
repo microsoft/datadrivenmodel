@@ -38,6 +38,10 @@ from omegaconf import DictConfig
 dir_path = os.path.dirname(os.path.realpath(__file__))
 env_name = "DDM"
 
+from ray.rllib.env import BaseEnv
+import gymnasium as gym
+from gymnasium.spaces import Box
+
 
 def type_conversion(obj, type, minimum, maximum):
     if type == "str":
@@ -336,7 +340,7 @@ class Simulator(BaseModel):
                     {key: float(self.signals[key].get_current_signal())}
                 )
         else:
-            print("No signal builder used")
+            logger.info(f"No signal builder used")
 
         # capture all data
         # TODO: check if we can pick a subset of data yaml, i.e., what happens if
@@ -377,7 +381,7 @@ class Simulator(BaseModel):
         #         else
         #     }
 
-    def episode_step(self, action: Dict[str, int]) -> Dict:
+    def episode_step(self, action: Dict[str, float]) -> Dict:
         # load design matrix for self.model.predict
         # should match the shape of conf.data.inputs
         # make dict of D={states, actions, configs}
@@ -439,10 +443,10 @@ class Simulator(BaseModel):
                     self.all_data.update({key: self.current_signals[key]})
 
         # Use the signal builder's value as input to DDM if specified
-        if self.signal_builder:
-            for key in self.features:
-                if key in self.signals:
-                    self.all_data.update({key: self.current_signals[key]})
+        # if self.signal_builder:
+        #     for key in self.features:
+        #         if key in self.signals:
+        #             self.all_data.update({key: self.current_signals[key]})
 
         # MAKE SURE THIS IS SORTED ACCORDING TO THE ORDER USED IN TRAINING
         ddm_input = {k: self.all_data[k] for k in self.features}
@@ -455,7 +459,7 @@ class Simulator(BaseModel):
 
         # input_array = [item for subl in input_list for item in subl]
         input_array = list(ddm_input.values())
-        X = np.array(input_array).reshape(1, -1)
+        X = np.array(input_array, dtype=object).reshape(1, -1)
         if self.diff_state:
             preds = np.array(list(self.state.values())) + self.model.predict(
                 X
@@ -542,6 +546,199 @@ class Simulator(BaseModel):
         pass
 
 
+def get_reward(obs, action):
+    # fill out reward here
+
+    reward = np.random.random()
+    return reward
+
+
+def get_terminal(obs, action) -> int:
+    # fill out terminal here
+
+    terminal = np.random.random()
+    return terminal > 0.5
+
+
+def run_baseenv_aml(simulator: Simulator):
+    class DDMBaseEnv(BaseEnv):
+        def __init__(self, simulator, config):
+            self.simulator = simulator
+
+        def poll(
+            self,
+        ):
+            obs = self.simulator.get_state()
+            return obs
+
+        def send_actions(self, action_dict):
+            # action_dict is typcially a dictionary of env_ids keys
+            # with action values, but we only have a singleton
+            self.simulator.episode_step(action_dict)
+
+        def try_reset(self, config):
+            self.simulator.episode_start(config)
+
+
+def flatten_structure(structure):
+    flattened_structure = {}
+    for key, value in structure.items():
+        if isinstance(value, list) and len(value) == 1:
+            value = value[0]
+        if isinstance(value, np.ndarray):
+            flattened_structure[key] = value.flatten()
+        else:
+            flattened_structure[key] = value
+    return flattened_structure
+
+
+def run_gym_aml(
+    simulator: Simulator,
+    config: Optional[Dict[str, float]] = None,
+    local: bool = False,
+    num_iters: int = 1_000_000,
+):
+    class GymWrapper(gym.Env):
+        def __init__(self, config):
+            self.sim = simulator
+            self.config = config
+            self.observation_space = gym.spaces.Dict(
+                {
+                    k: Box(low=-float("inf"), high=float("inf"))
+                    for k in self.sim.state_keys
+                }
+            )
+            self.action_space = gym.spaces.Dict(
+                {k: Box(low=-1, high=1, dtype=np.int32) for k in self.sim.action_keys}
+            )
+            self.max_iter = 10
+
+        def _get_obs(self):
+            """Get the observable state."""
+
+            sim_state = self.sim.state
+            sim_state_array = {k: np.array([v]) for k, v in sim_state.items()}
+            # sim_state = flatten_structure(sim_state)
+            # sim_state = np.array(list(sim_state.items()))
+
+            return sim_state_array
+
+        def _get_info(self):
+            """Get additional info not needed by the agent's decision."""
+            return {}
+
+        def reset(
+            self,
+            # config: Optional[Dict[str, Any]] = None,
+            seed: int = None,
+            options: Optional[Dict[str, Any]] = None,
+        ):
+            self.sim.episode_start(options)
+
+            return self._get_obs(), self._get_info()
+
+        def step(self, action: Dict[str, float]):
+            obs = self.sim.episode_step(action)
+            reward = get_reward(obs, action)
+
+            terminated = get_terminal(obs, action)
+
+            info = self._get_info()
+
+            truncated = self.sim.iteration_counter >= self.max_iter
+
+            # return obs, reward, terminal, info
+            return (
+                self._get_obs(),
+                reward,
+                terminated,
+                truncated,
+                info,
+            )
+
+        def render(self):
+            return NotImplementedError
+
+    from ray.rllib.algorithms.ppo import PPOConfig
+    from ray.tune.logger import pretty_print
+    from ray.tune.registry import register_env
+    from ray.tune import Tuner
+    from ray_tools import CurriculumCallback
+
+    # Register the simulation as an RLlib environment.
+    register_env("GymWrapper", lambda config: GymWrapper(config))
+
+    def train(num_iters: int = num_iters):
+        # Define the algo for training the agent
+        # os.chdir(dir_path)
+        algo_config = (
+            PPOConfig()
+            # Modify also instance_count in job definition to use more than one worker
+            # Setting workers to zero allows using breakpoints in sim for debugging
+            .rollouts(num_rollout_workers=1 if not local else 0)
+            .resources(num_gpus=0)
+            .callbacks(CurriculumCallback)
+            # Set the training batch size to the appropriate number of steps
+            .training(train_batch_size=4_000)
+            .environment(env="GymWrapper")
+        )
+        # Define the stopping criteria for your job.
+        stopping_criteria = {
+            "training_iteration": num_iters,
+        }
+        # Build the algorithm from the config and pass it to the tune.Tuner constructor
+        tuner = Tuner(
+            "PPO",
+            param_space=algo_config,
+            run_config=RunConfig(
+                stop=stopping_criteria,
+                # This will store the best performing checkpoints.
+                checkpoint_config=CheckpointConfig(
+                    num_to_keep=20,
+                    checkpoint_score_attribute="episode_reward_mean",
+                    checkpoint_score_order="max",
+                ),
+                # Folder where you want outputs to be stored.
+                # `outputs` can be found in AML Studio under the "Outputs + Logs" tab of your job
+                storage_path="./outputs/ray_results",
+                verbose=2,
+            ),
+        )
+
+        results = tuner.fit()
+        print(pretty_print(results))
+
+    if local:
+        train()
+    else:
+        from ray_on_aml.core import Ray_On_AML
+
+        ray_on_aml = Ray_On_AML()
+        ray = ray_on_aml.getRay()
+
+        if ray:
+            print("head node detected")
+            # ray.init(address="auto", runtime_env="")
+            client = ray.init(
+                # f"ray://{ray_on_aml.headnode_private_ip}:10001",
+                address="auto",
+                runtime_env={
+                    # "py_modules": [dir_path]}
+                    "working_dir": dir_path,
+                    "excludes": [".git", "/outputs/", "/data/", "/csv_data/"],
+                },
+            )
+            print(f"Cluster resources: {ray.cluster_resources()}")
+            print(f"current working directory: {os.getcwd()}")
+            print(f"current directory contents: {os.listdir()}")
+            print(f"directory contents three folders up: {os.listdir('../../../')}")
+            print(f"Directory at {dir_path}: {os.listdir(dir_path)}")
+            train()
+            client.disconnect()
+        else:
+            print("in worker node")
+
+
 def env_setup():
     """Helper function to setup connection with Project Bonsai
 
@@ -602,7 +799,7 @@ def test_policy(
         iteration = 0
         terminal = False
         if config:
-            new_config = _config_clean(config)
+            config = _config_clean(config)
             logger.info(f"Configuration: {new_config}")
             sim.episode_start(new_config)
         else:
@@ -729,6 +926,11 @@ def main(cfg: DictConfig):
             config=None,
             policy=random_policy_from_keys,
         )
+    elif policy == "ray-local":
+        run_gym_aml(sim, config=None, local=True)
+    elif policy == "ray-aml":
+        train_iters = int(cfg["simulator"]["training_iters"])
+        run_gym_aml(sim, config=None, local=False, num_iters=train_iters)
     elif isinstance(policy, int):
         # If docker PORT provided, set as exported brain PORT
         port = policy
