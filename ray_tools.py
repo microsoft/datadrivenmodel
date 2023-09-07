@@ -7,6 +7,7 @@ from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from azureml.core import Run
 from ray.tune.logger import pretty_print
 
+
 class CurriculumCallback(DefaultCallbacks):
     """A custom callback class that logs key training metrics to tensorboard and
     Azure ML.
@@ -46,4 +47,3 @@ class CurriculumCallback(DefaultCallbacks):
         # Log metrics to Azure ML
         for k, v in to_log.items():
             self.run.log(name=k, value=v)
-
